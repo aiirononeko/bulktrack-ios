@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    // ViewModelのインスタンスをStateObjectとして生成
+    @EnvironmentObject var sessionManager: SessionManager // SessionManager を受け取る
     @StateObject private var viewModel = HomeViewModel()
 
     private var currentDateFormatted: String { // ViewModelに移動するまではここに残す
@@ -22,6 +22,40 @@ struct HomeView: View {
         NavigationView {
             GeometryReader { geometry in
                 VStack(spacing: 0) {
+                    // セッション中表示
+                    if sessionManager.isSessionActive || sessionManager.isEndingSession { // isEndingSessionも条件に追加
+                        VStack(alignment: .leading, spacing: 4) { // エラー表示のためにVStackに変更
+                            HStack {
+                                Image(systemName: "flame.fill")
+                                    .foregroundColor(.orange)
+                                Text(sessionManager.isEndingSession ? "セッション終了処理中..." : "セッション実行中 (ID: \(sessionManager.currentSessionId ?? "N/A"))")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                Spacer()
+                                if sessionManager.isSessionActive { // セッションがアクティブな場合のみ終了ボタンを表示
+                                    Button(sessionManager.isEndingSession ? "処理中..." : "終了する") {
+                                        sessionManager.endCurrentSession()
+                                    }
+                                    .font(.caption)
+                                    .disabled(sessionManager.isEndingSession) // ローディング中は無効化
+                                    .padding(.trailing)
+                                }
+                            }
+                            
+                            if let error = sessionManager.sessionEndingError {
+                                Text("エラー: \(error)")
+                                    .font(.caption2)
+                                    .foregroundColor(.red)
+                                    .padding(.leading) // 少しインデント
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 5)
+                        .background(Color.orange.opacity(0.1))
+                        .animation(.default, value: sessionManager.isEndingSession) // 状態変化時のアニメーション
+                        .animation(.default, value: sessionManager.sessionEndingError)
+                    }
+
                     TabView {
                         // 1ページ目: ダッシュボード
                         VStack(spacing: 0) {

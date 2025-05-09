@@ -124,12 +124,56 @@ struct DashboardResponse: Decodable {
     }
 }
 
+// MARK: - Session Models (OpenAPI スキーマに基づく)
+
+struct SessionStartRequest: Encodable {
+    // userId と startedAt は必須と仮定 (OpenAPIの SessionStart には元々 user_id, started_at がないので、
+    // これらが実際にはリクエストボディに含まれないなら、それに応じて削除またはオプショナルにする必要あり)
+    // 今回の修正API仕様では menu_id のみが SessionStart のプロパティ
+    // let userId: String // OpenAPIの SessionStart スキーマに準拠するなら削除
+    // let startedAt: String // OpenAPIの SessionStart スキーマに準拠するなら削除
+    let menuId: String? 
+
+    enum CodingKeys: String, CodingKey {
+        // case userId = "user_id"
+        // case startedAt = "started_at"
+        case menuId = "menu_id"
+    }
+}
+
+struct WorkoutSessionResponse: Decodable, Identifiable {
+    let id: String // プロパティ名は id のままでOK (Identifiable準拠のため)
+    let startedAt: String
+    // 以下のプロパティはAPIレスポンスに含まれていないため、オプショナルにするか、
+    // APIが返すように修正する必要がある。今回はオプショナルとして扱う。
+    let userId: String?
+    let menuId: String?
+    let finishedAt: String?
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id = "sessionId" // JSONのキー "sessionId" を プロパティ "id" にマッピング
+        case startedAt = "startedAt" // JSONのキー "startedAt" (もしスネークケースなら "started_at")
+        // APIレスポンスに合わせて他のキーも確認・修正
+        case userId = "user_id" // APIが user_id を返さないならコメントアウトかオプショナル対応
+        case menuId = "menu_id" // APIが menu_id を返さないならコメントアウトかオプショナル対応
+        case finishedAt = "finished_at"
+        case createdAt = "created_at"
+    }
+}
+
 class APIService {
     private let keychainService = KeychainService()
     private let baseURLString = APIConfig.baseURL
     
     private var isRefreshingToken = false
     private var pendingRequests: [(URLRequest, (Result<Data, Error>) -> Void)] = []
+
+    private static let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds] // .sssZ を含む形式
+        return formatter
+    }()
 
     // Keychainからアクセストークンを取得するヘルパー
     private func getAccessToken() throws -> String {
@@ -414,6 +458,96 @@ class APIService {
                     completion(.failure(APIError.decodingError(decodingError)))
                 }
             case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - Session Management
+
+    func startSession(menuId: String? = nil, completion: @escaping (Result<WorkoutSessionResponse, Error>) -> Void) {
+        guard let url = URL(string: baseURLString + "/v1/sessions") else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let requestBody = SessionStartRequest(menuId: menuId)
+        do {
+            request.httpBody = try JSONEncoder().encode(requestBody)
+        } catch {
+            completion(.failure(APIError.decodingError(error)))
+            return
+        }
+        
+        do {
+            let accessToken = try getAccessToken()
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            print("APIService: Starting session with URL: \(url) and Token: Bearer \(accessToken.prefix(10))...")
+        } catch {
+            completion(.failure(error))
+            return
+        }
+
+        performRequest(request) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let decoder = JSONDecoder()
+                    // DateDecodingStrategy は WorkoutSessionResponse の CodingKeys で対応想定
+                    let sessionResponse = try decoder.decode(WorkoutSessionResponse.self, from: data)
+                    print("APIService: Session started successfully. Response: \(sessionResponse)")
+                    completion(.success(sessionResponse))
+                } catch {
+                    print("APIService: Failed to decode session start response: \(error)")
+                    if let dataString = String(data: data, encoding: .utf8) {
+                        print("Raw response data for startSession: \(dataString)")
+                    }
+                    completion(.failure(APIError.decodingError(error)))
+                }
+            case .failure(let error):
+                print("APIService: Failed to start session: \(error.localizedDescription)")
+                completion(.failure(error))
+            }
+        }
+    }
+
+    func finishSession(sessionId: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let url = URL(string: baseURLString + "/v1/sessions/\(sessionId)/finish") else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        do {
+            let accessToken = try getAccessToken()
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            print("APIService: Finishing session with URL: \(url) and Token: Bearer \(accessToken.prefix(10))...")
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        performRequest(request) { result in
+            switch result {
+            case .success(let data): // 204 No Contentの場合 dataは空かもしれない
+                // 成功時、レスポンスボディは期待しないため、dataのチェックは不要な場合もある
+                // サーバーが204を返す場合、dataは0バイトになる
+                if data.isEmpty {
+                     print("APIService: Session (ID: \(sessionId)) finished successfully (204 No Content or empty body).")
+                } else {
+                     print("APIService: Session (ID: \(sessionId)) finished successfully with data (length: \(data.count)).")
+                }
+                completion(.success(()))
+            case .failure(let error):
+                print("APIService: Failed to finish session (ID: \(sessionId)): \(error.localizedDescription)")
                 completion(.failure(error))
             }
         }

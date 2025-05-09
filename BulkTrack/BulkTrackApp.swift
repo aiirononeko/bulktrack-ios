@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct BulkTrackApp: App {
     @StateObject private var appInitializer = AppInitializer()
+    @StateObject private var sessionManager = SessionManager() // SessionManager を StateObject として初期化
     @State private var selectedTabTag: Int = TabTag.home // TabView の selection にバインド
     @State private var isShowingAddWorkoutModal = false
 
@@ -37,12 +38,14 @@ struct BulkTrackApp: App {
             ZStack(alignment: .bottom) { 
                 TabView(selection: $selectedTabTag) {
                     HomeView()
+                        // .environmentObject(sessionManager) // 各タブのルートビューに渡す
                         .tabItem {
                             Label("ホーム", systemImage: "house.fill")
                         }
                         .tag(TabTag.home)
                     
                     HistoryView()
+                        // .environmentObject(sessionManager)
                         .tabItem {
                             Label("トレーニング履歴", systemImage: "clock.fill")
                         }
@@ -59,25 +62,21 @@ struct BulkTrackApp: App {
                         .disabled(true) // タップを無効化
 
                     MenuView()
+                        // .environmentObject(sessionManager)
                         .tabItem {
                             Label("メニュー管理", systemImage: "list.bullet")
                         }
                         .tag(TabTag.menu)
 
                     SettingsView()
+                        // .environmentObject(sessionManager)
                         .tabItem {
                             Label("アプリ設定", systemImage: "gearshape.fill")
                         }
                         .tag(TabTag.settings)
                 }
                 .accentColor(.black)
-                // .onChange は selectedTabTag の管理のみであれば不要かもしれないが、
-                // 他の目的で使う可能性も考慮し、一旦コメントアウト (または内容をクリア)
-                /*
-                .onChange(of: selectedTabTag, initial: false) { oldSelectedTab, newSelectedTab in
-                    // 以前のプラスボタンタブ選択時の処理は削除
-                }
-                */
+                .environmentObject(sessionManager) // TabView全体、またはその親に一度だけ設定すればOK
 
                 // カスタムプラスボタン
                 Button {
@@ -102,6 +101,7 @@ struct BulkTrackApp: App {
             }
             .sheet(isPresented: $isShowingAddWorkoutModal) {
                 AddPlaceholderView()
+                    .environmentObject(sessionManager) // モーダルにも渡す
                     .presentationDetents([.medium, .large])
             }
         }

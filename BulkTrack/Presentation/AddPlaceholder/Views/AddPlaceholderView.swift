@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct AddPlaceholderView: View {
-    // このビューはモーダルとして表示されるため、
-    // 独自のモーダル表示状態や.onAppearでの処理は不要になります。
+    @EnvironmentObject var sessionManager: SessionManager // SessionManager を環境オブジェクトとして受け取る
     @State private var selectionType: SelectionType = .individual // 選択状態を保持
     @StateObject private var viewModel = AddPlaceholderViewModel() // ViewModelをインスタンス化
 
@@ -65,12 +64,27 @@ struct AddPlaceholderView: View {
                                 HStack(spacing: 15) {
                                     ForEach(exercisesList) { exercise in
                                         WorkoutItemCard(itemName: exercise.name ?? exercise.canonicalName)
+                                            .onTapGesture {
+                                                viewModel.selectExerciseAndStartSession(exercise: exercise, sessionManager: sessionManager)
+                                            }
                                     }
                                 }
                                 .padding(.horizontal)
                             }
                             .frame(height: 120) // ScrollViewの高さを指定
                         }
+
+                        // セッション開始時のローディングとエラー表示 (任意)
+                        if viewModel.isStartingSession {
+                            ProgressView("セッションを開始しています...")
+                                .padding()
+                        }
+                        if let sessionError = viewModel.sessionError {
+                            Text("セッション開始エラー: \(sessionError)")
+                                .foregroundColor(.red)
+                                .padding()
+                        }
+
                         Spacer() // 残りのスペースを埋める
                     }
                 case .menu:
@@ -99,6 +113,23 @@ struct AddPlaceholderView: View {
         .onChange(of: selectionType) { _, newSelectionType in
             if newSelectionType == .individual {
                 viewModel.fetchExercises()
+            }
+        }
+        .fullScreenCover(isPresented: $viewModel.isShowingSessionModal) {
+            // startedSessionId が nil でないことを確認してモーダルを表示
+            if let sessionId = viewModel.startedSessionId {
+                // TODO: ここに実際のセッション画面のViewを配置する
+                VStack {
+                    Text("セッション画面 (ID: \(sessionId))")
+                    Button("セッションを終了して閉じる") { // ボタンのラベルを変更
+                        // sessionManager.endCurrentSession() // セッションマネージャーの状態を更新
+                        viewModel.isShowingSessionModal = false
+                    }
+                }
+            } else {
+                // sessionIdがnilの場合はエラーメッセージかローディング表示など
+                // 基本的にはisShowingSessionModalがtrueになるのはsessionIdがセットされた後のはず
+                Text("セッションIDの取得待機中またはエラー")
             }
         }
     }
