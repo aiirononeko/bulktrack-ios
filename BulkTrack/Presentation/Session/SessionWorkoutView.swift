@@ -11,15 +11,19 @@ struct SessionWorkoutView: View {
     let exercise: Exercise 
     @Binding var isPresented: Bool
     @EnvironmentObject var sessionManager: SessionManager
-    private let apiService = APIService() // APIServiceのインスタンス (本来はDI推奨)
+    // UserSettingsServiceのインスタンスを取得
+    private let userSettingsService = UserSettingsService.shared
 
-    @State private var currentSet: String = "1" 
+    @State private var currentSet: String = "1"
     @State private var weightInput: String = ""
     @State private var repsInput: String = ""
-    @State private var rpeInput: String = "" 
+    @State private var rpeInput: String = ""
     
     @State private var isRecordingSet: Bool = false
     @State private var recordingError: String? = nil
+
+    // 新しく追加: 前回のワークアウト記録表示用
+    @State private var lastWorkoutDisplay: LastWorkoutSessionForExercise? = nil
 
     // UI表示用の構造体
     struct UIRecordedSet: Identifiable { 
@@ -52,16 +56,35 @@ struct SessionWorkoutView: View {
         case rpe 
     }
 
+    // APIServiceのインスタンスも必要
+    private let apiService = APIService()
+
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 15) { // VStackのalignmentをleadingに変更
+                
+                // 前回の記録表示セクション
+                if let lastWorkout = lastWorkoutDisplay, !lastWorkout.sets.isEmpty {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("前回の記録 (\(lastWorkout.recordedDate, style: .date))")
+                            .font(.headline)
+                            .padding(.bottom, 2)
+                        ForEach(lastWorkout.sets) { setDetail in
+                            Text(setDetail.displayString) // RecordedSetDetail に displayString を追加想定
+                                .font(.subheadline)
+                        }
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(8)
+                    Divider()
+                }
                 
                 HStack {
                     Text("セット \(currentSet)")
                         .font(.title2)
                         .fontWeight(.semibold)
-                    Spacer() // 右側にSpacerを追加してテキストを左寄せ
+                    Spacer() 
                 }
                 
                 HStack(alignment: .top, spacing: 15) { 
@@ -88,22 +111,22 @@ struct SessionWorkoutView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("RPE")
                             .font(.caption)
-                        TextField("例: 8", text: $rpeInput)
+                        TextField("例: 8.5", text: $rpeInput)
                             .keyboardType(.decimalPad) 
                             .focused($focusedField, equals: .rpe)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .frame(minWidth: 0, maxWidth: .infinity)
                     }
                 }
-                .padding(.horizontal) 
+                // .padding(.horizontal) // HStackにpaddingがあるのでVStackからは削除してもよいかも
 
                 Button(isRecordingSet ? "記録中..." : "セットを記録する") {
                     recordSetViaAPI()
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.black)
-                .padding(.top)
-                .disabled(isRecordingSet)
+                .buttonStyle(.borderedProminent) 
+                .tint(.black) 
+                .frame(maxWidth: .infinity) // ボタンを横幅いっぱいに
+                // .padding(.top) // VStackのspacingで調整
 
                 if let error = recordingError {
                     Text("記録エラー: \(error)")
@@ -124,7 +147,6 @@ struct SessionWorkoutView: View {
                                 Spacer()
                                 Text("RPE \(String(format: "%.1f", rpe))")
                             }
-                            // 必要であればcompletedAtも表示
                         }
                         .font(.subheadline)
                     }
@@ -135,15 +157,15 @@ struct SessionWorkoutView: View {
             .navigationTitle(exercise.name ?? exercise.canonicalName) 
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) { 
                     Button {
                         isPresented = false 
                     } label: {
                         HStack {
                             Image(systemName: "chevron.left")
-                                .font(.caption)
+                                 .font(.caption)
                             Text("他の種目を選ぶ")
-                                .font(.caption)
+                                 .font(.caption)
                         }
                     }
                     .tint(.black) 
@@ -156,7 +178,8 @@ struct SessionWorkoutView: View {
                 }
             }
             .onAppear {
-                loadRecordedSets()
+                loadCurrentSessionSets() // メソッド名を変更して明確化
+                loadLastWorkoutRecord()  // 前回の記録をロード
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     self.focusedField = .weight 
                 }
@@ -164,11 +187,22 @@ struct SessionWorkoutView: View {
         }
     }
 
-    private func loadRecordedSets() {
+    // メソッド名を変更: loadCurrentSessionSets
+    private func loadCurrentSessionSets() {
         let setsFromManager = sessionManager.getRecordedSets(for: exercise.id)
         self.uiRecordedSets = setsFromManager.map { UIRecordedSet(from: $0) }
         self.currentSet = String(self.uiRecordedSets.count + 1)
-        print("SessionWorkoutView: Loaded \(self.uiRecordedSets.count) sets for exercise \(exercise.id). Next set: \(self.currentSet)")
+        print("SessionWorkoutView: Loaded \(self.uiRecordedSets.count) sets for current session exercise \(exercise.id). Next set: \(self.currentSet)")
+    }
+
+    // 新しく追加: 前回のワークアウト記録をロードするメソッド
+    private func loadLastWorkoutRecord() {
+        self.lastWorkoutDisplay = userSettingsService.getLastWorkoutSession(for: exercise.id, excludingCurrentSessionId: self.sessionId)
+        if let lastWorkout = self.lastWorkoutDisplay {
+            print("SessionWorkoutView: Loaded last workout record (session: \(lastWorkout.sessionId)) for exercise \(exercise.id) with \(lastWorkout.sets.count) sets from \(lastWorkout.recordedDate).")
+        } else {
+            print("SessionWorkoutView: No last workout record found for exercise \(exercise.id) (excluding current session \(self.sessionId)).")
+        }
     }
 
     private func recordSetViaAPI() { 
@@ -201,9 +235,14 @@ struct SessionWorkoutView: View {
                     print("Set recorded successfully via API: \(setResponse)")
                     
                     self.sessionManager.addRecordedSet(setResponse, for: self.exercise.id)
+                    self.loadCurrentSessionSets()
                     
-                    self.loadRecordedSets()
-                    
+                    let allSetsForThisExerciseInSession = self.sessionManager.getRecordedSets(for: self.exercise.id)
+                    self.userSettingsService.saveLastWorkoutSession(for: self.exercise, 
+                                                                  with: self.sessionId, 
+                                                                  setsFromCurrentSession: allSetsForThisExerciseInSession)
+                    self.loadLastWorkoutRecord() 
+                                        
                     self.weightInput = ""
                     self.repsInput = ""
                     self.rpeInput = ""

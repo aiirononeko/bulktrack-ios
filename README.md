@@ -10,9 +10,9 @@
 
 | Pillar                         | Why it Matters                                                                              | How it Shows Up in the App                                                                                                                |
 | ------------------------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **1 Frustration-free Logging** | A set should be captured in <800 ms, even offline.                                          | Offline-first Core Data cache, single-tap set duplication, auto-prefill with last weights/reps, device-ID onboarding (no account needed). |
-| **2 Volume-Centric Insights**  | Hypertrophy hinges on *effective volume*. Users need a gut-level view of “did I do enough?” | Daily/weekly muscle‐volume aggregation, highlight under-stimulated areas, deload warnings.                                                |
-| **3 AI-Ready Data Rails**      | Tomorrow’s coach learns from your history + recovery. Clean data > fancy models.            | Normalised local schema, explicit tempo/rest, deterministic IDs, background sync jobs.                                                    |
+| **1 Frustration-free Logging** | A set should be captured in <800 ms, even offline.                                          | Offline-first Core Data cache, single-tap set duplication, auto-prefill with last weights/reps, **display of previous session's sets for the same exercise (via UserDefaults)**, device-ID onboarding (no account needed). |
+| **2 Volume-Centric Insights**  | Hypertrophy hinges on *effective volume*. Users need a gut-level view of "did I do enough?" | Daily/weekly muscle‐volume aggregation, highlight under-stimulated areas, deload warnings.                                                |
+| **3 AI-Ready Data Rails**      | Tomorrow's coach learns from your history + recovery. Clean data > fancy models.            | Normalised local schema, explicit tempo/rest, deterministic IDs, background sync jobs.                                                    |
 | **4 Edge-native Speed**        | Millisecond APIs worldwide without DevOps drag.                                             | Typed Swift SDK calling Cloudflare-Workers API, aggressive caching, background refresh.                                                   |
 
 ---
@@ -85,6 +85,7 @@ graph LR
 ```
 
 * **Combine publishers** keep views in sync with Core Data.
+* **UserDefaults** is utilized to store and recall the user's last performed sets for each exercise, enhancing the logging experience by providing quick reference to previous workout data.
 * **OpenAPI-generated Swift SDK** (via `ProtobufGenerator + openapi-swift`) ensures compile-time parity with the backend schema.
 
 ---
