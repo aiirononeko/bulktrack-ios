@@ -1,0 +1,964 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4FA481F92DCDAB6100EDCCB3 /* BulkTrack Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4FA481E32DCDAB6100EDCCB3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FA481CD2DCDAB6000EDCCB3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FA481D42DCDAB6000EDCCB3;
+			remoteInfo = BulkTrack;
+		};
+		4FA481ED2DCDAB6100EDCCB3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FA481CD2DCDAB6000EDCCB3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FA481D42DCDAB6000EDCCB3;
+			remoteInfo = BulkTrack;
+		};
+		4FA481FA2DCDAB6100EDCCB3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FA481CD2DCDAB6000EDCCB3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FA481F72DCDAB6100EDCCB3;
+			remoteInfo = "BulkTrack Watch App";
+		};
+		4FA482082DCDAB6200EDCCB3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FA481CD2DCDAB6000EDCCB3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FA481F72DCDAB6100EDCCB3;
+			remoteInfo = "BulkTrack Watch App";
+		};
+		4FA482122DCDAB6200EDCCB3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FA481CD2DCDAB6000EDCCB3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FA481F72DCDAB6100EDCCB3;
+			remoteInfo = "BulkTrack Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4FA4821E2DCDAB6200EDCCB3 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				4FA481F92DCDAB6100EDCCB3 /* BulkTrack Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BulkTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BulkTrack Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4FA481D72DCDAB6000EDCCB3 /* BulkTrack */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BulkTrack;
+			sourceTree = "<group>";
+		};
+		4FA481E52DCDAB6100EDCCB3 /* BulkTrackTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BulkTrackTests;
+			sourceTree = "<group>";
+		};
+		4FA481EF2DCDAB6100EDCCB3 /* BulkTrackUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BulkTrackUITests;
+			sourceTree = "<group>";
+		};
+		4FA481FC2DCDAB6100EDCCB3 /* BulkTrack Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "BulkTrack Watch App";
+			sourceTree = "<group>";
+		};
+		4FA4820A2DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "BulkTrack Watch AppTests";
+			sourceTree = "<group>";
+		};
+		4FA482142DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "BulkTrack Watch AppUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4FA481D22DCDAB6000EDCCB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481DF2DCDAB6100EDCCB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481E92DCDAB6100EDCCB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481F52DCDAB6100EDCCB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA482042DCDAB6200EDCCB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA4820E2DCDAB6200EDCCB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4FA481CC2DCDAB6000EDCCB3 = {
+			isa = PBXGroup;
+			children = (
+				4FA481D72DCDAB6000EDCCB3 /* BulkTrack */,
+				4FA481E52DCDAB6100EDCCB3 /* BulkTrackTests */,
+				4FA481EF2DCDAB6100EDCCB3 /* BulkTrackUITests */,
+				4FA481FC2DCDAB6100EDCCB3 /* BulkTrack Watch App */,
+				4FA4820A2DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */,
+				4FA482142DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
+				4FA481D62DCDAB6000EDCCB3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4FA481D62DCDAB6000EDCCB3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */,
+				4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */,
+				4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */,
+				4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */,
+				4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */,
+				4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4FA481D42DCDAB6000EDCCB3 /* BulkTrack */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FA4821F2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack" */;
+			buildPhases = (
+				4FA481D12DCDAB6000EDCCB3 /* Sources */,
+				4FA481D22DCDAB6000EDCCB3 /* Frameworks */,
+				4FA481D32DCDAB6000EDCCB3 /* Resources */,
+				4FA4821E2DCDAB6200EDCCB3 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4FA481FB2DCDAB6100EDCCB3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4FA481D72DCDAB6000EDCCB3 /* BulkTrack */,
+			);
+			name = BulkTrack;
+			packageProductDependencies = (
+			);
+			productName = BulkTrack;
+			productReference = 4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4FA481E12DCDAB6100EDCCB3 /* BulkTrackTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FA482222DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrackTests" */;
+			buildPhases = (
+				4FA481DE2DCDAB6100EDCCB3 /* Sources */,
+				4FA481DF2DCDAB6100EDCCB3 /* Frameworks */,
+				4FA481E02DCDAB6100EDCCB3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4FA481E42DCDAB6100EDCCB3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4FA481E52DCDAB6100EDCCB3 /* BulkTrackTests */,
+			);
+			name = BulkTrackTests;
+			packageProductDependencies = (
+			);
+			productName = BulkTrackTests;
+			productReference = 4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4FA481EB2DCDAB6100EDCCB3 /* BulkTrackUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FA482252DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrackUITests" */;
+			buildPhases = (
+				4FA481E82DCDAB6100EDCCB3 /* Sources */,
+				4FA481E92DCDAB6100EDCCB3 /* Frameworks */,
+				4FA481EA2DCDAB6100EDCCB3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4FA481EE2DCDAB6100EDCCB3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4FA481EF2DCDAB6100EDCCB3 /* BulkTrackUITests */,
+			);
+			name = BulkTrackUITests;
+			packageProductDependencies = (
+			);
+			productName = BulkTrackUITests;
+			productReference = 4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FA4821B2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack Watch App" */;
+			buildPhases = (
+				4FA481F42DCDAB6100EDCCB3 /* Sources */,
+				4FA481F52DCDAB6100EDCCB3 /* Frameworks */,
+				4FA481F62DCDAB6100EDCCB3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4FA481FC2DCDAB6100EDCCB3 /* BulkTrack Watch App */,
+			);
+			name = "BulkTrack Watch App";
+			packageProductDependencies = (
+			);
+			productName = "BulkTrack Watch App";
+			productReference = 4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4FA482062DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FA482282DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack Watch AppTests" */;
+			buildPhases = (
+				4FA482032DCDAB6200EDCCB3 /* Sources */,
+				4FA482042DCDAB6200EDCCB3 /* Frameworks */,
+				4FA482052DCDAB6200EDCCB3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4FA482092DCDAB6200EDCCB3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4FA4820A2DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */,
+			);
+			name = "BulkTrack Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "BulkTrack Watch AppTests";
+			productReference = 4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4FA482102DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FA4822B2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack Watch AppUITests" */;
+			buildPhases = (
+				4FA4820D2DCDAB6200EDCCB3 /* Sources */,
+				4FA4820E2DCDAB6200EDCCB3 /* Frameworks */,
+				4FA4820F2DCDAB6200EDCCB3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4FA482132DCDAB6200EDCCB3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4FA482142DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
+			);
+			name = "BulkTrack Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "BulkTrack Watch AppUITests";
+			productReference = 4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4FA481CD2DCDAB6000EDCCB3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = NO;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					4FA481D42DCDAB6000EDCCB3 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					4FA481E12DCDAB6100EDCCB3 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = 4FA481D42DCDAB6000EDCCB3;
+					};
+					4FA481EB2DCDAB6100EDCCB3 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = 4FA481D42DCDAB6000EDCCB3;
+					};
+					4FA481F72DCDAB6100EDCCB3 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					4FA482062DCDAB6200EDCCB3 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = 4FA481F72DCDAB6100EDCCB3;
+					};
+					4FA482102DCDAB6200EDCCB3 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = 4FA481F72DCDAB6100EDCCB3;
+					};
+				};
+			};
+			buildConfigurationList = 4FA481D02DCDAB6000EDCCB3 /* Build configuration list for PBXProject "BulkTrack" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4FA481CC2DCDAB6000EDCCB3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4FA481D62DCDAB6000EDCCB3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4FA481D42DCDAB6000EDCCB3 /* BulkTrack */,
+				4FA481E12DCDAB6100EDCCB3 /* BulkTrackTests */,
+				4FA481EB2DCDAB6100EDCCB3 /* BulkTrackUITests */,
+				4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */,
+				4FA482062DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */,
+				4FA482102DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4FA481D32DCDAB6000EDCCB3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481E02DCDAB6100EDCCB3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481EA2DCDAB6100EDCCB3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481F62DCDAB6100EDCCB3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA482052DCDAB6200EDCCB3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA4820F2DCDAB6200EDCCB3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4FA481D12DCDAB6000EDCCB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481DE2DCDAB6100EDCCB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481E82DCDAB6100EDCCB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA481F42DCDAB6100EDCCB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA482032DCDAB6200EDCCB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA4820D2DCDAB6200EDCCB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4FA481E42DCDAB6100EDCCB3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FA481D42DCDAB6000EDCCB3 /* BulkTrack */;
+			targetProxy = 4FA481E32DCDAB6100EDCCB3 /* PBXContainerItemProxy */;
+		};
+		4FA481EE2DCDAB6100EDCCB3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FA481D42DCDAB6000EDCCB3 /* BulkTrack */;
+			targetProxy = 4FA481ED2DCDAB6100EDCCB3 /* PBXContainerItemProxy */;
+		};
+		4FA481FB2DCDAB6100EDCCB3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */;
+			targetProxy = 4FA481FA2DCDAB6100EDCCB3 /* PBXContainerItemProxy */;
+		};
+		4FA482092DCDAB6200EDCCB3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */;
+			targetProxy = 4FA482082DCDAB6200EDCCB3 /* PBXContainerItemProxy */;
+		};
+		4FA482132DCDAB6200EDCCB3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */;
+			targetProxy = 4FA482122DCDAB6200EDCCB3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4FA482192DCDAB6200EDCCB3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4FA4821A2DCDAB6200EDCCB3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 573P995VR5;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		4FA4821C2DCDAB6200EDCCB3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "com.bulk-track.BulkTrack";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Debug;
+		};
+		4FA4821D2DCDAB6200EDCCB3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "com.bulk-track.BulkTrack";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Release;
+		};
+		4FA482202DCDAB6200EDCCB3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4FA482212DCDAB6200EDCCB3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4FA482232DCDAB6200EDCCB3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrackTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BulkTrack.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BulkTrack";
+			};
+			name = Debug;
+		};
+		4FA482242DCDAB6200EDCCB3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrackTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BulkTrack.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BulkTrack";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4FA482262DCDAB6200EDCCB3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrackUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BulkTrack;
+			};
+			name = Debug;
+		};
+		4FA482272DCDAB6200EDCCB3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrackUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BulkTrack;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4FA482292DCDAB6200EDCCB3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BulkTrack Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BulkTrack Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Debug;
+		};
+		4FA4822A2DCDAB6200EDCCB3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BulkTrack Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BulkTrack Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Release;
+		};
+		4FA4822C2DCDAB6200EDCCB3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "BulkTrack Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Debug;
+		};
+		4FA4822D2DCDAB6200EDCCB3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 573P995VR5;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "BulkTrack Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4FA481D02DCDAB6000EDCCB3 /* Build configuration list for PBXProject "BulkTrack" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA482192DCDAB6200EDCCB3 /* Debug */,
+				4FA4821A2DCDAB6200EDCCB3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FA4821B2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA4821C2DCDAB6200EDCCB3 /* Debug */,
+				4FA4821D2DCDAB6200EDCCB3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FA4821F2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA482202DCDAB6200EDCCB3 /* Debug */,
+				4FA482212DCDAB6200EDCCB3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FA482222DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrackTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA482232DCDAB6200EDCCB3 /* Debug */,
+				4FA482242DCDAB6200EDCCB3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FA482252DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrackUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA482262DCDAB6200EDCCB3 /* Debug */,
+				4FA482272DCDAB6200EDCCB3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FA482282DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA482292DCDAB6200EDCCB3 /* Debug */,
+				4FA4822A2DCDAB6200EDCCB3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FA4822B2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA4822C2DCDAB6200EDCCB3 /* Debug */,
+				4FA4822D2DCDAB6200EDCCB3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4FA481CD2DCDAB6000EDCCB3 /* Project object */;
+}
