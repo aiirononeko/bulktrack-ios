@@ -11,6 +11,12 @@ struct AddPlaceholderView: View {
     // このビューはモーダルとして表示されるため、
     // 独自のモーダル表示状態や.onAppearでの処理は不要になります。
     @State private var selectionType: SelectionType = .individual // 選択状態を保持
+    @StateObject private var viewModel = AddPlaceholderViewModel() // ViewModelをインスタンス化
+
+    // ViewModelのexercisesプロパティへのアクセサー
+    private var exercisesList: [Exercise] {
+        viewModel.exercises
+    }
 
     // 選択肢を定義するenum
     enum SelectionType: String, CaseIterable, Identifiable {
@@ -36,24 +42,35 @@ struct AddPlaceholderView: View {
                 switch selectionType {
                 case .individual:
                     VStack(alignment: .leading) {
-                        Text("よく使う種目")
+                        Text("よく行う種目") // TODO: APIから「よく使う種目」を取得するか、全種目リストにするか検討
                             .font(.headline)
                             .fontWeight(.bold)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal)
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 15) {
-                                WorkoutItemCard(itemName: "ベンチプレス")
-                                WorkoutItemCard(itemName: "スクワット")
-                                WorkoutItemCard(itemName: "デッドリフト")
-                                WorkoutItemCard(itemName: "懸垂")
-                                // 他の種目カードも同様に追加可能
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if let errorMessage = viewModel.errorMessage {
+                            Text("エラー: \(errorMessage)")
+                                .foregroundColor(.red)
+                                .padding()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if exercisesList.count == 0 {
+                            Text("利用可能な種目がありません。")
+                                .padding()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 15) {
+                                    ForEach(exercisesList) { exercise in
+                                        WorkoutItemCard(itemName: exercise.name ?? exercise.canonicalName)
+                                    }
+                                }
+                                .padding(.horizontal)
                             }
-                            .padding(.horizontal)
+                            .frame(height: 120) // ScrollViewの高さを指定
                         }
-                        .frame(height: 120) // ScrollViewの高さを指定
-
                         Spacer() // 残りのスペースを埋める
                     }
                 case .menu:
@@ -71,6 +88,17 @@ struct AddPlaceholderView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 20)
                 }
+            }
+        }
+        .onAppear {
+            if selectionType == .individual { // 種目選択タブが表示されている場合のみ取得
+                viewModel.fetchExercises()
+            }
+        }
+        // タブが切り替わった時にもデータを取得する
+        .onChange(of: selectionType) { _, newSelectionType in
+            if newSelectionType == .individual {
+                viewModel.fetchExercises()
             }
         }
     }
