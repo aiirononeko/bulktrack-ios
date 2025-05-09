@@ -10,6 +10,17 @@ import SwiftUI
 @main
 struct BulkTrackApp: App {
     @StateObject private var appInitializer = AppInitializer()
+    @State private var selectedTabTag: Int = TabTag.home // TabView の selection にバインド
+    @State private var isShowingAddWorkoutModal = false
+
+    // タブのタグを定数として定義
+    private enum TabTag {
+        static let home = 0
+        static let history = 1
+        static let dummyCenter = 2 // 中央のダミースペース用のタグ
+        static let menu = 3 
+        static let settings = 4
+    }
 
     init() {        
         // UIPageControlの外観を設定 (ドットインジケータの色)
@@ -23,36 +34,75 @@ struct BulkTrackApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TabView {
-                HomeView()
-                    .tabItem {
-                        Label("ホーム", systemImage: "house.fill")
-                    }
-                
-                HistoryView()
-                    .tabItem {
-                        Label("トレーニング履歴", systemImage: "clock.fill")
-                    }
+            ZStack(alignment: .bottom) { 
+                TabView(selection: $selectedTabTag) {
+                    HomeView()
+                        .tabItem {
+                            Label("ホーム", systemImage: "house.fill")
+                        }
+                        .tag(TabTag.home)
+                    
+                    HistoryView()
+                        .tabItem {
+                            Label("トレーニング履歴", systemImage: "clock.fill")
+                        }
+                        .tag(TabTag.history)
 
-                AddPlaceholderView() // プラスボタンに対応するView
-                    .tabItem {
-                        Label("ワークアウト", systemImage: "plus.circle.fill")
-                    }
+                    // 中央のダミースペース (実質的にはタップさせない)
+                    Text("") // または Spacer().frame(width: 0, height: 0) など
+                        .tabItem {
+                            // Labelを空にするか、非常に小さい透明な画像などを使う
+                            // 実際にはこの上にカスタムボタンが重なる
+                            Label("", systemImage: "square")
+                        }
+                        .tag(TabTag.dummyCenter)
+                        .disabled(true) // タップを無効化
 
-                MenuView()
-                    .tabItem {
-                        Label("メニュー管理", systemImage: "list.bullet")
-                    }
+                    MenuView()
+                        .tabItem {
+                            Label("メニュー管理", systemImage: "list.bullet")
+                        }
+                        .tag(TabTag.menu)
 
-                SettingsView()
-                    .tabItem {
-                        Label("アプリ設定", systemImage: "gearshape.fill")
-                    }
+                    SettingsView()
+                        .tabItem {
+                            Label("アプリ設定", systemImage: "gearshape.fill")
+                        }
+                        .tag(TabTag.settings)
+                }
+                .accentColor(.black)
+                // .onChange は selectedTabTag の管理のみであれば不要かもしれないが、
+                // 他の目的で使う可能性も考慮し、一旦コメントアウト (または内容をクリア)
+                /*
+                .onChange(of: selectedTabTag, initial: false) { oldSelectedTab, newSelectedTab in
+                    // 以前のプラスボタンタブ選択時の処理は削除
+                }
+                */
+
+                // カスタムプラスボタン
+                Button {
+                    isShowingAddWorkoutModal = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(uiColor: .systemBackground))
+                        .padding(12)
+                        .background(Circle().fill(Color.primary))
+                }
+                // 一般的なタブバーのアイコン領域に合わせる
+                // 安全マージンも考慮し、やや大きめの値を設定するか、GeometryReaderで動的に。
+                // ここではiPhoneの標準的なタブバーの高さとセーフエリアを考慮した値を仮で設定します。
+                // 実際の見た目を見ながら調整してください。
+                .padding(.bottom, ((UIApplication.shared.connectedScenes.first as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow })?.safeAreaInsets.bottom ?? 0) > 0 ? 30 : 10) // 下部のセーフエリアによって調整 (iOS 13+)
+                .offset(y: 24) // 少し上にオフセットしてタブバーアイテムと高さを合わせる (お好みで調整)
+
             }
-            .accentColor(.black)
             .onAppear {
-                // Viewが表示されたときに初期化処理を開始
                 appInitializer.initializeApp()
+            }
+            .sheet(isPresented: $isShowingAddWorkoutModal) {
+                AddPlaceholderView()
+                    .presentationDetents([.medium, .large])
             }
         }
     }
