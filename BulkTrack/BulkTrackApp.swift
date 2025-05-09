@@ -9,6 +9,12 @@ import SwiftUI
 
 @main
 struct BulkTrackApp: App {
+    init() {
+        // デバッグ用のログ
+        print("BulkTrackApp initialized")
+        print("API Base URL (Debug): \(APIConfig.baseURL)")
+    }
+
     var body: some Scene {
         WindowGroup {
             ZStack(alignment: .bottom) {

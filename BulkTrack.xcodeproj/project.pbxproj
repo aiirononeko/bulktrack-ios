@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		4FA481F92DCDAB6100EDCCB3 /* BulkTrack Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,11 +70,25 @@
 		4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BulkTrack Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4FA482992DCDBE2700EDCCB3 /* Exceptions for "BulkTrack" folder in "BulkTrack" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4FA481D42DCDAB6000EDCCB3 /* BulkTrack */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4FA481D72DCDAB6000EDCCB3 /* BulkTrack */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4FA482992DCDBE2700EDCCB3 /* Exceptions for "BulkTrack" folder in "BulkTrack" target */,
+			);
 			path = BulkTrack;
 			sourceTree = "<group>";
 		};
@@ -160,6 +175,7 @@
 				4FA4820A2DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */,
 				4FA482142DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
 				4FA481D62DCDAB6000EDCCB3 /* Products */,
+				4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -380,6 +396,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -603,6 +620,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				"INFOPLIST_FILE[sdk=*]" = "";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -671,6 +689,7 @@
 		};
 		4FA482202DCDAB6200EDCCB3 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -679,6 +698,7 @@
 				DEVELOPMENT_TEAM = 573P995VR5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BulkTrack/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -702,6 +722,7 @@
 		};
 		4FA482212DCDAB6200EDCCB3 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -710,6 +731,7 @@
 				DEVELOPMENT_TEAM = 573P995VR5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BulkTrack/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
