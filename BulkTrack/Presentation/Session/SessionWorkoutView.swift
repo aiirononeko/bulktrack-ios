@@ -95,7 +95,8 @@ struct SessionWorkoutView: View {
                 Button(isRecordingSet ? "記録中..." : "セットを記録する") {
                     recordSetViaAPI()
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .tint(.black)
                 .padding(.top)
                 .disabled(isRecordingSet)
 
@@ -129,10 +130,18 @@ struct SessionWorkoutView: View {
             .navigationTitle(exercise.name ?? exercise.canonicalName) 
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("一時中断") { 
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
                         isPresented = false 
+                    } label: {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                                .font(.caption)
+                            Text("他の種目を選ぶ")
+                                .font(.caption)
+                        }
                     }
+                    .tint(.black) 
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer() 
@@ -142,11 +151,19 @@ struct SessionWorkoutView: View {
                 }
             }
             .onAppear {
+                loadRecordedSets()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     self.focusedField = .weight 
                 }
             }
         }
+    }
+
+    private func loadRecordedSets() {
+        let setsFromManager = sessionManager.getRecordedSets(for: exercise.id)
+        self.uiRecordedSets = setsFromManager.map { UIRecordedSet(from: $0) }
+        self.currentSet = String(self.uiRecordedSets.count + 1)
+        print("SessionWorkoutView: Loaded \(self.uiRecordedSets.count) sets for exercise \(exercise.id). Next set: \(self.currentSet)")
     }
 
     private func recordSetViaAPI() { 
@@ -177,12 +194,11 @@ struct SessionWorkoutView: View {
                 switch result {
                 case .success(let setResponse):
                     print("Set recorded successfully via API: \(setResponse)")
-                    let newUIRecordedSet = UIRecordedSet(from: setResponse)
-                    self.uiRecordedSets.append(newUIRecordedSet)
                     
-                    if let nextSet = Int(self.currentSet) {
-                        self.currentSet = String(nextSet + 1)
-                    }
+                    self.sessionManager.addRecordedSet(setResponse, for: self.exercise.id)
+                    
+                    self.loadRecordedSets()
+                    
                     self.weightInput = ""
                     self.repsInput = ""
                     self.rpeInput = ""

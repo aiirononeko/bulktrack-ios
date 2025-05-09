@@ -1,6 +1,11 @@
 import Foundation
 import Combine
 
+// APIService.swift などで定義されている WorkoutSetResponse をここで参照できるようにする必要がある
+// import するか、このファイル内に WorkoutSetResponse の定義を移動・コピーする
+// (ただし、モデル定義は一箇所にまとめるのが理想)
+// この例では、WorkoutSetResponse がグローバルにアクセス可能であると仮定しています。
+
 class SessionManager: ObservableObject {
     @Published var currentSessionId: String? = nil
     @Published var isEndingSession: Bool = false
@@ -8,6 +13,9 @@ class SessionManager: ObservableObject {
     // isSessionActive は currentSessionId の有無で決定できるので、コンピューテッドプロパティでも良い
     // @Published var isSessionActive: Bool = false 
     // または、より明示的に状態を管理したい場合は @Published のままにする
+
+    // 新しく追加: 種目ごとの記録済みセットを保持 (現在のセッションに紐づく)
+    @Published var recordedSetsForCurrentSession: [String: [WorkoutSetResponse]] = [:]
 
     var isSessionActive: Bool {
         currentSessionId != nil
@@ -33,8 +41,10 @@ class SessionManager: ObservableObject {
     func startNewSession(sessionId: String) {
         DispatchQueue.main.async {
             self.currentSessionId = sessionId
-            // self.isSessionActive = true (もし Published なら)
-            print("SessionManager: New session started with ID: \(sessionId)")
+            self.recordedSetsForCurrentSession = [:] // 新しいセッションでセット記録をクリア
+            self.sessionEndingError = nil // エラー状態もリセット
+            self.isEndingSession = false // ローディング状態もリセット
+            print("SessionManager: New session started with ID: \(sessionId). Recorded sets cleared.")
             // UserDefaults に保存 (オプション)
             // self.saveSessionToUserDefaults()
         }
@@ -64,6 +74,8 @@ class SessionManager: ObservableObject {
                 case .success:
                     print("SessionManager: Successfully ended session ID: \(sessionIdToFinish) via API.")
                     self.currentSessionId = nil
+                    self.recordedSetsForCurrentSession = [:] // セッション終了時にセット記録をクリア
+                    print("SessionManager: Recorded sets cleared after session end.")
                 case .failure(let error):
                     print("SessionManager: Failed to end session ID: \(sessionIdToFinish) via API. Error: \(error.localizedDescription)")
                     self.sessionEndingError = error.localizedDescription
@@ -72,6 +84,30 @@ class SessionManager: ObservableObject {
                     // 今回はAPI失敗時はローカルセッションIDを維持する
                 }
             }
+        }
+    }
+
+    // 新しく追加: 指定された種目の記録済みセットを取得する
+    func getRecordedSets(for exerciseId: String) -> [WorkoutSetResponse] {
+        return recordedSetsForCurrentSession[exerciseId] ?? []
+    }
+
+    // 新しく追加: 新しいセットを記録に追加する
+    func addRecordedSet(_ setResponse: WorkoutSetResponse, for exerciseId: String) {
+        var setsForExercise = self.recordedSetsForCurrentSession[exerciseId] ?? []
+        setsForExercise.append(setResponse)
+        self.recordedSetsForCurrentSession[exerciseId] = setsForExercise
+        print("SessionManager: Added set for exercise \(exerciseId). Total sets now: \(setsForExercise.count) for this session.")
+    }
+    
+    // 新しく追加: 全てのセッション関連データをクリアする（オプション）
+    func clearAllSessionData() {
+        DispatchQueue.main.async {
+            self.currentSessionId = nil
+            self.recordedSetsForCurrentSession = [:]
+            self.sessionEndingError = nil
+            self.isEndingSession = false
+            print("SessionManager: All session data (ID and recorded sets) cleared.")
         }
     }
 
