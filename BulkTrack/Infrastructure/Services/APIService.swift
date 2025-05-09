@@ -162,6 +162,40 @@ struct WorkoutSessionResponse: Decodable, Identifiable {
     }
 }
 
+// MARK: - Workout Set Models (OpenAPI スキーマに基づく)
+
+struct WorkoutSetCreate: Encodable {
+    let exerciseId: String
+    let setNumber: Int
+    let weight: Float
+    let reps: Int
+    let rpe: Float?
+}
+
+struct WorkoutSetResponse: Decodable, Identifiable {
+    let id: String
+    let exerciseId: String
+    let setNo: Int 
+    let weight: Float
+    let reps: Int
+    let rpe: Float?
+    let performedAt: String 
+    let volume: Float      
+    let createdAt: String    
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case exerciseId 
+        case setNo 
+        case weight
+        case reps
+        case rpe
+        case performedAt 
+        case volume
+        case createdAt
+    }
+}
+
 class APIService {
     private let keychainService = KeychainService()
     private let baseURLString = APIConfig.baseURL
@@ -273,6 +307,73 @@ class APIService {
             }
         }
         task.resume()
+    }
+
+    // MARK: - Token Refresh (async/await version)
+
+    private func refreshToken() async throws {
+        print("APIService: Attempting to refresh token (async)...")
+
+        guard let currentRefreshToken = try? keychainService.getString(forKey: KeychainService.KeychainKeys.refreshToken) else {
+            print("APIService: No refresh token found in Keychain. Cannot refresh (async).")
+            throw APIError.unauthorized
+        }
+
+        guard let url = URL(string: baseURLString + "/v1/auth/refresh") else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        do {
+            let requestBody = RefreshTokenRequest(refreshToken: currentRefreshToken)
+            request.httpBody = try JSONEncoder().encode(requestBody)
+        } catch {
+            print("APIService: Failed to encode refresh token request (async): \\(error)")
+            throw APIError.requestFailed(error)
+        }
+
+        let data: Data
+        let response: URLResponse
+        
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            print("APIService: Refresh token API request error (async): \\(error.localizedDescription)")
+            throw APIError.requestFailed(error)
+        }
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("APIService: Invalid HTTP response from refresh API (async)")
+            throw APIError.apiError(statusCode: 0, message: "Invalid HTTP response from refresh API")
+        }
+        
+        print("APIService: Refresh Token API Response Status Code (async): \\(httpResponse.statusCode)")
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if httpResponse.statusCode == 401 { // リフレッシュトークン自体が無効/期限切れ
+                print("APIService: Refresh token is invalid or expired (async). Re-authentication required.")
+                try? keychainService.deleteData(forAccount: KeychainService.KeychainKeys.accessToken)
+                try? keychainService.deleteData(forAccount: KeychainService.KeychainKeys.refreshToken)
+                
+                UserDefaults.standard.set(false, forKey: "app.bulktrack.hasActivatedDevice")
+                print("APIService: Cleared tokens and reset activation flag (async). Device ID remains. Please restart the app or trigger activation.")
+            }
+            throw APIError.apiError(statusCode: httpResponse.statusCode, message: "Refresh token API error (async)")
+        }
+
+        do {
+            // TokenResponseの定義が別途必要
+            let tokens = try JSONDecoder().decode(TokenResponse.self, from: data) 
+            try saveTokens(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken)
+            print("APIService: Tokens refreshed successfully (async).")
+        } catch {
+            print("APIService: Failed to decode or save new tokens (async): \\(error.localizedDescription)")
+            throw APIError.decodingError(error)
+        }
     }
 
     // MARK: - Generic Request Handler (リファクタリングしてここに集約するイメージ)
@@ -550,6 +651,182 @@ class APIService {
                 print("APIService: Failed to finish session (ID: \(sessionId)): \(error.localizedDescription)")
                 completion(.failure(error))
             }
+        }
+    }
+
+    // MARK: - Workout Set Management
+
+    func recordSet(sessionId: String, setData: WorkoutSetCreate, completion: @escaping (Result<WorkoutSetResponse, Error>) -> Void) {
+        guard let url = URL(string: baseURLString + "/v1/sessions/\(sessionId)/sets") else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        do {
+            let encoder = JSONEncoder()
+            // encoder.dateEncodingStrategy = .iso8601 // 日付型を送信する場合
+            request.httpBody = try encoder.encode(setData)
+            print("APIService: Recording set for session \(sessionId) with data: \(setData)")
+        } catch {
+            print("APIService: Failed to encode set data: \(error)")
+            completion(.failure(APIError.decodingError(error))) // エンコードエラーもdecodingErrorで一旦まとめる
+            return
+        }
+        
+        do {
+            let accessToken = try getAccessToken()
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        } catch {
+            completion(.failure(error))
+            return
+        }
+
+        performRequest(request) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let decoder = JSONDecoder()
+                    // decoder.dateDecodingStrategy = .customISO8601 // 日付型をデコードする場合
+                    let setResponse = try decoder.decode(WorkoutSetResponse.self, from: data)
+                    print("APIService: Set recorded successfully. Response: \(setResponse)")
+                    completion(.success(setResponse))
+                } catch {
+                    print("APIService: Failed to decode set record response: \(error)")
+                    if let dataString = String(data: data, encoding: .utf8) {
+                        print("Raw response data for recordSet: \(dataString)")
+                    }
+                    completion(.failure(APIError.decodingError(error)))
+                }
+            case .failure(let error):
+                print("APIService: Failed to record set: \(error.localizedDescription)")
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - Workout Set Operations
+
+    func recordSet(sessionId: String, setData: WorkoutSetCreate) async throws -> WorkoutSetResponse {
+        let endpoint = "/v1/sessions/\(sessionId)/sets"
+        print("APIService: Recording set for session \(sessionId) with data: \(setData)")
+        
+        // performRequest を使用してリクエストを実行し、直接 WorkoutSetResponse にデコード
+        return try await performRequest(
+            endpoint: endpoint,
+            method: "POST",
+            body: setData,
+            requiresAuth: true
+        )
+    }
+
+    // MARK: - Dashboard Operations
+
+    private func performRequest<T: Decodable, B: Encodable>(
+        endpoint: String,
+        method: String,
+        body: B? = nil,
+        requiresAuth: Bool = true,
+        isRetry: Bool = false
+    ) async throws -> T {
+        guard let url = URL(string: baseURLString + endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        if requiresAuth {
+            do {
+                let token = try getAccessToken()
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            } catch {
+                // アクセストークン取得に失敗した場合 (例: Keychainに存在しない)
+                // リフレッシュを試みる前に、これがリトライでないことを確認
+                if !isRetry {
+                    print("APIService: Access token not found or invalid, attempting refresh before request to \(endpoint).")
+                    try await refreshToken()
+                    // リフレッシュ成功後、再度リクエストを試みる (isRetry: true を設定)
+                    return try await performRequest(endpoint: endpoint, method: method, body: body, requiresAuth: requiresAuth, isRetry: true)
+                } else {
+                    // リフレッシュ後のリトライでも失敗した場合は、元のエラーをスロー
+                    print("APIService: Access token still invalid after refresh for request to \(endpoint).")
+                    throw error
+                }
+            }
+        }
+
+        if let body = body {
+            do {
+                request.httpBody = try JSONEncoder().encode(body)
+            } catch {
+                throw APIError.requestFailed(error) // エンコード失敗
+            }
+        }
+        
+        print("APIService: Making request to \(url.path)")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.requestFailed(URLError(.badServerResponse))
+        }
+        
+        print("APIService: Request to \(url.path) completed with status: \(httpResponse.statusCode)")
+
+
+        if httpResponse.statusCode == 401 && requiresAuth && !isRetry {
+            print("APIService: Received 401 Unauthorized. Attempting token refresh.")
+            do {
+                try await refreshToken()
+                print("APIService: Token refresh successful. Retrying original request.")
+                // リフレッシュ成功後、再度リクエストを試みる (isRetry: true を設定)
+                return try await performRequest(endpoint: endpoint, method: method, body: body, requiresAuth: requiresAuth, isRetry: true)
+            } catch {
+                print("APIService: Token refresh failed. Error: \(error.localizedDescription)")
+                // リフレッシュに失敗した場合は、401エラーをAPIError.unauthorizedとして処理
+                 throw APIError.unauthorized
+            }
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if let rawResponseString = String(data: data, encoding: .utf8) {
+                 print("APIService Error: Status \(httpResponse.statusCode), Response: \(rawResponseString)")
+            }
+            // TODO: サーバーからのエラーメッセージをパースしてAPIErrorに含める
+            throw APIError.apiError(statusCode: httpResponse.statusCode, message: HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            let dateFormatter = ISO8601DateFormatter()
+            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            decoder.dateDecodingStrategy = .custom { decoder -> Date in
+                let container = try decoder.singleValueContainer()
+                let dateString = try container.decode(String.self)
+                if let date = dateFormatter.date(from: dateString) {
+                    return date
+                }
+                // .SSSZ 形式に対応できていない場合、カスタムで対応するか、より柔軟なパーサーを使う
+                // ここでは仮にエラーをスロー
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date string \(dateString)")
+            }
+            // AddedSetContainer を使わずに直接 WorkoutSetResponse にデコード
+            let decodedResponse = try decoder.decode(T.self, from: data)
+            print("APIService: Successfully decoded response for \(endpoint)")
+            return decodedResponse
+        } catch {
+            print("APIService: Failed to decode response for \(endpoint): \(error.localizedDescription)")
+            if let rawResponseString = String(data: data, encoding: .utf8) {
+                print("Raw response data for \(endpoint): \(rawResponseString)")
+            }
+            throw APIError.decodingError(error)
         }
     }
 }

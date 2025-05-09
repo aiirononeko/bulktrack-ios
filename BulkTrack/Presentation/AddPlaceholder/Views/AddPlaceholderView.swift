@@ -116,20 +116,18 @@ struct AddPlaceholderView: View {
             }
         }
         .fullScreenCover(isPresented: $viewModel.isShowingSessionModal) {
-            // startedSessionId が nil でないことを確認してモーダルを表示
-            if let sessionId = viewModel.startedSessionId {
-                // TODO: ここに実際のセッション画面のViewを配置する
+            // startedSessionId と selectedExerciseForSession が nil でないことを確認
+            if let sessionId = viewModel.startedSessionId, let exercise = viewModel.selectedExerciseForSession {
+                SessionWorkoutView(sessionId: sessionId, exercise: exercise, isPresented: $viewModel.isShowingSessionModal)
+            } else {
+                // 必要な情報が不足している場合のフォールバック
                 VStack {
-                    Text("セッション画面 (ID: \(sessionId))")
-                    Button("セッションを終了して閉じる") { // ボタンのラベルを変更
-                        // sessionManager.endCurrentSession() // セッションマネージャーの状態を更新
+                    Text("セッション情報または種目情報が準備できませんでした。")
+                    Button("閉じる") {
                         viewModel.isShowingSessionModal = false
                     }
+                    .padding()
                 }
-            } else {
-                // sessionIdがnilの場合はエラーメッセージかローディング表示など
-                // 基本的にはisShowingSessionModalがtrueになるのはsessionIdがセットされた後のはず
-                Text("セッションIDの取得待機中またはエラー")
             }
         }
     }
