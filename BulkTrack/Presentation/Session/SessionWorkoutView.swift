@@ -54,10 +54,15 @@ struct SessionWorkoutView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) { 
-                Text("セット \(currentSet)") 
-                    .font(.title2)
-                    .fontWeight(.semibold)
+            VStack(spacing: 20) {
+                Spacer()
+                
+                HStack {
+                    Text("セット \(currentSet)")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    Spacer() // 右側にSpacerを追加してテキストを左寄せ
+                }
                 
                 HStack(alignment: .top, spacing: 15) { 
                     VStack(alignment: .leading, spacing: 5) {
@@ -83,7 +88,7 @@ struct SessionWorkoutView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("RPE")
                             .font(.caption)
-                        TextField("例: 8.5", text: $rpeInput)
+                        TextField("例: 8", text: $rpeInput)
                             .keyboardType(.decimalPad) 
                             .focused($focusedField, equals: .rpe)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
