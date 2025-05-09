@@ -11,14 +11,15 @@ import Security
 class ActivationService {
 
     private let userDefaults = UserDefaults.standard
-    private let deviceIdKey = "app.bulktrack.deviceId"
+    private let keychainService = KeychainService()
+    
     private let hasActivatedKey = "app.bulktrack.hasActivatedDevice"
-    private let keychainServiceIdentifier = "app.bulktrack.credentials"
 
     func activateDeviceIfNeeded(completion: @escaping (Result<Void, Error>) -> Void) {
+        // userDefaults.set(false, forKey: hasActivatedKey) // ← 強制的にアクティベーションを実行するためのテストコード
+
         if userDefaults.bool(forKey: hasActivatedKey) {
             print("Device already activated or activation attempt was made.")
-            // TODO: ここで既存のトークンが有効かどうかのチェックも将来的に入れると良い
             completion(.success(()))
             return
         }
@@ -28,19 +29,22 @@ class ActivationService {
     private func performDeviceActivation(completion: @escaping (Result<Void, Error>) -> Void) {
         var deviceIdString: String
 
-        // 1. KeychainからdeviceIdを取得、なければ生成して保存
         do {
-            if let existingDeviceId = try getDeviceIdFromKeychain() {
+            if let existingDeviceId = try keychainService.getString(forKey: KeychainService.KeychainKeys.deviceId) {
                 deviceIdString = existingDeviceId
                 print("Existing Device ID found in Keychain: \(deviceIdString)")
             } else {
                 let newDeviceId = UUID().uuidString
-                try saveDeviceIdToKeychain(deviceId: newDeviceId)
+                try keychainService.saveString(newDeviceId, forKey: KeychainService.KeychainKeys.deviceId)
                 deviceIdString = newDeviceId
                 print("New Device ID generated and saved to Keychain: \(deviceIdString)")
             }
+        } catch let error as KeychainError {
+            print("Keychain error during device ID handling: \(error.localizedDescription)")
+            completion(.failure(error))
+            return
         } catch {
-            print("Keychain error: \(error.localizedDescription)")
+            print("Unexpected error during device ID handling: \(error.localizedDescription)")
             completion(.failure(error))
             return
         }
@@ -101,10 +105,8 @@ class ActivationService {
                 let tokens = try JSONDecoder().decode(TokenResponse.self, from: responseData)
                 print("Successfully decoded tokens. Access token expires in: \(tokens.expiresIn) seconds.")
 
-                // アクセストークンをKeychainに保存
-                try self.saveTokenToKeychain(token: tokens.accessToken, account: "deviceAccessToken")
-                // リフレッシュトークンをKeychainに保存
-                try self.saveTokenToKeychain(token: tokens.refreshToken, account: "deviceRefreshToken")
+                try self.keychainService.saveString(tokens.accessToken, forKey: KeychainService.KeychainKeys.accessToken)
+                try self.keychainService.saveString(tokens.refreshToken, forKey: KeychainService.KeychainKeys.refreshToken)
                 
                 print("Device tokens saved to Keychain.")
                 self.userDefaults.set(true, forKey: self.hasActivatedKey)
@@ -121,6 +123,9 @@ class ActivationService {
                 @unknown default: print("Unknown decoding error")
                 }
                 completion(.failure(ActivationError.dataDecodingError))
+            } catch let error as KeychainError {
+                print("Keychain error during token saving: \(error.localizedDescription)")
+                completion(.failure(error))
             } catch {
                 print("An unexpected error occurred during token processing: \(error.localizedDescription)")
                 completion(.failure(error))
@@ -133,95 +138,6 @@ class ActivationService {
     // これらのKeychainメソッドは基本的な実装のプレースホルダです。
     // より堅牢なエラー処理や、属性（kSecAttrAccessibleなど）の適切な設定が必要です。
 
-    private func saveDeviceIdToKeychain(deviceId: String) throws {
-        guard let data = deviceId.data(using: .utf8) else {
-            throw ActivationError.keychainError(message: "Failed to encode deviceId to Data")
-        }
-        try saveDataToKeychain(data: data, account: deviceIdKey)
-    }
-
-    private func getDeviceIdFromKeychain() throws -> String? {
-        guard let data = try getDataFromKeychain(account: deviceIdKey) else {
-            return nil
-        }
-        guard let deviceId = String(data: data, encoding: .utf8) else {
-            throw ActivationError.keychainError(message: "Failed to decode deviceId from Data")
-        }
-        return deviceId
-    }
-    
-    // トークン保存用の汎用メソッド（例）
-    func saveTokenToKeychain(token: String, account: String) throws {
-        guard let data = token.data(using: .utf8) else {
-            throw ActivationError.keychainError(message: "Failed to encode token to Data for account: \(account)")
-        }
-        try saveDataToKeychain(data: data, account: account)
-    }
-
-    // トークン取得用の汎用メソッド（例）
-    func getTokenFromKeychain(account: String) throws -> String? {
-        guard let data = try getDataFromKeychain(account: account) else {
-            return nil
-        }
-        guard let token = String(data: data, encoding: .utf8) else {
-            throw ActivationError.keychainError(message: "Failed to decode token from Data for account: \(account)")
-        }
-        return token
-    }
-
-    private func saveDataToKeychain(data: Data, account: String) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainServiceIdentifier,
-            kSecAttrAccount as String: account
-        ]
-
-        // まず既存のアイテムを削除しようと試みる (update or add のため)
-        let statusDelete = SecItemDelete(query as CFDictionary)
-        if statusDelete != errSecSuccess && statusDelete != errSecItemNotFound {
-            // errSecItemNotFound は問題ない (元々存在しなかっただけ)
-            // それ以外のエラーは問題
-            // print("Keychain: Failed to delete existing item for \(account), status: \(statusDelete)")
-            // throw ActivationError.keychainError(message: "Failed to delete existing keychain item. Status: \(statusDelete)")
-        }
-
-        var newItemQuery = query
-        newItemQuery[kSecValueData as String] = data
-        // アクセス制御を設定 (例: デバイスがロック解除されているときのみアクセス可能)
-        // newItemQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-
-        let statusAdd = SecItemAdd(newItemQuery as CFDictionary, nil)
-        guard statusAdd == errSecSuccess else {
-            print("Keychain: Failed to add item for \(account), status: \(statusAdd)")
-            throw ActivationError.keychainError(message: "Failed to add keychain item. Status: \(statusAdd)")
-        }
-        print("Keychain: Successfully saved data for account \(account).")
-    }
-
-    private func getDataFromKeychain(account: String) throws -> Data? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainServiceIdentifier,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: kCFBooleanTrue!,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-
-        if status == errSecSuccess {
-            print("Keychain: Successfully retrieved data for account \(account).")
-            return item as? Data
-        } else if status == errSecItemNotFound {
-            print("Keychain: No item found for account \(account).")
-            return nil
-        } else {
-            print("Keychain: Failed to retrieve item for \(account), status: \(status)")
-            throw ActivationError.keychainError(message: "Failed to retrieve keychain item. Status: \(status)")
-        }
-    }
-    
     // Keychainからアイテムを削除するメソッド（必要に応じて）
     // private func deleteDataFromKeychain(account: String) throws {
     //     let query: [String: Any] = [
@@ -242,7 +158,6 @@ enum ActivationError: Error, LocalizedError {
     case invalidURL
     case invalidResponse
     case apiError(statusCode: Int, message: String)
-    case keychainError(message: String)
     case dataDecodingError
 
     var errorDescription: String? {
@@ -250,22 +165,13 @@ enum ActivationError: Error, LocalizedError {
         case .invalidURL: return "無効なAPI URLです。"
         case .invalidResponse: return "サーバーから無効なレスポンスを受け取りました。"
         case .apiError(let statusCode, let message): return "APIエラー (コード: \(statusCode)): \(message)"
-        case .keychainError(let message): return "キーチェーン操作エラー: \(message)"
         case .dataDecodingError: return "データのデコードに失敗しました。"
         }
     }
 }
 
-// TokenResponse構造体をファイルの下部 (ActivationServiceクラスの外、ActivationError enum の後など) に追加
 struct TokenResponse: Decodable {
     let accessToken: String
     let refreshToken: String
     let expiresIn: Int
-
-    // CodingKeys enum は実際のレスポンスに合わせて不要なので削除
-    // enum CodingKeys: String, CodingKey {
-    //     case accessToken = "access_token"
-    //     case refreshToken = "refresh_token"
-    //     case expiresIn = "expires_in"
-    // }
 }

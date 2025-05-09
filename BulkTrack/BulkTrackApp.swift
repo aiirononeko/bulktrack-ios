@@ -9,57 +9,43 @@ import SwiftUI
 
 @main
 struct BulkTrackApp: App {
-    private let activationService = ActivationService()
+    @StateObject private var appInitializer = AppInitializer()
 
     init() {
-        print("BulkTrackApp initialized")
-        // アプリケーション起動時にアクティベーション処理を試みる
-        activationService.activateDeviceIfNeeded { result in
-            switch result {
-            case .success:
-                print("Activation process completed (or not needed).")
-            case .failure(let error):
-                print("Activation process failed: \(error.localizedDescription)")
-                // TODO: ユーザーにエラーを通知するか、リトライを促すUIを表示するなどの処理
-            }
-        }
+        print("BulkTrackApp struct initialized")
     }
 
     var body: some Scene {
         WindowGroup {
-            ZStack(alignment: .bottom) {
-                TabView {
-                    HomeView()
-                        .tabItem {
-                            Label("ホーム", systemImage: "house.fill")
-                        }
+            TabView {
+                HomeView()
+                    .tabItem {
+                        Label("ホーム", systemImage: "house.fill")
+                    }
 
-                    MenuView()
-                        .tabItem {
-                            Label("メニュー", systemImage: "list.bullet")
-                        }
+                MenuView()
+                    .tabItem {
+                        Label("メニュー", systemImage: "list.bullet")
+                    }
 
-                    AddPlaceholderView() // プラスボタンに対応するView
-                        .tabItem {
-                            Label("ワークアウト", systemImage: "plus.circle.fill")
-                        }
+                AddPlaceholderView() // プラスボタンに対応するView
+                    .tabItem {
+                        Label("ワークアウト", systemImage: "plus.circle.fill")
+                    }
 
-                    HistoryView()
-                        .tabItem {
-                            Label("履歴", systemImage: "clock.fill")
-                        }
+                HistoryView()
+                    .tabItem {
+                        Label("履歴", systemImage: "clock.fill")
+                    }
 
-                    SettingsView()
-                        .tabItem {
-                            Label("設定", systemImage: "gearshape.fill")
-                        }
-                }
-
-                // TabViewの上部に表示するボーダー
-                Rectangle()
-                    .frame(height: 0.5) // ボーダーの太さ
-                    .foregroundColor(Color.gray.opacity(0.5)) // ボーダーの色と透明度
-                    .padding(.bottom, 50) // TabViewの高さに応じて調整 (約49-50pt)
+                SettingsView()
+                    .tabItem {
+                        Label("設定", systemImage: "gearshape.fill")
+                    }
+            }
+            .onAppear {
+                // Viewが表示されたときに初期化処理を開始
+                appInitializer.initializeApp()
             }
         }
     }
