@@ -68,6 +68,62 @@ struct RefreshTokenRequest: Encodable { // POSTリクエストボディ用なの
 // 本来は重複を避けるべき。
 // (ActivationService.swiftのTokenResponseを参照できるなら、ここでは不要)
 
+// MARK: - Dashboard Models (OpenAPI スキーマに基づく)
+
+struct MuscleVolumeItem: Decodable, Identifiable {
+    let id = UUID() // Identifiable準拠のため。APIにmuscleIdがあるので、そちらをidとして使っても良い。
+    let muscleId: Int
+    let name: String
+    let volume: Float
+
+    enum CodingKeys: String, CodingKey {
+        case muscleId = "muscleId" // OpenAPIではキャメルケースだが、JSONレスポンスに合わせる
+        case name
+        case volume
+    }
+}
+
+struct CurrentWeekSummary: Decodable {
+    let totalWorkouts: Int
+    let currentStreak: Int
+    let totalVolume: Float
+    let volumeByMuscle: [MuscleVolumeItem]
+
+    enum CodingKeys: String, CodingKey {
+        case totalWorkouts = "totalWorkouts"
+        case currentStreak = "currentStreak"
+        case totalVolume = "totalVolume"
+        case volumeByMuscle = "volumeByMuscle"
+    }
+}
+
+// PeriodSummary, ProgressMetricItem, UnderstimulatedMuscleItem は一旦省略または仮定義
+struct PeriodSummary: Decodable { /* TODO: Implement */ }
+struct ProgressMetricItem: Decodable, Identifiable { let id = UUID() /* TODO: Implement */ }
+struct UnderstimulatedMuscleItem: Decodable, Identifiable { let id = UUID() /* TODO: Implement */ }
+
+struct DashboardResponse: Decodable {
+    let userId: String
+    let lastSessionId: String?
+    let deloadWarningSignal: Bool
+    let lastCalculatedAt: String // date-time
+    let currentWeekSummary: CurrentWeekSummary
+    let periodSummary: PeriodSummary // 仮定義を使用
+    let progressMetrics: [ProgressMetricItem] // 仮定義を使用
+    let understimulatedMuscles: [UnderstimulatedMuscleItem] // 仮定義を使用
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "userId"
+        case lastSessionId = "lastSessionId"
+        case deloadWarningSignal = "deloadWarningSignal"
+        case lastCalculatedAt = "lastCalculatedAt"
+        case currentWeekSummary = "currentWeekSummary"
+        case periodSummary = "periodSummary"
+        case progressMetrics = "progressMetrics"
+        case understimulatedMuscles = "understimulatedMuscles"
+    }
+}
+
 class APIService {
     private let keychainService = KeychainService()
     private let baseURLString = APIConfig.baseURL
@@ -292,6 +348,69 @@ class APIService {
                     completion(.success(exercises))
                 } catch let decodingError {
                     print("Exercise Decoding Error: \(decodingError)")
+                    completion(.failure(APIError.decodingError(decodingError)))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - Dashboard API
+    func fetchDashboard(period: String? = nil, completion: @escaping (Result<DashboardResponse, Error>) -> Void) {
+        guard let baseURL = URL(string: baseURLString) else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+        var components = URLComponents(url: baseURL.appendingPathComponent("/v1/dashboard"), resolvingAgainstBaseURL: true)
+        
+        var queryItems = [URLQueryItem]()
+        if let p = period, !p.isEmpty {
+            queryItems.append(URLQueryItem(name: "period", value: p))
+        }
+        if !queryItems.isEmpty {
+            components?.queryItems = queryItems
+        }
+
+        guard let url = components?.url else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        do {
+            let accessToken = try getAccessToken()
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            print("Fetching dashboard with URL: \(url) and Token: Bearer \(accessToken.prefix(10))... ")
+        } catch {
+            completion(.failure(error))
+            return
+        }
+
+        performRequest(request) { result in
+            switch result {
+            case .success(let data):
+                if let responseString = String(data: data, encoding: .utf8) {
+                     print("Raw Dashboard API Response JSON: \(responseString)")
+                }
+                do {
+                    let dashboardResponse = try JSONDecoder().decode(DashboardResponse.self, from: data)
+                    completion(.success(dashboardResponse))
+                } catch let decodingError {
+                    print("Dashboard Decoding Error: \(decodingError)")
+                    // より詳細なデコードエラー情報をログに出力
+                    if let decodingError = decodingError as? DecodingError {
+                        switch decodingError {
+                        case .typeMismatch(let type, let context): print("Type mismatch: \(type), context: \(context.debugDescription)")
+                        case .valueNotFound(let type, let context): print("Value not found: \(type), context: \(context.debugDescription)")
+                        case .keyNotFound(let key, let context): print("Key not found: \(key.stringValue), context: \(context.debugDescription)")
+                        case .dataCorrupted(let context): print("Data corrupted: \(context.debugDescription)")
+                        @unknown default: print("Unknown decoding error")
+                        }
+                    }
                     completion(.failure(APIError.decodingError(decodingError)))
                 }
             case .failure(let error):

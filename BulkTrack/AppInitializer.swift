@@ -16,7 +16,8 @@ final class AppInitializer: ObservableObject {
                 switch result {
                 case .success:
                     print("AppInitializer: Activation process completed (or not needed).")
-                    self.testFetchExercises()
+                    // self.testFetchExercises() // HomeViewModelに移管したのでコメントアウトまたは削除
+                    // self.testFetchDashboard() // HomeViewModelに移管したのでコメントアウトまたは削除
                 case .failure(let error):
                     print("AppInitializer: Activation process failed: \(error.localizedDescription)")
                 }
@@ -37,13 +38,8 @@ final class AppInitializer: ObservableObject {
                     }
                 case .failure(let error):
                     print("AppInitializer: Failed to fetch exercises: \(error.localizedDescription)")
-                    if let apiError = error as? APIError {
-                        switch apiError {
-                        case .unauthorized:
-                            print("AppInitializer: Error details: Unauthorized - token might be invalid or expired.")
-                        default:
-                            break
-                        }
+                    if let apiError = error as? APIError, case .unauthorized = apiError {
+                        print("AppInitializer: Error details: Unauthorized - token might be invalid or expired for exercises.")
                     }
                 }
             }

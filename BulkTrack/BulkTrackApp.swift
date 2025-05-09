@@ -11,8 +11,14 @@ import SwiftUI
 struct BulkTrackApp: App {
     @StateObject private var appInitializer = AppInitializer()
 
-    init() {
-        print("BulkTrackApp struct initialized")
+    init() {        
+        // UIPageControlの外観を設定 (ドットインジケータの色)
+        UIPageControl.appearance().pageIndicatorTintColor = UIColor.lightGray.withAlphaComponent(0.6) // 非アクティブなドットの色
+        UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.black // アクティブなドットの色
+        // iOS 14以降では、背景スタイルも設定可能 (オプション)
+        // if #available(iOS 14.0, *) {
+        //     UIPageControl.appearance().backgroundStyle = .minimal // または .prominent, .automatic
+        // }
     }
 
     var body: some Scene {
@@ -22,10 +28,10 @@ struct BulkTrackApp: App {
                     .tabItem {
                         Label("ホーム", systemImage: "house.fill")
                     }
-
-                MenuView()
+                
+                HistoryView()
                     .tabItem {
-                        Label("メニュー", systemImage: "list.bullet")
+                        Label("トレーニング履歴", systemImage: "clock.fill")
                     }
 
                 AddPlaceholderView() // プラスボタンに対応するView
@@ -33,16 +39,17 @@ struct BulkTrackApp: App {
                         Label("ワークアウト", systemImage: "plus.circle.fill")
                     }
 
-                HistoryView()
+                MenuView()
                     .tabItem {
-                        Label("履歴", systemImage: "clock.fill")
+                        Label("メニュー管理", systemImage: "list.bullet")
                     }
 
                 SettingsView()
                     .tabItem {
-                        Label("設定", systemImage: "gearshape.fill")
+                        Label("アプリ設定", systemImage: "gearshape.fill")
                     }
             }
+            .accentColor(.black)
             .onAppear {
                 // Viewが表示されたときに初期化処理を開始
                 appInitializer.initializeApp()
