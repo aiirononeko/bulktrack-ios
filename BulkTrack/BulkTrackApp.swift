@@ -9,10 +9,20 @@ import SwiftUI
 
 @main
 struct BulkTrackApp: App {
+    private let activationService = ActivationService()
+
     init() {
-        // デバッグ用のログ
         print("BulkTrackApp initialized")
-        print("API Base URL (Debug): \(APIConfig.baseURL)")
+        // アプリケーション起動時にアクティベーション処理を試みる
+        activationService.activateDeviceIfNeeded { result in
+            switch result {
+            case .success:
+                print("Activation process completed (or not needed).")
+            case .failure(let error):
+                print("Activation process failed: \(error.localizedDescription)")
+                // TODO: ユーザーにエラーを通知するか、リトライを促すUIを表示するなどの処理
+            }
+        }
     }
 
     var body: some Scene {
