@@ -2,3 +2,4 @@
 
 # Xcode configuration files
 Secrets.xcconfig
+Prod.xcconfig

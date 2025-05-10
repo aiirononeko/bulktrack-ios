@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F3185292DCFAD17005D398A /* Prod.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4F3185282DCFAD17005D398A /* Prod.xcconfig */; };
 		4FA481F92DCDAB6100EDCCB3 /* BulkTrack Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */; };
 /* End PBXBuildFile section */
@@ -64,6 +65,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4F3185282DCFAD17005D398A /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
 		4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BulkTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -176,6 +178,7 @@
 				4FA482142DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
 				4FA481D62DCDAB6000EDCCB3 /* Products */,
 				4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */,
+				4F3185282DCFAD17005D398A /* Prod.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -396,6 +399,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4F3185292DCFAD17005D398A /* Prod.xcconfig in Resources */,
 				4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -694,12 +698,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 573P995VR5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BulkTrack/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -710,7 +715,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -722,17 +727,18 @@
 		};
 		4FA482212DCDAB6200EDCCB3 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */;
+			baseConfigurationReference = 4F3185282DCFAD17005D398A /* Prod.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 573P995VR5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BulkTrack/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -743,7 +749,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.bulk-track.BulkTrack";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
