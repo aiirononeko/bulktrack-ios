@@ -62,12 +62,23 @@ struct HomeView: View {
                             Spacer() // 上のSpacer
                             if viewModel.isLoading {
                                 ProgressView("読み込み中...")
-                            } else if let summary = viewModel.currentWeekSummary {
-                                VStack {
-                                    Text("今週のサマリー")
-                                        .font(.title3).padding(.bottom)
-                                    Text("総ワークアウト回数: \(summary.totalWorkouts) 回")
-                                    Text("総ボリューム: \(String(format: "%.1f kg", summary.totalVolume))")
+                            } else if let data = viewModel.dashboardData { // dashboardData を使用
+                                ScrollView { // データが多い場合にスクロール可能にする
+                                    VStack(alignment: .leading, spacing: 20) {
+                                        Text("ダッシュボード (期間: \(data.span))")
+                                            .font(.title2).bold().padding(.bottom)
+
+                                        // 今週のデータ
+                                        weekDataView(title: "今週のデータ (\(formatWeekStartDate(data.thisWeek.weekStart)))", weekPoint: data.thisWeek)
+
+                                        // 先週のデータ
+                                        weekDataView(title: "先週のデータ (\(formatWeekStartDate(data.lastWeek.weekStart)))", weekPoint: data.lastWeek)
+                                        
+                                        // TODO: トレンドデータの表示
+                                        // TODO: 部位別データの表示
+                                        // TODO: メトリクスデータの表示
+
+                                    }.padding()
                                 }
                             } else if let errorMessage = viewModel.errorMessage {
                                 Text("エラー: \(errorMessage)")
@@ -106,6 +117,47 @@ struct HomeView: View {
                 viewModel.fetchDashboardData()
             }
         }
+    }
+
+    // 週次データを表示するためのヘルパーView
+    @ViewBuilder
+    private func weekDataView(title: String, weekPoint: WeekPoint) -> some View {
+        VStack(alignment: .leading) {
+            Text(title)
+                .font(.headline)
+            HStack {
+                Text("総ボリューム:")
+                Text("\(String(format: "%.1f", weekPoint.totalVolume)) kg")
+            }
+            HStack {
+                Text("平均セットボリューム:")
+                Text("\(String(format: "%.1f", weekPoint.avgSetVolume)) kg")
+            }
+            if let e1rm = weekPoint.e1rmAvg {
+                HStack {
+                    Text("平均E1RM:")
+                    Text("\(String(format: "%.1f", e1rm)) kg")
+                }
+            }
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(8)
+    }
+    
+    // 週の開始日をフォーマットするヘルパー関数
+    private func formatWeekStartDate(_ dateString: String) -> String {
+        let inputFormatter = DateFormatter()
+        inputFormatter.dateFormat = "yyyy-MM-dd" // APIから来る日付のフォーマット
+        
+        let outputFormatter = DateFormatter()
+        outputFormatter.dateFormat = "M月d日"
+        outputFormatter.locale = Locale(identifier: "ja_JP")
+        
+        if let date = inputFormatter.date(from: dateString) {
+            return outputFormatter.string(from: date)
+        }
+        return dateString // パース失敗時は元の文字列を返す
     }
 }
 

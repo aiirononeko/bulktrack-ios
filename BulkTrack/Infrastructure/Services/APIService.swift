@@ -68,60 +68,75 @@ struct RefreshTokenRequest: Encodable { // POSTリクエストボディ用なの
 // 本来は重複を避けるべき。
 // (ActivationService.swiftのTokenResponseを参照できるなら、ここでは不要)
 
-// MARK: - Dashboard Models (OpenAPI スキーマに基づく)
+// MARK: - Dashboard Models (NEW - OpenAPI スキーマに基づく)
 
-struct MuscleVolumeItem: Decodable, Identifiable {
-    let id = UUID() // Identifiable準拠のため。APIにmuscleIdがあるので、そちらをidとして使っても良い。
+struct WeekPoint: Decodable, Identifiable { 
+    var id = UUID() 
+    let weekStart: String 
+    let totalVolume: Double
+    let avgSetVolume: Double 
+    let e1rmAvg: Double?     
+
+    enum CodingKeys: String, CodingKey {
+        case weekStart
+        case totalVolume
+        case avgSetVolume
+        case e1rmAvg
+    }
+}
+
+struct MuscleSeries: Decodable, Identifiable {
+    var id: Int { muscleId } // muscleId を id として使用
     let muscleId: Int
     let name: String
-    let volume: Float
+    let points: [WeekPoint]
 
     enum CodingKeys: String, CodingKey {
-        case muscleId = "muscleId" // OpenAPIではキャメルケースだが、JSONレスポンスに合わせる
+        case muscleId
         case name
-        case volume
+        case points
     }
 }
 
-struct CurrentWeekSummary: Decodable {
-    let totalWorkouts: Int
-    let currentStreak: Int
-    let totalVolume: Float
-    let volumeByMuscle: [MuscleVolumeItem]
+struct MetricValuePoint: Decodable, Identifiable { 
+    var id: String { weekStart + "_" + String(value) } // weekStartとvalueでidを生成
+    let weekStart: String
+    let value: Double
 
     enum CodingKeys: String, CodingKey {
-        case totalWorkouts = "totalWorkouts"
-        case currentStreak = "currentStreak"
-        case totalVolume = "totalVolume"
-        case volumeByMuscle = "volumeByMuscle"
+        case weekStart
+        case value
     }
 }
 
-// PeriodSummary, ProgressMetricItem, UnderstimulatedMuscleItem は一旦省略または仮定義
-struct PeriodSummary: Decodable { /* TODO: Implement */ }
-struct ProgressMetricItem: Decodable, Identifiable { let id = UUID() /* TODO: Implement */ }
-struct UnderstimulatedMuscleItem: Decodable, Identifiable { let id = UUID() /* TODO: Implement */ }
+struct MetricSeries: Decodable, Identifiable {
+    var id: String { metricKey } // metricKey を id として使用
+    let metricKey: String
+    let unit: String
+    let points: [MetricValuePoint] 
+
+    enum CodingKeys: String, CodingKey {
+        case metricKey
+        case unit
+        case points
+    }
+}
 
 struct DashboardResponse: Decodable {
-    let userId: String
-    let lastSessionId: String?
-    let deloadWarningSignal: Bool
-    let lastCalculatedAt: String // date-time
-    let currentWeekSummary: CurrentWeekSummary
-    let periodSummary: PeriodSummary // 仮定義を使用
-    let progressMetrics: [ProgressMetricItem] // 仮定義を使用
-    let understimulatedMuscles: [UnderstimulatedMuscleItem] // 仮定義を使用
+    let userId: String?
+    let span: String?
+    let thisWeek: WeekPoint
+    let lastWeek: WeekPoint
+    let trend: [WeekPoint]
+    let muscles: [MuscleSeries]
+    let metrics: [MetricSeries]
 
-    enum CodingKeys: String, CodingKey {
-        case userId = "userId"
-        case lastSessionId = "lastSessionId"
-        case deloadWarningSignal = "deloadWarningSignal"
-        case lastCalculatedAt = "lastCalculatedAt"
-        case currentWeekSummary = "currentWeekSummary"
-        case periodSummary = "periodSummary"
-        case progressMetrics = "progressMetrics"
-        case understimulatedMuscles = "understimulatedMuscles"
-    }
+    // CodingKeys はプロパティ名とJSONキーが一致する場合は不要だが、
+    // スネークケースなど違いがある場合は定義する。
+    // 今回のOpenAPIスキーマではキャメルケースで一致していると仮定。
+    // enum CodingKeys: String, CodingKey {
+    //     case userId, span, thisWeek, lastWeek, trend, muscles, metrics
+    // }
 }
 
 // MARK: - Session Models (OpenAPI スキーマに基づく)
