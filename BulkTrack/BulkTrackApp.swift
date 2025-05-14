@@ -25,8 +25,8 @@ struct BulkTrackApp: App {
 
     init() {        
         // UIPageControlの外観を設定 (ドットインジケータの色)
-        UIPageControl.appearance().pageIndicatorTintColor = UIColor.lightGray.withAlphaComponent(0.6) // 非アクティブなドットの色
-        UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.black // アクティブなドットの色
+        UIPageControl.appearance().pageIndicatorTintColor = UIColor.secondarySystemBackground // 非アクティブなドットの色をシステムカラーに変更
+        UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.label // アクティブなドットの色をシステムカラーに変更
         // iOS 14以降では、背景スタイルも設定可能 (オプション)
         // if #available(iOS 14.0, *) {
         //     UIPageControl.appearance().backgroundStyle = .minimal // または .prominent, .automatic
@@ -75,7 +75,7 @@ struct BulkTrackApp: App {
                         }
                         .tag(TabTag.settings)
                 }
-                .accentColor(.black)
+                .accentColor(Color.primary) // accentColorをprimaryに設定
                 .environmentObject(sessionManager) // TabView全体、またはその親に一度だけ設定すればOK
 
                 // カスタムプラスボタン
@@ -84,9 +84,9 @@ struct BulkTrackApp: App {
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Color(uiColor: .systemBackground))
+                        .foregroundColor(Color(uiColor: .systemBackground)) // 文字色をシステム背景色に
                         .padding(12)
-                        .background(Circle().fill(Color.primary))
+                        .background(Circle().fill(Color.primary)) // 背景色をプライマリカラーに
                 }
                 // 一般的なタブバーのアイコン領域に合わせる
                 // 安全マージンも考慮し、やや大きめの値を設定するか、GeometryReaderで動的に。

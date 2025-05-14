@@ -7,6 +7,7 @@
 import SwiftUI
 
 struct SessionWorkoutView: View {
+    @Environment(\.colorScheme) var colorScheme // colorScheme を環境変数として追加
     let sessionId: String
     let exercise: Exercise 
     @Binding var isPresented: Bool
@@ -120,11 +121,14 @@ struct SessionWorkoutView: View {
                 }
                 // .padding(.horizontal) // HStackにpaddingがあるのでVStackからは削除してもよいかも
 
-                Button(isRecordingSet ? "記録中..." : "セットを記録する") {
+                Button {
                     recordSetViaAPI()
+                } label: {
+                    Text(isRecordingSet ? "記録中..." : "セットを記録する")
+                        .foregroundColor(colorScheme == .dark ? Color.black : Color.white) // 文字色をモードに応じて変更
                 }
                 .buttonStyle(.borderedProminent) 
-                .tint(.black) 
+                .tint(Color.primary)
                 .frame(maxWidth: .infinity) // ボタンを横幅いっぱいに
                 // .padding(.top) // VStackのspacingで調整
 
@@ -168,7 +172,7 @@ struct SessionWorkoutView: View {
                                  .font(.caption)
                         }
                     }
-                    .tint(.black) 
+                    .tint(Color.primary)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer() 
@@ -182,6 +186,18 @@ struct SessionWorkoutView: View {
                 loadLastWorkoutRecord()  // 前回の記録をロード
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     self.focusedField = .weight 
+                }
+            }
+            .onDisappear { // ビューが非表示になるタイミングで実行
+                let allSetsForThisExerciseInSession = self.sessionManager.getRecordedSets(for: self.exercise.id)
+                // セットが記録されている場合のみ保存処理を行う
+                if !allSetsForThisExerciseInSession.isEmpty {
+                    self.userSettingsService.saveLastWorkoutSession(
+                        for: self.exercise,
+                        with: self.sessionId,
+                        setsFromCurrentSession: allSetsForThisExerciseInSession
+                    )
+                    print("SessionWorkoutView: Saved last workout session on disappear.")
                 }
             }
         }
@@ -237,12 +253,6 @@ struct SessionWorkoutView: View {
                     self.sessionManager.addRecordedSet(setResponse, for: self.exercise.id)
                     self.loadCurrentSessionSets()
                     
-                    let allSetsForThisExerciseInSession = self.sessionManager.getRecordedSets(for: self.exercise.id)
-                    self.userSettingsService.saveLastWorkoutSession(for: self.exercise, 
-                                                                  with: self.sessionId, 
-                                                                  setsFromCurrentSession: allSetsForThisExerciseInSession)
-                    self.loadLastWorkoutRecord() 
-                                        
                     self.weightInput = ""
                     self.repsInput = ""
                     self.rpeInput = ""
