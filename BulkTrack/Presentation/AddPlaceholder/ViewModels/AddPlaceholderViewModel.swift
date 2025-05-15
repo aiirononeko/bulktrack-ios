@@ -8,8 +8,10 @@ final class AddPlaceholderViewModel: ObservableObject {
 
     private let apiService = APIService() // APIService.swift がプロジェクトに存在すると仮定
 
-    @Published var exercises: [Exercise] = [] // グローバルな Exercise モデルの配列
-    @Published var isLoading: Bool = false
+    @Published var recentExercises: [Exercise] = [] // 最近の種目
+    @Published var searchedExercises: [Exercise] = [] // グローバルな Exercise モデルの配列
+    @Published var isLoadingRecent: Bool = false
+    @Published var isLoadingSearch: Bool = false
     @Published var errorMessage: String?
 
     // セッション開始用に追加
@@ -19,29 +21,58 @@ final class AddPlaceholderViewModel: ObservableObject {
     @Published var sessionError: String? = nil   // セッション開始時のエラーメッセージ
     @Published var selectedExerciseForSession: Exercise? = nil // 追加
 
-    func fetchExercises() {
-        isLoading = true
+    func fetchRecentExercisesOnAppear() {
+        isLoadingRecent = true
         errorMessage = nil
-        print("AddPlaceholderViewModel: Fetching exercises...")
+        print("AddPlaceholderViewModel: Fetching recent exercises...")
 
-        apiService.fetchExercises(query: nil, locale: "ja") { [weak self] result in
+        apiService.fetchRecentExercises { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.isLoading = false
+                self.isLoadingRecent = false
                 switch result {
-                case .success(let fetchedExercises): // fetchedExercises は APIService.Exercise の配列のはず
-                    // 型変換は不要になったので直接代入
-                    self.exercises = fetchedExercises 
-                    print("AddPlaceholderViewModel: Successfully fetched \(self.exercises.count) exercises.")
-                    if let firstExercise = self.exercises.first {
-                        // APIService.Exercise の isOfficial は Bool? なので注意
-                        print("First exercise (APIService.Exercise model): \(firstExercise.name ?? firstExercise.canonicalName), isOfficial: \(String(describing: firstExercise.isOfficial)) ")
-                    }
+                case .success(let fetchedExercises):
+                    self.recentExercises = fetchedExercises
+                    print("AddPlaceholderViewModel: Successfully fetched \(self.recentExercises.count) recent exercises.")
                 case .failure(let error):
                     self.errorMessage = error.localizedDescription
-                    print("AddPlaceholderViewModel: Failed to fetch exercises: \(error.localizedDescription)")
+                    print("AddPlaceholderViewModel: Failed to fetch recent exercises: \(error.localizedDescription)")
                     if let apiError = error as? APIError, case .unauthorized = apiError {
-                         print("AddPlaceholderViewModel: Error details: Unauthorized for exercises.")
+                         print("AddPlaceholderViewModel: Error details: Unauthorized for recent exercises.")
+                    }
+                }
+            }
+        }
+    }
+
+    func searchExercises(query: String?) {
+        isLoadingSearch = true
+        errorMessage = nil
+        print("AddPlaceholderViewModel: Searching exercises with query: \(query ?? "nil")...")
+
+        // クエリが空の場合は検索結果をクリアして何もしない（または最近の種目を表示するUI側で制御）
+        guard let searchQuery = query, !searchQuery.isEmpty else {
+            self.searchedExercises = []
+            self.isLoadingSearch = false
+            print("AddPlaceholderViewModel: Search query is empty, cleared searched exercises.")
+            return
+        }
+        
+        apiService.fetchExercises(query: searchQuery, locale: "ja") { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isLoadingSearch = false
+                switch result {
+                case .success(let fetchedExercises):
+                    self.searchedExercises = fetchedExercises
+                    print("AddPlaceholderViewModel: Successfully fetched \(self.searchedExercises.count) exercises for query '\(searchQuery)'.")
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                    // 検索結果はクリアしておくのが良いか、エラーメッセージ次第
+                    self.searchedExercises = []
+                    print("AddPlaceholderViewModel: Failed to fetch exercises for query '\(searchQuery)': \(error.localizedDescription)")
+                    if let apiError = error as? APIError, case .unauthorized = apiError {
+                         print("AddPlaceholderViewModel: Error details: Unauthorized for exercises search.")
                     }
                 }
             }

@@ -516,6 +516,57 @@ class APIService {
         }
     }
 
+    // MARK: - Recent Exercises API
+    func fetchRecentExercises(limit: Int = 20, offset: Int = 0, locale: String = "ja", completion: @escaping (Result<[Exercise], Error>) -> Void) {
+        guard let baseURL = URL(string: baseURLString) else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+        var components = URLComponents(url: baseURL.appendingPathComponent("/v1/me/exercises/recent"), resolvingAgainstBaseURL: true)
+        var queryItems = [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset)),
+            URLQueryItem(name: "locale", value: locale)
+        ]
+        components?.queryItems = queryItems
+
+        guard let url = components?.url else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        do {
+            let accessToken = try getAccessToken()
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            print("Fetching recent exercises with URL: \(url) and Token: Bearer \(accessToken.prefix(10))... ")
+        } catch {
+            completion(.failure(error))
+            return
+        }
+
+        performRequest(request) { result in
+            switch result {
+            case .success(let data):
+                if let responseString = String(data: data, encoding: .utf8) {
+                     print("Raw Recent Exercises API Response JSON: \(responseString)")
+                }
+                do {
+                    let exercises = try JSONDecoder().decode([Exercise].self, from: data)
+                    completion(.success(exercises))
+                } catch let decodingError {
+                    print("Recent Exercise Decoding Error: \(decodingError)")
+                    completion(.failure(APIError.decodingError(decodingError)))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     // MARK: - Dashboard API
     func fetchDashboard(period: String? = nil, completion: @escaping (Result<DashboardResponse, Error>) -> Void) {
         guard let baseURL = URL(string: baseURLString) else {
