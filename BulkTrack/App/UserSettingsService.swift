@@ -81,6 +81,9 @@ class UserSettingsService {
             let data = try encoder.encode(lastSessionRecord)
             userDefaults.set(data, forKey: exerciseRecordKey(for: exercise.id))
             print("UserSettingsService: Saved last workout session (ID: \(sessionId)) for exercise \(exercise.id) with \(setDetails.count) sets.")
+            
+            // Watchへ最新情報を送信
+            WatchDataRelayService.shared.sendRecentWorkoutsToWatch()
         } catch {
             print("UserSettingsService: Failed to encode/save LastWorkoutSession for \(exercise.id): \(error.localizedDescription)")
         }
@@ -115,6 +118,26 @@ class UserSettingsService {
     func deleteLastWorkoutSession(for exerciseId: String) {
         userDefaults.removeObject(forKey: exerciseRecordKey(for: exerciseId))
         print("UserSettingsService: Deleted last workout session for exercise \(exerciseId).")
+    }
+
+    // UserDefaultsに保存されている全てのLastWorkoutSessionForExerciseを取得する
+    func getAllLastWorkoutSessions() -> [LastWorkoutSessionForExercise] {
+        var allSessions: [LastWorkoutSessionForExercise] = []
+        let dictionary = userDefaults.dictionaryRepresentation()
+        
+        for (key, value) in dictionary {
+            if key.hasPrefix("lastWorkoutSession_for_exercise_") {
+                if let data = value as? Data {
+                    do {
+                        let session = try decoder.decode(LastWorkoutSessionForExercise.self, from: data)
+                        allSessions.append(session)
+                    } catch {
+                        print("UserSettingsService: Failed to decode LastWorkoutSessionForExercise for key \(key): \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+        return allSessions
     }
 }
 

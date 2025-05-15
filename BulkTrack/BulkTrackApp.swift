@@ -27,10 +27,9 @@ struct BulkTrackApp: App {
         // UIPageControlの外観を設定 (ドットインジケータの色)
         UIPageControl.appearance().pageIndicatorTintColor = UIColor.secondarySystemBackground // 非アクティブなドットの色をシステムカラーに変更
         UIPageControl.appearance().currentPageIndicatorTintColor = UIColor.label // アクティブなドットの色をシステムカラーに変更
-        // iOS 14以降では、背景スタイルも設定可能 (オプション)
-        // if #available(iOS 14.0, *) {
-        //     UIPageControl.appearance().backgroundStyle = .minimal // または .prominent, .automatic
-        // }
+
+        // Watch Connectivityのセットアップ
+        WatchDataRelayService.shared.setupWatchConnectivity()
     }
 
     var body: some Scene {
