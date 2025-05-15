@@ -190,7 +190,7 @@ struct WorkoutSetCreate: Encodable {
 struct WorkoutSetResponse: Decodable, Identifiable {
     let id: String
     let exerciseId: String
-    let setNo: Int 
+    let setNumber: Int
     let weight: Float
     let reps: Int
     let rpe: Float?
@@ -201,13 +201,32 @@ struct WorkoutSetResponse: Decodable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id
         case exerciseId 
-        case setNo 
+        case setNumber
         case weight
         case reps
         case rpe
         case performedAt 
         case volume
         case createdAt
+    }
+}
+
+// OpenAPI SetUpdate schema
+struct SetUpdate: Encodable {
+    let exerciseId: String?
+    let weight: Float?
+    let reps: Int?
+    let rpe: Float?
+    let notes: String?
+    let performedAt: String? // ISO8601 date-time string
+
+    enum CodingKeys: String, CodingKey {
+        case exerciseId
+        case weight
+        case reps
+        case rpe
+        case notes
+        case performedAt // Renamed from executedAt
     }
 }
 
@@ -893,6 +912,129 @@ class APIService {
                 print("Raw response data for \(endpoint): \(rawResponseString)")
             }
             throw APIError.decodingError(error)
+        }
+    }
+
+    // MARK: - Workout Sets
+
+    // func addSetToSession(sessionId: String, setData: WorkoutSetCreate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
+    //     guard let url = URL(string: "\\(baseURLString)/sessions/\\(sessionId)/sets") else {
+    //         completion(.failure(.invalidURL))
+    //         return
+    //     }
+
+    //     var request = URLRequest(url: url)
+    //     request.httpMethod = "POST"
+    //     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+    //     do {
+    //         try setAuthorizationHeader(for: &request)
+    //         request.httpBody = try JSONEncoder().encode(setData)
+    //     } catch {
+    //         completion(.failure(error as? APIError ?? .requestFailed(error)))
+    //         return
+    //     }
+
+    //     performRequest(request: request, completion: completion)
+    // }
+    // NOTE: The above addSetToSession was duplicated by the previous edit. Assuming the original one exists elsewhere or this is the correct location and the other one should be removed.
+    // For now, commenting out the duplicate. If this is the primary one, uncomment and remove the other.
+
+
+    func updateSet(sessionId: String, setId: String, setData: SetUpdate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
+        guard let url = URL(string: baseURLString + "/v1/sessions/\(sessionId)/sets/\(setId)") else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept") // Acceptヘッダーを追加
+
+        print("APIService: Updating set for session \(sessionId) with data: \(setData)")
+
+        do {
+            // setAuthorizationHeader の代わりに直接トークンを設定
+            let accessToken = try getAccessToken()
+            request.setValue("Bearer \\(accessToken)", forHTTPHeaderField: "Authorization")
+            
+            let encoder = JSONEncoder()
+            request.httpBody = try encoder.encode(setData)
+
+        } catch let apiError as APIError {
+            completion(.failure(apiError))
+            return
+        } catch { // EncodingErrorなど、その他のエラーをキャッチ
+            completion(.failure(APIError.requestFailed(error)))
+            return
+        }
+
+        // performRequest を正しく呼び出し、結果を処理する
+        performRequest(request) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let decoder = JSONDecoder()
+                    let setResponse = try decoder.decode(WorkoutSetResponse.self, from: data)
+                    print("APIService: Set updated successfully. Response: \(setResponse)")
+                    completion(.success(setResponse))
+                } catch let decodingError {
+                    print("APIService: Failed to decode set update response: \(decodingError)")
+                    if let dataString = String(data: data, encoding: .utf8) {
+                        print("Raw response data for updateSet: \(dataString)")
+                    }
+                    completion(.failure(APIError.decodingError(decodingError)))
+                }
+            case .failure(let error): // performRequest から返される error は APIError のはず
+                print("APIService: Failed to update set: \(error.localizedDescription)")
+                // 必要に応じて error を APIError にキャストまたはラップする
+                completion(.failure(error as? APIError ?? APIError.requestFailed(error)))
+            }
+        }
+    }
+
+    func deleteSet(sessionId: String, setId: String, completion: @escaping (Result<Void, APIError>) -> Void) {
+        guard let url = URL(string: baseURLString + "/v1/sessions/\(sessionId)/sets/\(setId)") else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        // Content-Type はDELETEリクエストでは通常不要ですが、サーバーが特定のヘッダーを期待する場合は設定します。
+        // request.setValue("application/json", forHTTPHeaderField: "Content-Type") 
+        // Accept ヘッダーは、レスポンスボディがない場合でも設定しておくと良いプラクティスです。
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        do {
+            let accessToken = try getAccessToken()
+            request.setValue("Bearer \\(accessToken)", forHTTPHeaderField: "Authorization")
+            print("APIService: Deleting set \\(setId) for session \\(sessionId)")
+        } catch let apiError as APIError {
+            completion(.failure(apiError))
+            return
+        } catch {
+            completion(.failure(APIError.requestFailed(error)))
+            return
+        }
+
+        performRequest(request) { result in
+            switch result {
+            case .success(let data): // 204 No Contentの場合、dataは空のはず
+                if data.isEmpty {
+                    print("APIService: Set \\(setId) deleted successfully (204 No Content).")
+                    completion(.success(()))
+                } else {
+                    // 204以外でボディがある場合、または予期せぬレスポンス
+                    print("APIService: Delete set \\(setId) returned unexpected data (length: \\(data.count)). Assuming success if status was 2xx.")
+                    // HTTPステータスコードがperformRequest内で2xxであることを確認済みなので、成功として扱う
+                    completion(.success(()))
+                }
+            case .failure(let error):
+                print("APIService: Failed to delete set \\(setId): \\(error.localizedDescription)")
+                completion(.failure(error as? APIError ?? APIError.requestFailed(error)))
+            }
         }
     }
 }

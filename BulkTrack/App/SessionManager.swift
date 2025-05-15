@@ -99,7 +99,36 @@ class SessionManager: ObservableObject {
         self.recordedSetsForCurrentSession[exerciseId] = setsForExercise
         print("SessionManager: Added set for exercise \(exerciseId). Total sets now: \(setsForExercise.count) for this session.")
     }
+
+    func updateRecordedSet(_ updatedSetResponse: WorkoutSetResponse, for exerciseId: String) {
+        guard var setsForExercise = self.recordedSetsForCurrentSession[exerciseId],
+              let index = setsForExercise.firstIndex(where: { $0.id == updatedSetResponse.id }) else {
+            print("SessionManager: Could not find set with ID \(updatedSetResponse.id) for exercise \(exerciseId) to update.")
+            // Optionally, handle as an error or add if not found (though update implies it should exist)
+            // For now, we'll just log and return if not found.
+            return
+        }
+        setsForExercise[index] = updatedSetResponse
+        self.recordedSetsForCurrentSession[exerciseId] = setsForExercise
+        print("SessionManager: Updated set ID \(updatedSetResponse.id) for exercise \(exerciseId).")
+    }
     
+    func deleteRecordedSet(setId: String, for exerciseId: String) {
+        guard var setsForExercise = self.recordedSetsForCurrentSession[exerciseId],
+              let index = setsForExercise.firstIndex(where: { $0.id == setId }) else {
+            print("SessionManager: Could not find set with ID \(setId) for exercise \(exerciseId) to delete.")
+            return
+        }
+        setsForExercise.remove(at: index)
+        if setsForExercise.isEmpty {
+            self.recordedSetsForCurrentSession.removeValue(forKey: exerciseId)
+            print("SessionManager: Removed last set for exercise \(exerciseId). Exercise key also removed.")
+        } else {
+            self.recordedSetsForCurrentSession[exerciseId] = setsForExercise
+            print("SessionManager: Deleted set ID \(setId) for exercise \(exerciseId). Remaining sets: \(setsForExercise.count)")
+        }
+    }
+
     // 新しく追加: 全てのセッション関連データをクリアする（オプション）
     func clearAllSessionData() {
         DispatchQueue.main.async {

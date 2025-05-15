@@ -10,7 +10,7 @@ struct RecordedSetDetail: Codable, Identifiable {
 
     // WorkoutSetResponseから変換するためのイニシャライザ
     init(from setResponse: WorkoutSetResponse) {
-        self.setNumber = setResponse.setNo
+        self.setNumber = setResponse.setNumber
         self.weight = setResponse.weight
         self.reps = setResponse.reps
         self.rpe = setResponse.rpe
