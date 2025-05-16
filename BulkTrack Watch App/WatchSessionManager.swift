@@ -9,6 +9,16 @@ struct WorkoutData: Identifiable, Codable {
     // let lastPerformedDate: Date?
 }
 
+// WatchからiPhoneへ送信するセット情報の構造体
+struct WorkoutSetInfo: Codable, Identifiable {
+    let id = UUID() // 各セットを識別するため (リスト表示などで使う場合)
+    let weight: Double
+    let reps: Int
+    let rpe: Double?
+    // let exerciseId: String // どの種目のセットか (送信時に別途付与するか、ここに含めるか検討)
+    // let timestamp: Date // 記録時刻 (必要であれば)
+}
+
 class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     @Published var recentWorkouts: [WorkoutData] = []
     @Published var allAvailableExercises: [WorkoutData] = [] // 全ての種目リスト用
@@ -160,5 +170,73 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             }
         })
         print("Sent request for all exercises to iPhone.")
+    }
+
+    // MARK: - Test Message Sending
+    func sendTestMessageToPhone(messageText: String) {
+        guard let validSession = session, validSession.isReachable else {
+            print("iPhone is not reachable to send a test message.")
+            DispatchQueue.main.async {
+                self.errorMessage = "iPhone is not reachable to send test message."
+            }
+            return
+        }
+
+        let message = ["testMessage": messageText]
+        validSession.sendMessage(message, replyHandler: { reply in
+            print("Received reply for test message: \(reply)")
+            DispatchQueue.main.async {
+                // 必要であれば返信内容に応じた処理を追加
+            }
+        }, errorHandler: { error in
+            print("Error sending test message to iPhone: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                self.errorMessage = "Error sending test message: \(error.localizedDescription)"
+            }
+        })
+        print("Sent test message to iPhone: \(messageText)")
+    }
+
+    // MARK: - Workout Set Sending
+    func sendWorkoutSetToPhone(setInfo: WorkoutSetInfo, exerciseId: String, exerciseName: String) {
+        guard let validSession = session, validSession.isReachable else {
+            print("iPhone is not reachable to send workout set.")
+            DispatchQueue.main.async {
+                self.errorMessage = "iPhone is not reachable to send workout set."
+            }
+            return
+        }
+
+        do {
+            let setData = try JSONEncoder().encode(setInfo)
+            let message: [String: Any] = [
+                "newWorkoutSet": setData,
+                "exerciseId": exerciseId,
+                "exerciseName": exerciseName // iPhone側での確認や表示用
+            ]
+
+            validSession.sendMessage(message, replyHandler: { reply in
+                print("Received reply for newWorkoutSet: \(reply)")
+                DispatchQueue.main.async {
+                    if let success = reply["success"] as? Bool, success {
+                        // iPhone側での保存成功
+                        self.errorMessage = nil // エラーメッセージをクリア
+                    } else if let errorMsg = reply["error"] as? String {
+                        self.errorMessage = "Failed to save set on iPhone: \(errorMsg)"
+                    }
+                }
+            }, errorHandler: { error in
+                print("Error sending newWorkoutSet to iPhone: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.errorMessage = "Error sending set: \(error.localizedDescription)"
+                }
+            })
+            print("Sent newWorkoutSet to iPhone for exercise: \(exerciseName)")
+        } catch {
+            print("Failed to encode WorkoutSetInfo: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                self.errorMessage = "Failed to encode set data."
+            }
+        }
     }
 }

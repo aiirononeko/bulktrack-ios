@@ -181,13 +181,13 @@ struct WorkoutSessionResponse: Decodable, Identifiable {
 
 struct WorkoutSetCreate: Encodable {
     let exerciseId: String
-    let setNumber: Int
     let weight: Float
     let reps: Int
     let rpe: Float?
+    let performedAt: String // ISO8601 date-time string, 必須
 }
 
-struct WorkoutSetResponse: Decodable, Identifiable {
+struct WorkoutSetResponse: Codable, Identifiable {
     let id: String
     let exerciseId: String
     let setNumber: Int
@@ -651,298 +651,16 @@ class APIService {
 
     // MARK: - Session Management
 
-    func startSession(menuId: String? = nil, completion: @escaping (Result<WorkoutSessionResponse, Error>) -> Void) {
-        guard let url = URL(string: baseURLString + "/v1/sessions") else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        let requestBody = SessionStartRequest(menuId: menuId)
-        do {
-            request.httpBody = try JSONEncoder().encode(requestBody)
-        } catch {
-            completion(.failure(APIError.decodingError(error)))
-            return
-        }
-        
-        do {
-            let accessToken = try getAccessToken()
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            print("APIService: Starting session with URL: \(url) and Token: Bearer \(accessToken.prefix(10))...")
-        } catch {
-            completion(.failure(error))
-            return
-        }
-
-        performRequest(request) { result in
-            switch result {
-            case .success(let data):
-                do {
-                    let decoder = JSONDecoder()
-                    // DateDecodingStrategy は WorkoutSessionResponse の CodingKeys で対応想定
-                    let sessionResponse = try decoder.decode(WorkoutSessionResponse.self, from: data)
-                    print("APIService: Session started successfully. Response: \(sessionResponse)")
-                    completion(.success(sessionResponse))
-                } catch {
-                    print("APIService: Failed to decode session start response: \(error)")
-                    if let dataString = String(data: data, encoding: .utf8) {
-                        print("Raw response data for startSession: \(dataString)")
-                    }
-                    completion(.failure(APIError.decodingError(error)))
-                }
-            case .failure(let error):
-                print("APIService: Failed to start session: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func finishSession(sessionId: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        guard let url = URL(string: baseURLString + "/v1/sessions/\(sessionId)/finish") else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        do {
-            let accessToken = try getAccessToken()
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            print("APIService: Finishing session with URL: \(url) and Token: Bearer \(accessToken.prefix(10))...")
-        } catch {
-            completion(.failure(error))
-            return
-        }
-        
-        performRequest(request) { result in
-            switch result {
-            case .success(let data): // 204 No Contentの場合 dataは空かもしれない
-                // 成功時、レスポンスボディは期待しないため、dataのチェックは不要な場合もある
-                // サーバーが204を返す場合、dataは0バイトになる
-                if data.isEmpty {
-                     print("APIService: Session (ID: \(sessionId)) finished successfully (204 No Content or empty body).")
-                } else {
-                     print("APIService: Session (ID: \(sessionId)) finished successfully with data (length: \(data.count)).")
-                }
-                completion(.success(()))
-            case .failure(let error):
-                print("APIService: Failed to finish session (ID: \(sessionId)): \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
-
     // MARK: - Workout Set Management
-
-    func recordSet(sessionId: String, setData: WorkoutSetCreate, completion: @escaping (Result<WorkoutSetResponse, Error>) -> Void) {
-        guard let url = URL(string: baseURLString + "/v1/sessions/\(sessionId)/sets") else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        do {
-            let encoder = JSONEncoder()
-            // encoder.dateEncodingStrategy = .iso8601 // 日付型を送信する場合
-            request.httpBody = try encoder.encode(setData)
-            print("APIService: Recording set for session \(sessionId) with data: \(setData)")
-        } catch {
-            print("APIService: Failed to encode set data: \(error)")
-            completion(.failure(APIError.decodingError(error))) // エンコードエラーもdecodingErrorで一旦まとめる
-            return
-        }
-        
-        do {
-            let accessToken = try getAccessToken()
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        } catch {
-            completion(.failure(error))
-            return
-        }
-
-        performRequest(request) { result in
-            switch result {
-            case .success(let data):
-                do {
-                    let decoder = JSONDecoder()
-                    // decoder.dateDecodingStrategy = .customISO8601 // 日付型をデコードする場合
-                    let setResponse = try decoder.decode(WorkoutSetResponse.self, from: data)
-                    print("APIService: Set recorded successfully. Response: \(setResponse)")
-                    completion(.success(setResponse))
-                } catch {
-                    print("APIService: Failed to decode set record response: \(error)")
-                    if let dataString = String(data: data, encoding: .utf8) {
-                        print("Raw response data for recordSet: \(dataString)")
-                    }
-                    completion(.failure(APIError.decodingError(error)))
-                }
-            case .failure(let error):
-                print("APIService: Failed to record set: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
 
     // MARK: - Workout Set Operations
 
-    func recordSet(sessionId: String, setData: WorkoutSetCreate) async throws -> WorkoutSetResponse {
-        let endpoint = "/v1/sessions/\(sessionId)/sets"
-        print("APIService: Recording set for session \(sessionId) with data: \(setData)")
-        
-        // performRequest を使用してリクエストを実行し、直接 WorkoutSetResponse にデコード
-        return try await performRequest(
-            endpoint: endpoint,
-            method: "POST",
-            body: setData,
-            requiresAuth: true
-        )
-    }
-
     // MARK: - Dashboard Operations
-
-    private func performRequest<T: Decodable, B: Encodable>(
-        endpoint: String,
-        method: String,
-        body: B? = nil,
-        requiresAuth: Bool = true,
-        isRetry: Bool = false
-    ) async throws -> T {
-        guard let url = URL(string: baseURLString + endpoint) else {
-            throw APIError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        if requiresAuth {
-            do {
-                let token = try getAccessToken()
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            } catch {
-                // アクセストークン取得に失敗した場合 (例: Keychainに存在しない)
-                // リフレッシュを試みる前に、これがリトライでないことを確認
-                if !isRetry {
-                    print("APIService: Access token not found or invalid, attempting refresh before request to \(endpoint).")
-                    try await refreshToken()
-                    // リフレッシュ成功後、再度リクエストを試みる (isRetry: true を設定)
-                    return try await performRequest(endpoint: endpoint, method: method, body: body, requiresAuth: requiresAuth, isRetry: true)
-                } else {
-                    // リフレッシュ後のリトライでも失敗した場合は、元のエラーをスロー
-                    print("APIService: Access token still invalid after refresh for request to \(endpoint).")
-                    throw error
-                }
-            }
-        }
-
-        if let body = body {
-            do {
-                request.httpBody = try JSONEncoder().encode(body)
-            } catch {
-                throw APIError.requestFailed(error) // エンコード失敗
-            }
-        }
-        
-        print("APIService: Making request to \(url.path)")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.requestFailed(URLError(.badServerResponse))
-        }
-        
-        print("APIService: Request to \(url.path) completed with status: \(httpResponse.statusCode)")
-
-
-        if httpResponse.statusCode == 401 && requiresAuth && !isRetry {
-            print("APIService: Received 401 Unauthorized. Attempting token refresh.")
-            do {
-                try await refreshToken()
-                print("APIService: Token refresh successful. Retrying original request.")
-                // リフレッシュ成功後、再度リクエストを試みる (isRetry: true を設定)
-                return try await performRequest(endpoint: endpoint, method: method, body: body, requiresAuth: requiresAuth, isRetry: true)
-            } catch {
-                print("APIService: Token refresh failed. Error: \(error.localizedDescription)")
-                // リフレッシュに失敗した場合は、401エラーをAPIError.unauthorizedとして処理
-                 throw APIError.unauthorized
-            }
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            if let rawResponseString = String(data: data, encoding: .utf8) {
-                 print("APIService Error: Status \(httpResponse.statusCode), Response: \(rawResponseString)")
-            }
-            // TODO: サーバーからのエラーメッセージをパースしてAPIErrorに含める
-            throw APIError.apiError(statusCode: httpResponse.statusCode, message: HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))
-        }
-
-        do {
-            let decoder = JSONDecoder()
-            let dateFormatter = ISO8601DateFormatter()
-            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            decoder.dateDecodingStrategy = .custom { decoder -> Date in
-                let container = try decoder.singleValueContainer()
-                let dateString = try container.decode(String.self)
-                if let date = dateFormatter.date(from: dateString) {
-                    return date
-                }
-                // .SSSZ 形式に対応できていない場合、カスタムで対応するか、より柔軟なパーサーを使う
-                // ここでは仮にエラーをスロー
-                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date string \(dateString)")
-            }
-            // AddedSetContainer を使わずに直接 WorkoutSetResponse にデコード
-            let decodedResponse = try decoder.decode(T.self, from: data)
-            print("APIService: Successfully decoded response for \(endpoint)")
-            return decodedResponse
-        } catch {
-            print("APIService: Failed to decode response for \(endpoint): \(error.localizedDescription)")
-            if let rawResponseString = String(data: data, encoding: .utf8) {
-                print("Raw response data for \(endpoint): \(rawResponseString)")
-            }
-            throw APIError.decodingError(error)
-        }
-    }
 
     // MARK: - Workout Sets
 
-    // func addSetToSession(sessionId: String, setData: WorkoutSetCreate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
-    //     guard let url = URL(string: "\\(baseURLString)/sessions/\\(sessionId)/sets") else {
-    //         completion(.failure(.invalidURL))
-    //         return
-    //     }
-
-    //     var request = URLRequest(url: url)
-    //     request.httpMethod = "POST"
-    //     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    //     do {
-    //         try setAuthorizationHeader(for: &request)
-    //         request.httpBody = try JSONEncoder().encode(setData)
-    //     } catch {
-    //         completion(.failure(error as? APIError ?? .requestFailed(error)))
-    //         return
-    //     }
-
-    //     performRequest(request: request, completion: completion)
-    // }
-    // NOTE: The above addSetToSession was duplicated by the previous edit. Assuming the original one exists elsewhere or this is the correct location and the other one should be removed.
-    // For now, commenting out the duplicate. If this is the primary one, uncomment and remove the other.
-
-
-    func updateSet(sessionId: String, setId: String, setData: SetUpdate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
-        guard let url = URL(string: baseURLString + "/v1/sessions/\(sessionId)/sets/\(setId)") else {
+    func updateSet(setId: String, setData: SetUpdate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
+        guard let url = URL(string: baseURLString + "/v1/sets/\(setId)") else {
             completion(.failure(APIError.invalidURL))
             return
         }
@@ -950,14 +668,13 @@ class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept") // Acceptヘッダーを追加
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        print("APIService: Updating set for session \(sessionId) with data: \(setData)")
+        print("APIService: Updating set \(setId) with data: \(setData)")
 
         do {
-            // setAuthorizationHeader の代わりに直接トークンを設定
             let accessToken = try getAccessToken()
-            request.setValue("Bearer \\(accessToken)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             
             let encoder = JSONEncoder()
             request.httpBody = try encoder.encode(setData)
@@ -965,12 +682,11 @@ class APIService {
         } catch let apiError as APIError {
             completion(.failure(apiError))
             return
-        } catch { // EncodingErrorなど、その他のエラーをキャッチ
+        } catch {
             completion(.failure(APIError.requestFailed(error)))
             return
         }
 
-        // performRequest を正しく呼び出し、結果を処理する
         performRequest(request) { result in
             switch result {
             case .success(let data):
@@ -986,31 +702,27 @@ class APIService {
                     }
                     completion(.failure(APIError.decodingError(decodingError)))
                 }
-            case .failure(let error): // performRequest から返される error は APIError のはず
+            case .failure(let error):
                 print("APIService: Failed to update set: \(error.localizedDescription)")
-                // 必要に応じて error を APIError にキャストまたはラップする
                 completion(.failure(error as? APIError ?? APIError.requestFailed(error)))
             }
         }
     }
 
-    func deleteSet(sessionId: String, setId: String, completion: @escaping (Result<Void, APIError>) -> Void) {
-        guard let url = URL(string: baseURLString + "/v1/sessions/\(sessionId)/sets/\(setId)") else {
+    func deleteSet(setId: String, completion: @escaping (Result<Void, APIError>) -> Void) {
+        guard let url = URL(string: baseURLString + "/v1/sets/\(setId)") else {
             completion(.failure(APIError.invalidURL))
             return
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        // Content-Type はDELETEリクエストでは通常不要ですが、サーバーが特定のヘッダーを期待する場合は設定します。
-        // request.setValue("application/json", forHTTPHeaderField: "Content-Type") 
-        // Accept ヘッダーは、レスポンスボディがない場合でも設定しておくと良いプラクティスです。
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         do {
             let accessToken = try getAccessToken()
-            request.setValue("Bearer \\(accessToken)", forHTTPHeaderField: "Authorization")
-            print("APIService: Deleting set \\(setId) for session \\(sessionId)")
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            print("APIService: Deleting set \(setId)")
         } catch let apiError as APIError {
             completion(.failure(apiError))
             return
@@ -1021,19 +733,70 @@ class APIService {
 
         performRequest(request) { result in
             switch result {
-            case .success(let data): // 204 No Contentの場合、dataは空のはず
+            case .success(let data):
                 if data.isEmpty {
-                    print("APIService: Set \\(setId) deleted successfully (204 No Content).")
+                    print("APIService: Set \(setId) deleted successfully (204 No Content).")
                     completion(.success(()))
                 } else {
-                    // 204以外でボディがある場合、または予期せぬレスポンス
-                    print("APIService: Delete set \\(setId) returned unexpected data (length: \\(data.count)). Assuming success if status was 2xx.")
-                    // HTTPステータスコードがperformRequest内で2xxであることを確認済みなので、成功として扱う
+                    print("APIService: Delete set \(setId) returned unexpected data (length: \(data.count)). Assuming success if status was 2xx.")
                     completion(.success(()))
                 }
             case .failure(let error):
-                print("APIService: Failed to delete set \\(setId): \\(error.localizedDescription)")
+                print("APIService: Failed to delete set \(setId): \(error.localizedDescription)")
                 completion(.failure(error as? APIError ?? APIError.requestFailed(error)))
+            }
+        }
+    }
+
+    // 新しいワークアウトセットを登録するメソッド (OpenAPI /v1/sets に準拠)
+    func createWorkoutSet(setCreate: WorkoutSetCreate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
+        guard let url = URL(string: "\(baseURLString)/v1/sets") else {
+            completion(.failure(.invalidURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        do {
+            let accessToken = try getAccessToken() 
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        } catch {
+            completion(.failure(error as? APIError ?? .unauthorized))
+            return
+        }
+
+        do {
+            let encoder = JSONEncoder()
+            request.httpBody = try encoder.encode(setCreate)
+        } catch {
+            completion(.failure(.decodingError(error))) 
+            return
+        }
+
+        print("Creating workout set with URL: \(url.absoluteString)")
+        if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
+            print("Request body: \(bodyString)")
+        }
+
+        performRequest(request) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let decoder = JSONDecoder()
+                    let setResponse = try decoder.decode(WorkoutSetResponse.self, from: data)
+                    print("APIService: Set created successfully. Response: \(setResponse)")
+                    completion(.success(setResponse))
+                } catch let decodingError {
+                    print("APIService: Failed to decode set creation response: \(decodingError.localizedDescription)")
+                    if let dataString = String(data: data, encoding: .utf8) {
+                        print("Raw response data for createWorkoutSet: \(dataString)")
+                    }
+                    completion(.failure(.decodingError(decodingError)))
+                }
+            case .failure(let error):
+                print("APIService: Failed to create workout set: \(error.localizedDescription)")
+                completion(.failure(error as? APIError ?? .requestFailed(error)))
             }
         }
     }

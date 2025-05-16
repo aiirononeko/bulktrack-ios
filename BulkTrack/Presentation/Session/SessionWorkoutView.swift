@@ -284,16 +284,21 @@ struct SessionWorkoutView: View {
             return
         }
 
+        // performedAt をISO8601形式の文字列で生成
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds] // .sssZ を含む形式
+        let performedAtString = isoFormatter.string(from: Date())
+
         let setData = WorkoutSetCreate(exerciseId: exercise.id,
-                                       setNumber: setNum, 
                                        weight: weight, 
                                        reps: reps, 
-                                       rpe: rpeValue)
+                                       rpe: rpeValue,
+                                       performedAt: performedAtString)
 
         isRecordingSet = true
         recordingError = nil
 
-        apiService.recordSet(sessionId: sessionId, setData: setData) { result in // 'addSetToSession' を 'recordSet' に修正
+        apiService.createWorkoutSet(setCreate: setData) { result in
             DispatchQueue.main.async {
                 self.isRecordingSet = false
                 switch result {
@@ -340,7 +345,7 @@ struct SessionWorkoutView: View {
         isRecordingSet = true
         recordingError = nil
 
-        apiService.updateSet(sessionId: sessionId, setId: editingSet.id, setData: updateData) { result in
+        apiService.updateSet(setId: editingSet.id, setData: updateData) { result in
             DispatchQueue.main.async {
                 self.isRecordingSet = false
                 switch result {
@@ -370,16 +375,10 @@ struct SessionWorkoutView: View {
 
     // ★ セット削除実行メソッドを追加
     private func deleteSetConfirmed(set: UIRecordedSet) {
-        guard let currentSessionId = sessionManager.currentSessionId else {
-            print("SessionWorkoutView: Error - currentSessionId is nil, cannot delete set.")
-            self.recordingError = "セッションIDが見つかりません。"
-            return
-        }
-
-        isRecordingSet = true // 既存のローディング状態を流用
+        isRecordingSet = true 
         recordingError = nil
 
-        apiService.deleteSet(sessionId: currentSessionId, setId: set.id) { result in
+        apiService.deleteSet(setId: set.id) { result in
             DispatchQueue.main.async {
                 self.isRecordingSet = false
                 switch result {

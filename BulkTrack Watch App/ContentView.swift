@@ -45,6 +45,11 @@ struct RecentWorkoutsView: View {
                         sessionManager.requestRecentWorkoutsFromPhone()
                     }
                     .padding(.top)
+                    // テスト用ボタンを追加
+                    Button("テストメッセージ送信") {
+                        WatchSessionManager.shared.sendTestMessageToPhone(messageText: "Hello from Watch!")
+                    }
+                    .padding(.top)
                 } else {
                     List {
                         ForEach(sessionManager.recentWorkouts) { workout in

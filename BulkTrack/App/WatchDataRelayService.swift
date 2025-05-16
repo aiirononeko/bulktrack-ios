@@ -8,6 +8,14 @@ struct WatchWorkoutData: Identifiable, Codable {
     // let lastPerformedDate: Date? // 必要に応じて追加
 }
 
+// Watchから受信するセット情報の構造体 (Watch側のWorkoutSetInfoと一致させる)
+struct ReceivedWorkoutSetInfo: Codable {
+    // let id: UUID // UUIDはデコード時に問題になることがあるので、必要ならStringに
+    let weight: Double
+    let reps: Int
+    let rpe: Double?
+}
+
 class WatchDataRelayService: NSObject, WCSessionDelegate {
     static let shared = WatchDataRelayService()
 
@@ -106,6 +114,51 @@ class WatchDataRelayService: NSObject, WCSessionDelegate {
                     print("Failed to fetch all exercises for Watch reply: \(error.localizedDescription)")
                     replyHandler(["error": "Failed to fetch all exercises"])
                 }
+            }
+        } else if let testMessageText = message["testMessage"] as? String {
+            // Watchからのテストメッセージを受信
+            print("iPhone received test message: \(testMessageText)")
+            // ここでiPhone側の任意の処理を実行できます。
+            // 例えば、UIに表示したり、ローカル通知を発行したりなど。
+            replyHandler(["status": "Test message received by iPhone: \(testMessageText)"])
+        } else if let setData = message["newWorkoutSet"] as? Data,
+                  let exerciseId = message["exerciseId"] as? String,
+                  let exerciseName = message["exerciseName"] as? String {
+            // Watchから新しいワークアウトセット情報を受信
+            print("iPhone received newWorkoutSet for exerciseID: \(exerciseId) (\(exerciseName))")
+            do {
+                let decoder = JSONDecoder()
+                let setInfo = try decoder.decode(ReceivedWorkoutSetInfo.self, from: setData)
+                print("Decoded set: Weight: \(setInfo.weight) kg, Reps: \(setInfo.reps), RPE: \(setInfo.rpe != nil ? String(format: "%.1f", setInfo.rpe!) : "N/A")")
+                
+                // performedAt をISO8601形式の文字列で生成
+                let isoFormatter = ISO8601DateFormatter()
+                isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds] // .sssZ を含む形式
+                let performedAtString = isoFormatter.string(from: Date())
+
+                // WorkoutSetCreate オブジェクトを作成 (OpenAPIスキーマに準拠)
+                let setCreate = WorkoutSetCreate(
+                    exerciseId: exerciseId,
+                    weight: Float(setInfo.weight),
+                    reps: setInfo.reps,
+                    rpe: setInfo.rpe != nil ? Float(setInfo.rpe!) : nil,
+                    performedAt: performedAtString
+                    // notes: nil // 必要であれば追加
+                )
+
+                apiService.createWorkoutSet(setCreate: setCreate) { result in // sessionId引数なしのメソッドを呼び出し
+                    switch result {
+                    case .success(let response):
+                        print("Successfully saved workout set to server. Response: \(response)")
+                        replyHandler(["success": true, "message": "Set data saved for \(exerciseName)."])
+                    case .failure(let error):
+                        print("Failed to save workout set to server: \(error.localizedDescription)")
+                        replyHandler(["success": false, "error": "Failed to save set data on server for \(exerciseName): \(error.localizedDescription)"])
+                    }
+                }
+            } catch {
+                print("Failed to decode ReceivedWorkoutSetInfo: \(error.localizedDescription)")
+                replyHandler(["success": false, "error": "Failed to decode set data on iPhone: \(error.localizedDescription)"])
             }
         } else {
             replyHandler([:]) // 不明なメッセージ

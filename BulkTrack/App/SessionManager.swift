@@ -7,110 +7,66 @@ import Combine
 // この例では、WorkoutSetResponse がグローバルにアクセス可能であると仮定しています。
 
 class SessionManager: ObservableObject {
-    @Published var currentSessionId: String? = nil
-    @Published var isEndingSession: Bool = false
-    @Published var sessionEndingError: String? = nil
-    // isSessionActive は currentSessionId の有無で決定できるので、コンピューテッドプロパティでも良い
-    // @Published var isSessionActive: Bool = false 
-    // または、より明示的に状態を管理したい場合は @Published のままにする
+    var isSessionActive: Bool { 
+        return true // アプリがアクティブである限りセッション（的な区切り）は有効とみなす場合
+                    // もし「トレーニング中」フラグが別途必要なら、それを管理する
+    }
 
-    // 新しく追加: 種目ごとの記録済みセットを保持 (現在のセッションに紐づく)
     @Published var recordedSetsForCurrentSession: [String: [WorkoutSetResponse]] = [:]
 
-    var isSessionActive: Bool {
-        currentSessionId != nil
-    }
-
     private var cancellables = Set<AnyCancellable>()
-    private let apiService = APIService()
+    private let userSettingsService = UserSettingsService.shared // UserSettingsServiceのインスタンスを保持
 
     init() {
-        // currentSessionId の変更を監視して isSessionActive を更新する (もし isSessionActive を Published にする場合)
-        /*
-        $currentSessionId
-            .map { $0 != nil }
-            .assign(to: \.isSessionActive, on: self)
-            .store(in: &cancellables)
-        */
-        
-        // UserDefaults から前回のセッション情報を読み込む (オプション)
-        // loadSessionFromUserDefaults()
-        print("SessionManager initialized. Current Session ID: \(currentSessionId ?? "None")")
+        print("SessionManager initialized.")
+        // UserDefaultsから今日の記録を読み込む
+        self.recordedSetsForCurrentSession = userSettingsService.loadAllTodaysSets()
+        print("SessionManager: Loaded today's records. \(self.recordedSetsForCurrentSession.count) exercises have sets.")
     }
 
-    func startNewSession(sessionId: String) {
+    // このメソッドはUIフローの区切りとして残すか、完全に削除するか検討。
+    // 今日の記録は自動的にロード・保存されるので、SessionManagerの状態リセットは不要。
+    func startNewWorkoutGrouping() {
         DispatchQueue.main.async {
-            self.currentSessionId = sessionId
-            self.recordedSetsForCurrentSession = [:] // 新しいセッションでセット記録をクリア
-            self.sessionEndingError = nil // エラー状態もリセット
-            self.isEndingSession = false // ローディング状態もリセット
-            print("SessionManager: New session started with ID: \(sessionId). Recorded sets cleared.")
-            // UserDefaults に保存 (オプション)
-            // self.saveSessionToUserDefaults()
+            // self.recordedSetsForCurrentSession = [:] // 読み込みがあるので不要
+            print("SessionManager: startNewWorkoutGrouping called (today's data is auto-managed).")
         }
     }
 
-    func endCurrentSession() {
-        guard let sessionIdToFinish = currentSessionId, !isEndingSession else {
-            print("SessionManager: No active session to end or already ending a session.")
-            if isEndingSession {
-                 print("SessionManager: Already processing an end session request.")
-            }
-            if currentSessionId == nil {
-                print("SessionManager: currentSessionId is nil, cannot end.")
-            }
-            return
-        }
-
-        print("SessionManager: Attempting to end session ID: \(sessionIdToFinish)")
-        isEndingSession = true
-        sessionEndingError = nil
-
-        apiService.finishSession(sessionId: sessionIdToFinish) { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.isEndingSession = false
-                switch result {
-                case .success:
-                    print("SessionManager: Successfully ended session ID: \(sessionIdToFinish) via API.")
-                    self.currentSessionId = nil
-                    self.recordedSetsForCurrentSession = [:] // セッション終了時にセット記録をクリア
-                    print("SessionManager: Recorded sets cleared after session end.")
-                case .failure(let error):
-                    print("SessionManager: Failed to end session ID: \(sessionIdToFinish) via API. Error: \(error.localizedDescription)")
-                    self.sessionEndingError = error.localizedDescription
-                    // 必要に応じて、ここで currentSessionId を nil にしないポリシーも検討できる
-                    // (例: APIエラーでもローカルの状態は終了扱いにするか、エラーをユーザーに通知してリトライを促すか)
-                    // 今回はAPI失敗時はローカルセッションIDを維持する
-                }
-            }
+    // 同様に、このメソッドも役割が薄れる。
+    func endCurrentWorkoutGrouping() {
+        DispatchQueue.main.async {
+            // self.recordedSetsForCurrentSession = [:] // 今日の記録をクリアするわけではない
+            print("SessionManager: endCurrentWorkoutGrouping called (today's data is auto-managed).")
         }
     }
 
-    // 新しく追加: 指定された種目の記録済みセットを取得する
     func getRecordedSets(for exerciseId: String) -> [WorkoutSetResponse] {
         return recordedSetsForCurrentSession[exerciseId] ?? []
     }
 
-    // 新しく追加: 新しいセットを記録に追加する
     func addRecordedSet(_ setResponse: WorkoutSetResponse, for exerciseId: String) {
         var setsForExercise = self.recordedSetsForCurrentSession[exerciseId] ?? []
         setsForExercise.append(setResponse)
+        // setNumber でソートする場合 (APIレスポンスが順番を保証しない場合など)
+        // setsForExercise.sort { $0.setNumber < $1.setNumber }
         self.recordedSetsForCurrentSession[exerciseId] = setsForExercise
-        print("SessionManager: Added set for exercise \(exerciseId). Total sets now: \(setsForExercise.count) for this session.")
+        userSettingsService.saveTodaysSets(for: exerciseId, sets: setsForExercise)
+        print("SessionManager: Added set for exercise \(exerciseId). Total sets now: \(setsForExercise.count). Saved to UserDefaults.")
     }
 
     func updateRecordedSet(_ updatedSetResponse: WorkoutSetResponse, for exerciseId: String) {
         guard var setsForExercise = self.recordedSetsForCurrentSession[exerciseId],
               let index = setsForExercise.firstIndex(where: { $0.id == updatedSetResponse.id }) else {
             print("SessionManager: Could not find set with ID \(updatedSetResponse.id) for exercise \(exerciseId) to update.")
-            // Optionally, handle as an error or add if not found (though update implies it should exist)
-            // For now, we'll just log and return if not found.
             return
         }
         setsForExercise[index] = updatedSetResponse
+        // 必要であればソート
+        // setsForExercise.sort { $0.setNumber < $1.setNumber }
         self.recordedSetsForCurrentSession[exerciseId] = setsForExercise
-        print("SessionManager: Updated set ID \(updatedSetResponse.id) for exercise \(exerciseId).")
+        userSettingsService.saveTodaysSets(for: exerciseId, sets: setsForExercise)
+        print("SessionManager: Updated set ID \(updatedSetResponse.id) for exercise \(exerciseId). Saved to UserDefaults.")
     }
     
     func deleteRecordedSet(setId: String, for exerciseId: String) {
@@ -122,21 +78,28 @@ class SessionManager: ObservableObject {
         setsForExercise.remove(at: index)
         if setsForExercise.isEmpty {
             self.recordedSetsForCurrentSession.removeValue(forKey: exerciseId)
-            print("SessionManager: Removed last set for exercise \(exerciseId). Exercise key also removed.")
+            print("SessionManager: Removed last set for exercise \(exerciseId). Exercise key also removed from memory.")
+            userSettingsService.saveTodaysSets(for: exerciseId, sets: []) // 空配列を保存してUserDefaultsからも削除
         } else {
             self.recordedSetsForCurrentSession[exerciseId] = setsForExercise
-            print("SessionManager: Deleted set ID \(setId) for exercise \(exerciseId). Remaining sets: \(setsForExercise.count)")
+            // 必要であればソート
+            // setsForExercise.sort { $0.setNumber < $1.setNumber }
+            userSettingsService.saveTodaysSets(for: exerciseId, sets: setsForExercise)
+            print("SessionManager: Deleted set ID \(setId) for exercise \(exerciseId). Remaining sets: \(setsForExercise.count). Saved to UserDefaults.")
         }
     }
 
-    // 新しく追加: 全てのセッション関連データをクリアする（オプション）
-    func clearAllSessionData() {
+    // このメソッドは、もはや「セッションデータ」というより「今日の全データ」クリアになる。
+    // 挙動を明確にするため、名前変更や削除を検討。
+    func clearAllTodaysData() { // メソッド名変更の提案
         DispatchQueue.main.async {
-            self.currentSessionId = nil
+            let allKeys = self.recordedSetsForCurrentSession.keys
+            for exerciseId in allKeys {
+                // UserDefaultsから個別に削除 (saveTodaysSetsに空配列を渡すことで実現)
+                self.userSettingsService.saveTodaysSets(for: exerciseId, sets: [])
+            }
             self.recordedSetsForCurrentSession = [:]
-            self.sessionEndingError = nil
-            self.isEndingSession = false
-            print("SessionManager: All session data (ID and recorded sets) cleared.")
+            print("SessionManager: All today's data (recorded sets) cleared from memory and UserDefaults.")
         }
     }
 

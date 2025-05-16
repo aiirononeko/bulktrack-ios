@@ -80,42 +80,20 @@ final class AddPlaceholderViewModel: ObservableObject {
     }
 
     func selectExerciseAndStartSession(exercise: Exercise, sessionManager: SessionManager) {
-        guard !isStartingSession else { return } 
-
-        if sessionManager.isSessionActive, let existingSessionId = sessionManager.currentSessionId {
-            print("AddPlaceholderViewModel: Session is already active (ID: \(existingSessionId)). Using existing session for exercise: \(exercise.name ?? exercise.canonicalName)")
-            self.selectedExerciseForSession = exercise // 既存セッションでも種目情報はセット
-            self.startedSessionId = existingSessionId
-            self.sessionError = nil 
-            self.isShowingSessionModal = true 
-            return 
-        }
-
-        isStartingSession = true
         sessionError = nil
-        startedSessionId = nil 
-        isShowingSessionModal = false
-        // selectedExerciseForSession はAPI成功後にセットする
         
-        print("AddPlaceholderViewModel: Starting new session for exercise: \(exercise.name ?? exercise.canonicalName) (ID: \(exercise.id))")
+        // サーバーセッションIDの代わりにローカルでユニークなIDを生成 (またはSessionManagerに生成させる)
+        // SessionWorkoutViewがこのIDを「今回のトレーニングの区切り」として使うことを想定
+        let localWorkoutGroupId = UUID().uuidString 
+        self.startedSessionId = localWorkoutGroupId
+        self.selectedExerciseForSession = exercise
+        
+        // SessionManagerのメソッドも新しい名前に合わせる (sessionId引数なし)
+        sessionManager.startNewWorkoutGrouping()
+        
+        self.isShowingSessionModal = true 
+        print("AddPlaceholderViewModel: Starting new workout view for exercise: \(exercise.name ?? exercise.canonicalName) with local group ID: \(localWorkoutGroupId)")
 
-        apiService.startSession(menuId: nil) { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.isStartingSession = false
-                switch result {
-                case .success(let sessionResponse):
-                    print("AddPlaceholderViewModel: New session started successfully. Session ID: \(sessionResponse.id)")
-                    self.selectedExerciseForSession = exercise // API成功時に種目情報をセット
-                    self.startedSessionId = sessionResponse.id
-                    sessionManager.startNewSession(sessionId: sessionResponse.id)
-                    self.isShowingSessionModal = true 
-                case .failure(let error):
-                    print("AddPlaceholderViewModel: Failed to start new session: \(error.localizedDescription)")
-                    self.sessionError = error.localizedDescription
-                    self.selectedExerciseForSession = nil // エラー時はクリア
-                }
-            }
-        }
+        // apiService.startSession(menuId: nil) { ... } // API呼び出し削除
     }
 }

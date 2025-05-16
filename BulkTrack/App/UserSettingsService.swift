@@ -54,6 +54,14 @@ class UserSettingsService {
         return "lastWorkoutSession_for_exercise_\(exerciseId)"
     }
 
+    private func dailyRecordKey(for exerciseId: String, date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: date)
+        // キーに WorkoutSetResponse であることを明示する（RecordedSetDetailと区別するため）
+        return "dailyWorkoutSetResponses_\(dateString)_for_exercise_\(exerciseId)"
+    }
+
     // 直近のワークアウト記録を保存
     func saveLastWorkoutSession(for exercise: Exercise, with sessionId: String, setsFromCurrentSession: [WorkoutSetResponse]) {
         guard !setsFromCurrentSession.isEmpty else {
@@ -91,27 +99,61 @@ class UserSettingsService {
 
     // 直近のワークアウト記録を読み込み
     func getLastWorkoutSession(for exerciseId: String, excludingCurrentSessionId: String?) -> LastWorkoutSessionForExercise? {
-        guard let data = userDefaults.data(forKey: exerciseRecordKey(for: exerciseId)) else {
-            print("UserSettingsService: No saved data found for exercise \(exerciseId).")
-            return nil
-        }
-        do {
-            let record = try decoder.decode(LastWorkoutSessionForExercise.self, from: data)
-            
-            // 現在のセッションIDと異なる場合のみ返す
-            if let currentSid = excludingCurrentSessionId, record.sessionId == currentSid {
-                print("UserSettingsService: Loaded record for exercise \(exerciseId) belongs to the current session (\(currentSid)). Not treating as 'last' workout.")
-                return nil
+        let allSessions = getAllLastWorkoutSessions()
+        
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+
+        let relevantSessions = allSessions
+            .filter { $0.exerciseId == exerciseId }
+            .filter { sessionRecord -> Bool in
+                // excludingCurrentSessionId があれば、それと一致するものは除外
+                if let currentSid = excludingCurrentSessionId, sessionRecord.sessionId == currentSid {
+                    return false
+                }
+                return true
             }
-            
-            print("UserSettingsService: Loaded last workout session (ID: \(record.sessionId)) for exercise \(exerciseId) with \(record.sets.count) sets, recorded on \(record.recordedDate).")
-            return record
-        } catch {
-            print("UserSettingsService: Failed to decode LastWorkoutSession for \(exerciseId): \(error.localizedDescription)")
-            // デコード失敗時は古い不正なデータを削除するのも一案
-            // userDefaults.removeObject(forKey: exerciseRecordKey(for: exerciseId))
+            .filter { sessionRecord -> Bool in
+                // recordedDate が「昨日より前」であるか
+                return sessionRecord.recordedDate < todayStart
+            }
+            .sorted { $0.recordedDate > $1.recordedDate } // 新しい順にソート
+
+        guard let latestRelevantSession = relevantSessions.first else {
+            print("UserSettingsService: No relevant sessions found from yesterday or earlier for exercise \(exerciseId).")
             return nil
         }
+
+        let targetDateStart = calendar.startOfDay(for: latestRelevantSession.recordedDate)
+        
+        // targetDateStart と同じ日付のセッションのセットをすべて収集
+        var combinedSets: [RecordedSetDetail] = []
+        var representativeSessionId = latestRelevantSession.sessionId // 代表のセッションID（最初のもの）
+        
+        for session in relevantSessions {
+            if calendar.isDate(session.recordedDate, inSameDayAs: targetDateStart) {
+                combinedSets.append(contentsOf: session.sets)
+            }
+        }
+        
+        // セットをsetNumberでソートする (任意だが、表示順序が安定する)
+        combinedSets.sort { $0.setNumber < $1.setNumber }
+
+        if combinedSets.isEmpty {
+            print("UserSettingsService: No sets found on the target date (\(targetDateStart)) for exercise \(exerciseId), though a session existed.")
+            return nil
+        }
+
+        print("UserSettingsService: Found \(combinedSets.count) sets for exercise \(exerciseId) on \(targetDateStart) (from session(s) like \(representativeSessionId)).")
+        
+        // 新しい LastWorkoutSessionForExercise を合成して返す
+        // sessionId は代表のものか、あるいは固定の文字列でも良い
+        return LastWorkoutSessionForExercise(
+            exerciseId: exerciseId,
+            sessionId: representativeSessionId, // または "last-day-composite-\(exerciseId)" など
+            recordedDate: targetDateStart, // 日付の開始時刻を代表として使用
+            sets: combinedSets
+        )
     }
 
     // 特定の種目の記録を削除 (オプション)
@@ -138,6 +180,70 @@ class UserSettingsService {
             }
         }
         return allSessions
+    }
+
+    func saveTodaysSets(for exerciseId: String, sets: [WorkoutSetResponse]) {
+        // let setDetails = sets.map { RecordedSetDetail(from: $0) } // WorkoutSetResponseを直接保存
+        let today = Date()
+        let key = dailyRecordKey(for: exerciseId, date: today)
+
+        if sets.isEmpty {
+            userDefaults.removeObject(forKey: key)
+            print("UserSettingsService: Removed today's sets (WorkoutSetResponse) for exercise \(exerciseId) as the list was empty.")
+            return
+        }
+
+        do {
+            let data = try encoder.encode(sets) // WorkoutSetResponseの配列をエンコード
+            userDefaults.set(data, forKey: key)
+            print("UserSettingsService: Saved \(sets.count) sets (WorkoutSetResponse) for today for exercise \(exerciseId).")
+        } catch {
+            print("UserSettingsService: Failed to encode/save today's sets (WorkoutSetResponse) for \(exerciseId): \(error.localizedDescription)")
+        }
+    }
+
+    func loadTodaysSets(for exerciseId: String) -> [WorkoutSetResponse]? {
+        let today = Date()
+        let key = dailyRecordKey(for: exerciseId, date: today)
+        guard let data = userDefaults.data(forKey: key) else {
+            return nil
+        }
+        do {
+            let setResponses = try decoder.decode([WorkoutSetResponse].self, from: data) // WorkoutSetResponseの配列をデコード
+            print("UserSettingsService: Loaded \(setResponses.count) sets (WorkoutSetResponse) for today for exercise \(exerciseId).")
+            return setResponses
+        } catch {
+            print("UserSettingsService: Failed to decode today's sets (WorkoutSetResponse) for \(exerciseId): \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    func loadAllTodaysSets() -> [String: [WorkoutSetResponse]] {
+        var allTodaysRecords: [String: [WorkoutSetResponse]] = [:]
+        let dictionary = userDefaults.dictionaryRepresentation()
+        let today = Date()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let todayDateString = dateFormatter.string(from: today)
+        
+        let prefixPattern = "dailyWorkoutSetResponses_\(todayDateString)_for_exercise_" // キープレフィックスを修正
+
+        for (key, value) in dictionary {
+            if key.hasPrefix(prefixPattern) {
+                if let data = value as? Data {
+                    let exerciseId = String(key.dropFirst(prefixPattern.count))
+                    do {
+                        let setResponses = try decoder.decode([WorkoutSetResponse].self, from: data) // WorkoutSetResponseの配列をデコード
+                        allTodaysRecords[exerciseId] = setResponses
+                        // print("UserSettingsService: Loaded \(setResponses.count) sets (WSR) for today for ex \(exerciseId) from all.") // ログ簡略化
+                    } catch {
+                        print("UserSettingsService: Failed to decode today's WSR sets for key \(key) in loadAllTodaysSets: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+        print("UserSettingsService: Loaded all today's records (WorkoutSetResponse). Found \(allTodaysRecords.count) exercises with sets.")
+        return allTodaysRecords
     }
 }
 
