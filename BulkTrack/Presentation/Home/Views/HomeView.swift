@@ -258,12 +258,205 @@ private struct AverageRMGraphView: View {
     }
 }
 
+// 部位別ボリュームカードView
+struct BodyPartVolumeCardView: View {
+    let partName: String
+    let volume: Double
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(partName)
+                .font(.title3)
+                .foregroundColor(colorScheme == .dark ? .white : .black)
+            HStack {
+                Text("\(String(format: "%.0f", volume)) kg")
+                    .font(.title3.weight(.bold))
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                Spacer()
+                // ここにアイコンや小さなグラフなどを追加することも可能
+            }
+        }
+        .padding()
+        .frame(height: 100) // カードのサイズを調整
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.gray, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - TabView Section
+private struct HomeTabView: View {
+    @ObservedObject var viewModel: HomeViewModel // ViewModelをObservedObjectとして受け取る
+    @Environment(\.colorScheme) var colorScheme
+    
+    // HomeViewから渡されるヘルパー関数
+    let formatWeekStartDate: (String) -> String
+
+    var body: some View {
+        TabView {
+            // 1ページ目: ダッシュボード
+            VStack(spacing: 0) {
+                if viewModel.isLoading {
+                    ProgressView("読み込み中...")
+                        .frame(minHeight: 300) 
+                } else if let data = viewModel.dashboardData { 
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("今週のボリューム")
+                                .font(.title2.bold())
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.top)
+                        
+                        ZStack {
+                            let startAngleDegrees = -30.0 + 180.0 
+                            let endAngleDegrees = 210.0 + 180.0   
+                            let sweepDegrees = (endAngleDegrees - startAngleDegrees + 360.0).truncatingRemainder(dividingBy: 360.0)
+
+                            Circle()
+                                .trim(from: 0.0, to: CGFloat(sweepDegrees / 360.0))
+                                .stroke(style: StrokeStyle(lineWidth: 20.0, lineCap: .round, lineJoin: .round))
+                                .opacity(0.3)
+                                .foregroundColor(Color.gray)
+                                .rotationEffect(Angle(degrees: startAngleDegrees))
+
+                            let progress = min(1.0, max(0.0, (data.lastWeek.totalVolume * 1.02 > 0 ? data.thisWeek.totalVolume / (data.lastWeek.totalVolume * 1.01) : 0)))
+                            Circle()
+                                .trim(from: 0.0, to: CGFloat(progress * (sweepDegrees / 360.0)))
+                                .stroke(style: StrokeStyle(lineWidth: 24.0, lineCap: .round, lineJoin: .round))
+                                .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                                .rotationEffect(Angle(degrees: startAngleDegrees))
+                                .animation(.linear, value: progress)
+
+                            VStack {
+                                Text("今週の総ボリューム")
+                                    .font(.title3)
+                                    .foregroundColor(.gray)
+                                Text("\(String(format: "%.0f", data.thisWeek.totalVolume)) kg")
+                                    .font(.system(size: 36, weight: .bold))
+                            }
+                        }
+                        .frame(width: 240, height: 240) 
+                        .padding(.top, 40) 
+
+                        HStack(alignment: .center, spacing: 20) {
+                            Spacer()
+                            VStack {
+                                Text("残りボリューム")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                let targetVolume = data.lastWeek.totalVolume * 1.02
+                                let remainingVolume = max(0, targetVolume - data.thisWeek.totalVolume)
+                                Text("\(String(format: "%.0f", remainingVolume)) kg")
+                                    .font(.system(size: 30, weight: .medium))
+                            }
+                            Spacer()
+                            VStack {
+                                Text("目標ボリューム")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Text("\(String(format: "%.0f", data.lastWeek.totalVolume * 1.02)) kg")
+                                    .font(.system(size: 30, weight: .medium))
+                            }
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.bottom, 20)
+
+                } else if let errorMessage = viewModel.errorMessage {
+                    Text("エラー: \(errorMessage)")
+                        .foregroundColor(.red)
+                        .padding()
+                        .frame(minHeight: 300) 
+                } else {
+                    Text("データを取得できませんでした。")
+                        .frame(minHeight: 300) 
+                }
+                Spacer() 
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(Color.gray.opacity(0.6))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            TrendGraphView(
+                trendData: viewModel.dashboardData?.trend,
+                isLoading: viewModel.isLoading,
+                errorMessage: viewModel.errorMessage,
+                colorScheme: colorScheme,
+                formatWeekStartDate: formatWeekStartDate
+            )
+
+            AverageRMGraphView(
+                trendData: viewModel.dashboardData?.trend,
+                isLoading: viewModel.isLoading,
+                errorMessage: viewModel.errorMessage,
+                colorScheme: colorScheme,
+                formatWeekStartDate: formatWeekStartDate
+            )
+        }
+        .tabViewStyle(.page(indexDisplayMode: .automatic))
+        .frame(height: 420)
+    }
+}
+
+// MARK: - Body Part Volume Section View
+private struct BodyPartVolumeSectionView: View {
+    @ObservedObject var viewModel: HomeViewModel
+    @Environment(\.colorScheme) var colorScheme
+
+    // グリッドレイアウトのためのカラム定義
+    private let columns: [GridItem] = Array(repeating: .init(.flexible(), spacing: 15), count: 2)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("今週の部位別ボリューム")
+                .font(.title2.bold())
+                .padding(.horizontal)
+                .padding(.bottom, 5)
+
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 50)
+            } else if let errorMessage = viewModel.errorMessage {
+                Text("部位別データの読み込みに失敗しました: \(errorMessage)")
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
+                    .padding(.vertical, 50)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else if !viewModel.bodyPartVolumes.isEmpty {
+                LazyVGrid(columns: columns, alignment: .center, spacing: 15) {
+                    ForEach(viewModel.bodyPartVolumes) { item in
+                        BodyPartVolumeCardView(partName: item.name, volume: item.volume)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            } else {
+                Text("今週の部位別データはありません。")
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
+                    .padding(.vertical, 50)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+        .padding(.top)
+    }
+}
+
 struct HomeView: View {
     @EnvironmentObject var sessionManager: SessionManager // SessionManager を受け取る
     @StateObject private var viewModel = HomeViewModel()
     @Environment(\.colorScheme) var colorScheme // カラースキームを検出
 
-    private var currentDateFormatted: String { // ViewModelに移動するまではここに残す
+    private var currentDateFormatted: String { 
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMMM d"
         formatter.locale = Locale(identifier: "ja_JP")
@@ -272,128 +465,18 @@ struct HomeView: View {
 
     var body: some View {
         NavigationView {
-            GeometryReader { geometry in
-                VStack() {
-                    TabView {
-                        // 1ページ目: ダッシュボード
-                        VStack(spacing: 0) {
-                            if viewModel.isLoading {
-                                ProgressView("読み込み中...")
-                            } else if let data = viewModel.dashboardData { // dashboardData を使用
-                                // 全体をVStackで囲む
-                                VStack(spacing: 0) {
-                                    // 1段目: タイトル
-                                    HStack {
-                                        Text("今週のボリューム")
-                                            .font(.title2.bold())
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.top)
-                                    
-                                    // プログレスバー
-                                    ZStack {
-                                        let startAngleDegrees = -30.0 + 180.0 // 上下反転のため180度加算
-                                        let endAngleDegrees = 210.0 + 180.0   // 上下反転のため180度加算
-                                        // 時計回りのスイープ角度を計算
-                                        let sweepDegrees = (endAngleDegrees - startAngleDegrees + 360.0).truncatingRemainder(dividingBy: 360.0)
-
-                                        // 背景の円弧 (トラック)
-                                        Circle()
-                                            .trim(from: 0.0, to: CGFloat(sweepDegrees / 360.0))
-                                            .stroke(style: StrokeStyle(lineWidth: 20.0, lineCap: .round, lineJoin: .round))
-                                            .opacity(0.3)
-                                            .foregroundColor(Color.gray)
-                                            .rotationEffect(Angle(degrees: startAngleDegrees))
-
-                                        // 進捗を示す円弧
-                                        let progress = min(1.0, max(0.0, (data.lastWeek.totalVolume * 1.02 > 0 ? data.thisWeek.totalVolume / (data.lastWeek.totalVolume * 1.01) : 0)))
-                                        Circle()
-                                            .trim(from: 0.0, to: CGFloat(progress * (sweepDegrees / 360.0)))
-                                            .stroke(style: StrokeStyle(lineWidth: 24.0, lineCap: .round, lineJoin: .round))
-                                            .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
-                                            .rotationEffect(Angle(degrees: startAngleDegrees))
-                                            .animation(.linear, value: progress)
-
-                                        VStack {
-                                            Text("今週の総ボリューム")
-                                                .font(.title3)
-                                                .foregroundColor(.gray)
-                                            Text("\(String(format: "%.0f", data.thisWeek.totalVolume)) kg")
-                                                .font(.system(size: 36, weight: .bold))
-                                        }
-                                        // .padding(25) // プログレスバーの内側にパディングを追加 (値を調整可能)
-                                    }
-                                    .frame(width: 240, height: 240) // プログレスバーのサイズを大きくする
-                                    .padding(.top, 40) // 上に少しマージンを追加
-
-                                    // 2段目: 先週の総ボリュームと目標ボリューム
-                                    HStack(alignment: .center, spacing: 20) {
-                                        Spacer()
-                                        // 残りボリューム
-                                        VStack {
-                                            Text("残りボリューム")
-                                                .font(.subheadline)
-                                                .foregroundColor(.gray)
-                                            let targetVolume = data.lastWeek.totalVolume * 1.02
-                                            let remainingVolume = max(0, targetVolume - data.thisWeek.totalVolume)
-                                            Text("\(String(format: "%.0f", remainingVolume)) kg")
-                                                .font(.system(size: 30, weight: .medium))
-                                        }
-                                        Spacer()
-                                        // 今週の目標ボリューム
-                                        VStack {
-                                            Text("目標ボリューム")
-                                                .font(.subheadline)
-                                                .foregroundColor(.gray)
-                                            Text("\(String(format: "%.0f", data.lastWeek.totalVolume * 1.02)) kg")
-                                                .font(.system(size: 30, weight: .medium))
-                                        }
-                                        Spacer()
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .padding(.bottom, 20)
-
-                            } else if let errorMessage = viewModel.errorMessage {
-                                Text("エラー: \(errorMessage)")
-                                    .foregroundColor(.red)
-                                    .padding()
-                            } else {
-                                Text("データを取得できませんでした。")
-                            }
-                            Spacer() // 下のSpacer
-                            Rectangle()
-                                .frame(height: 1)
-                                .foregroundColor(Color.gray.opacity(0.6))
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                        // 2ページ目: グラフ
-                        TrendGraphView(
-                            trendData: viewModel.dashboardData?.trend,
-                            isLoading: viewModel.isLoading,
-                            errorMessage: viewModel.errorMessage,
-                            colorScheme: colorScheme,
-                            formatWeekStartDate: self.formatWeekStartDate
-                        )
-                        // 3ページ目: 平均RMグラフ
-                        AverageRMGraphView(
-                            trendData: viewModel.dashboardData?.trend,
-                            isLoading: viewModel.isLoading,
-                            errorMessage: viewModel.errorMessage,
-                            colorScheme: colorScheme,
-                            formatWeekStartDate: self.formatWeekStartDate
-                        )
-                    }
-                    .tabViewStyle(.page(indexDisplayMode: .automatic))
-                    .frame(height: geometry.size.height * 2 / 3)
+            ScrollView { 
+                VStack(spacing: 10) { 
+                    // TabViewセクションを呼び出し
+                    HomeTabView(viewModel: viewModel, formatWeekStartDate: self.formatWeekStartDate)
                     
-                    Spacer()
+                    // 部位別ボリュームセクションを呼び出し
+                    BodyPartVolumeSectionView(viewModel: viewModel)
                 }
+                .padding(.vertical) 
             }
             .navigationTitle("ホーム")
-            .onAppear { // Viewが表示されたときにデータを取得開始
+            .onAppear { 
                 viewModel.fetchDashboardData()
             }
         }
