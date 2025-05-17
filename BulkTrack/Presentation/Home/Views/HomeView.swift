@@ -136,6 +136,128 @@ private struct TrendGraphView: View {
     }
 }
 
+// 週間平均RMの推移グラフ専用のプライベートView
+private struct AverageRMGraphView: View {
+    let trendData: [WeekPoint]?
+    let isLoading: Bool
+    let errorMessage: String?
+    let colorScheme: ColorScheme
+    let formatWeekStartDate: (String) -> String
+
+    // 過去N週間の週開始日（月曜日）の文字列リストを生成する
+    private func generatePastWeekDates(count: Int) -> [String] {
+        var dates: [String] = []
+        let calendar = Calendar.current
+        let today = Date()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        let weekday = calendar.component(.weekday, from: today)
+        let simplifiedDaysToSubtract = (weekday == 1) ? 6 : (weekday - 2)
+
+        guard let currentWeekMonday = calendar.date(byAdding: .day, value: -simplifiedDaysToSubtract, to: today) else {
+            return []
+        }
+
+        for i in 0..<count {
+            if let date = calendar.date(byAdding: .weekOfYear, value: -(count - 1 - i), to: currentWeekMonday) {
+                dates.append(dateFormatter.string(from: date))
+            }
+        }
+        return dates
+    }
+
+    private var displayData: [WeekPoint] {
+        let pastFourWeekDates = generatePastWeekDates(count: 4)
+        
+        var placeholderData: [WeekPoint] = pastFourWeekDates.map { dateString in
+            WeekPoint(weekStart: dateString, totalVolume: 0, avgSetVolume: 0, e1rmAvg: nil)
+        }
+        
+        if let actualTrendData = self.trendData {
+            for actualPoint in actualTrendData {
+                if let index = placeholderData.firstIndex(where: { $0.weekStart == actualPoint.weekStart }) {
+                    placeholderData[index] = actualPoint
+                }
+            }
+        }
+        return placeholderData
+    }
+
+    var body: some View {
+        VStack() {
+            HStack {
+                Text("週間平均RMの推移")
+                    .font(.title2.bold())
+                Spacer()
+            }
+            .padding(.top)
+            .padding(.horizontal)
+
+            if isLoading {
+                Spacer()
+                ProgressView("グラフデータ読み込み中...")
+                Spacer()
+            } else if let specificError = errorMessage {
+                Spacer()
+                Text("エラー: \(specificError)")
+                    .foregroundColor(.red)
+                Spacer()
+            } else {
+                Chart(displayData.filter { $0.e1rmAvg != nil && $0.e1rmAvg ?? 0 > 0 }) { weekPoint in // e1rmAvgがnilでない、または0より大きいデータのみプロット
+                    LineMark(
+                        x: .value("週", formatWeekStartDate(weekPoint.weekStart)),
+                        y: .value("平均RM", weekPoint.e1rmAvg ?? 0)
+                    )
+                    .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
+                    .symbol(Circle().strokeBorder(lineWidth: 2)) // データポイントにマーカーを追加
+
+                    PointMark(
+                        x: .value("週", formatWeekStartDate(weekPoint.weekStart)),
+                        y: .value("平均RM", weekPoint.e1rmAvg ?? 0)
+                    )
+                    .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
+                    .annotation(position: .top, alignment: .center) {
+                        Text("\(String(format: "%.1f", weekPoint.e1rmAvg ?? 0)) kg")
+                            .font(.caption)
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks(values: .automatic) { value in
+                        AxisTick()
+                        AxisValueLabel {
+                            if let dateStr = value.as(String.self) {
+                                Text(dateStr)
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                }
+                .chartYAxis {
+                     AxisMarks(preset: .automatic, values: .automatic) { value in
+                         AxisGridLine()
+                         AxisTick()
+                         AxisValueLabel() {
+                             if let rmValue = value.as(Double.self) {
+                                 Text("\(String(format: "%.0f", rmValue))")
+                                     .font(.caption)
+                             }
+                         }
+                     }
+                 }
+                .padding()
+                .frame(height: 340)
+            }
+            Spacer()
+            
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(Color.gray.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 struct HomeView: View {
     @EnvironmentObject var sessionManager: SessionManager // SessionManager を受け取る
     @StateObject private var viewModel = HomeViewModel()
@@ -249,6 +371,14 @@ struct HomeView: View {
 
                         // 2ページ目: グラフ
                         TrendGraphView(
+                            trendData: viewModel.dashboardData?.trend,
+                            isLoading: viewModel.isLoading,
+                            errorMessage: viewModel.errorMessage,
+                            colorScheme: colorScheme,
+                            formatWeekStartDate: self.formatWeekStartDate
+                        )
+                        // 3ページ目: 平均RMグラフ
+                        AverageRMGraphView(
                             trendData: viewModel.dashboardData?.trend,
                             isLoading: viewModel.isLoading,
                             errorMessage: viewModel.errorMessage,
