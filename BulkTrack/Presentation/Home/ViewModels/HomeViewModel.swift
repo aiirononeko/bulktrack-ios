@@ -11,15 +11,17 @@ class HomeViewModel: ObservableObject {
     private let apiService = APIService()
     private var cancellables = Set<AnyCancellable>() // Combineの購読管理用
 
-    // 部位カテゴリとmuscleIdのマッピングルール
-    private let muscleIdMapping: [String: [Int]] = [
-        "胸": [1, 9],
-        "肩": [2, 10],
-        "腕": [3, 4, 5],
-        "背中": [6, 7, 8, 13],
-        "脚": [15, 16, 17, 18, 19, 20, 21, 22],
-        "腹筋": [11, 12, 14]
+    // 英語のgroupNameから日本語のUI表示名へのマッピング
+    private let groupNameJpMapping: [String: String] = [
+        "Chest": "胸",
+        "Back": "背中",
+        "Shoulders": "肩",
+        "Arms": "腕",
+        "Legs": "脚",
+        "Core": "腹筋",
+        "Hip & Glutes": "脚" // Hip & Glutes も「脚」カテゴリに集約
     ]
+    
     // 表示順を定義
     private let bodyPartOrder: [String] = ["胸", "背中", "肩", "腕", "脚", "腹筋"]
 
@@ -74,46 +76,42 @@ class HomeViewModel: ObservableObject {
     // 部位別ボリュームデータを生成・更新するメソッド
     private func updateBodyPartVolumes() {
         guard let dashboardData = dashboardData,
-              !dashboardData.muscles.isEmpty else {
+              !dashboardData.muscleGroups.isEmpty else { // muscles から muscleGroups に変更
             self.bodyPartVolumes = []
             return
         }
 
         let thisWeekStartDate = dashboardData.thisWeek.weekStart
 
-        var aggregatedVolumes: [String: Double] = [:]
-        for (category, _) in muscleIdMapping {
-            aggregatedVolumes[category] = 0.0 // 各カテゴリのボリュームを0で初期化
-        }
+        // bodyPartOrder に基づいて集計用辞書を初期化
+        var aggregatedVolumes: [String: Double] = bodyPartOrder.reduce(into: [:]) { $0[$1] = 0.0 }
 
-        for muscleData in dashboardData.muscles {
-            // 今週のデータポイントを探す
-            if let currentWeekPoint = muscleData.points.first(where: { $0.weekStart == thisWeekStartDate }) {
+        for groupData in dashboardData.muscleGroups { // muscleData から groupData に変更、型も MuscleGroupSeries
+            // 今週のデータポイントを探す (points の型は MuscleGroupPointDetail)
+            if let currentWeekPoint = groupData.points.first(where: { $0.weekStart == thisWeekStartDate }) {
                 let volume = currentWeekPoint.totalVolume
                 
-                // このmuscleIdがどのUIカテゴリに属するかを見つける
-                for (category, idsIncategory) in muscleIdMapping {
-                    if idsIncategory.contains(muscleData.muscleId) {
-                        aggregatedVolumes[category, default: 0.0] += volume
-                        break // 1つのmuscleIdは1つのカテゴリにのみ属すると仮定
+                // APIからのgroupName (英語) を日本語のUIカテゴリ名にマッピング
+                if let uiCategoryName = groupNameJpMapping[groupData.groupName] {
+                    // bodyPartOrder に含まれるカテゴリ（つまりUIに表示するカテゴリ）のみ集計
+                    if aggregatedVolumes[uiCategoryName] != nil {
+                        aggregatedVolumes[uiCategoryName, default: 0.0] += volume
                     }
+                } else {
+                    // マッピング定義にない groupName はログに出力しても良い (デバッグ用)
+                    print("HomeViewModel: Unmapped groupName found: \(groupData.groupName)")
                 }
             }
         }
         
         // bodyPartOrderに基づいてソートし、ボリュームが0より大きいもののみをリスト化
+        // (ボリューム0でも表示したい場合は .filter { $0.value > 0 } を削除または変更)
         self.bodyPartVolumes = bodyPartOrder.compactMap { categoryName in
             if let volume = aggregatedVolumes[categoryName] {
                 return BodyPartVolumeViewModel(name: categoryName, volume: volume)
             }
             return nil
         }
-        
-        // もし特定の順序が不要なら、以下のように直接変換も可能
-        // self.bodyPartVolumes = aggregatedVolumes.filter { $0.value > 0 }.map { categoryName, volume in
-        //     BodyPartVolumeViewModel(name: categoryName, volume: volume)
-        // }
-        // ただし、この場合表示順が不定になる可能性があるため、bodyPartOrderを使用。
     }
 }
 

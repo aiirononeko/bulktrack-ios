@@ -70,30 +70,49 @@ struct RefreshTokenRequest: Encodable { // POSTリクエストボディ用なの
 
 // MARK: - Dashboard Models (NEW - OpenAPI スキーマに基づく)
 
-struct WeekPoint: Decodable, Identifiable { 
-    var id = UUID() 
-    let weekStart: String 
+// thisWeek, lastWeek, trend 用
+struct WeekPoint: Decodable, Identifiable {
+    var id = UUID()
+    let weekStart: String
     let totalVolume: Double
-    let avgSetVolume: Double 
-    let e1rmAvg: Double?     
+    let avgSetVolume: Double // 必須
+    let e1rmAvg: Double?
 
     enum CodingKeys: String, CodingKey {
         case weekStart
         case totalVolume
         case avgSetVolume
-        case e1rmAvg
+        case e1rmAvg      // トップレベルのJSONキーに合わせる
     }
 }
 
-struct MuscleSeries: Decodable, Identifiable {
-    var id: Int { muscleId } // muscleId を id として使用
-    let muscleId: Int
-    let name: String
-    let points: [WeekPoint]
+// NEW: muscleGroups[].points[] 専用の構造体
+struct MuscleGroupPointDetail: Decodable, Identifiable {
+    // weekStart と setCount, totalVolume で一意性を試みる
+    var id: String { weekStart + "_vol" + String(totalVolume) + "_sets" + String(setCount) }
+    let weekStart: String
+    let totalVolume: Double
+    let setCount: Int
+    let avgE1rm: Double? // JSONキーは "avgE1rm"
 
     enum CodingKeys: String, CodingKey {
-        case muscleId
-        case name
+        case weekStart
+        case totalVolume
+        case setCount
+        case avgE1rm
+    }
+}
+
+// NEW: muscleGroups[] の要素の構造体
+struct MuscleGroupSeries: Decodable, Identifiable {
+    var id: Int { muscleGroupId }
+    let muscleGroupId: Int
+    let groupName: String
+    let points: [MuscleGroupPointDetail]
+
+    enum CodingKeys: String, CodingKey {
+        case muscleGroupId
+        case groupName
         case points
     }
 }
@@ -128,15 +147,18 @@ struct DashboardResponse: Decodable {
     let thisWeek: WeekPoint
     let lastWeek: WeekPoint
     let trend: [WeekPoint]
-    let muscles: [MuscleSeries]
+    let muscleGroups: [MuscleGroupSeries] // muscles から muscleGroups に変更
     let metrics: [MetricSeries]
 
-    // CodingKeys はプロパティ名とJSONキーが一致する場合は不要だが、
-    // スネークケースなど違いがある場合は定義する。
-    // 今回のOpenAPIスキーマではキャメルケースで一致していると仮定。
-    // enum CodingKeys: String, CodingKey {
-    //     case userId, span, thisWeek, lastWeek, trend, muscles, metrics
-    // }
+    enum CodingKeys: String, CodingKey {
+        case userId
+        case span
+        case thisWeek
+        case lastWeek
+        case trend
+        case muscleGroups // CodingKey も変更
+        case metrics
+    }
 }
 
 // MARK: - Session Models (OpenAPI スキーマに基づく)
