@@ -37,48 +37,74 @@ struct RecentWorkoutsView: View {
                         .padding()
                 }
 
-                if sessionManager.recentWorkouts.isEmpty && sessionManager.errorMessage == nil {
-                    Text("最近の種目はありません。\niPhoneアプリで記録を開始してください。")
+                if sessionManager.isLoading {
+                    // ローディングアニメーション
+                    Spacer()
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(1.5)
+                    Text("データを取得中...")
+                        .font(.headline)
+                        .padding(.top)
+                    Spacer()
+                } else if sessionManager.recentWorkouts.isEmpty && sessionManager.errorMessage == nil {
+                    Spacer()
+                    Text("種目がありません。\nデータを取得します。")
                         .multilineTextAlignment(.center)
+                        .font(.headline)
                         .padding()
-                    Button("データを再取得") {
+                    
+                    Button(action: {
                         sessionManager.requestRecentWorkoutsFromPhone()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 40))
+                            .foregroundColor(.white)
                     }
+                    .buttonStyle(PlainButtonStyle())
                     .padding(.top)
-                    // テスト用ボタンを追加
-                    Button("テストメッセージ送信") {
-                        WatchSessionManager.shared.sendTestMessageToPhone(messageText: "Hello from Watch!")
-                    }
-                    .padding(.top)
+                    
+                    Spacer()
                 } else {
-                    List {
-                        ForEach(sessionManager.recentWorkouts) { workout in
-                            NavigationLink(destination: WorkoutRecordingView(selectedWorkout: workout)) {
-                                HStack {
-                                    Image(systemName: "figure.strengthtraining.traditional") // 仮のアイコン
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 30, height: 30)
-                                        .foregroundColor(.green)
-                                    VStack(alignment: .leading) {
-                                        Text(workout.name)
-                                            .font(.headline)
+                    VStack {
+                        List {
+                            ForEach(sessionManager.recentWorkouts) { workout in
+                                NavigationLink(destination: TabWorkoutView(selectedWorkout: workout)) {
+                                    HStack {
+                                        Image(systemName: "figure.strengthtraining.traditional") // 仮のアイコン
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(width: 30, height: 30)
+                                            .foregroundColor(.green)
+                                        VStack(alignment: .leading) {
+                                            Text(workout.name)
+                                                .font(.headline)
+                                            if workout.name.hasPrefix("種目 ") {
+                                                Text("ID: \(workout.id)")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                        Spacer()
+                                        // NavigationLinkが自動的に右向きの > を表示するので、手動のChevronは不要な場合が多い
+                                        // Image(systemName: "chevron.right")
+                                        //      .foregroundColor(.gray)
                                     }
-                                    Spacer()
-                                    // NavigationLinkが自動的に右向きの > を表示するので、手動のChevronは不要な場合が多い
-                                    // Image(systemName: "chevron.right")
-                                    //      .foregroundColor(.gray)
+                                    .padding(.vertical, 4)
                                 }
-                                .padding(.vertical, 4)
                             }
                         }
                     }
-                    .navigationTitle("最近の種目")
                     .onAppear {
                         // 必要に応じてデータをリクエスト
                         // sessionManager.requestRecentWorkoutsFromPhone()
                     }
                 }
+            }
+            .navigationTitle("最近の種目")
+            .onAppear {
+                // Viewが表示されるたびにデータをリクエスト
+                sessionManager.requestRecentWorkoutsFromPhone()
             }
         }
     }

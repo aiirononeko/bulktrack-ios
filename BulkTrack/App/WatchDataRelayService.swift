@@ -81,7 +81,11 @@ class WatchDataRelayService: NSObject, WCSessionDelegate {
         if message["request"] as? String == "recentWorkouts" {
             // Watchからデータリクエストがあった場合 (最近の種目)
             let allLastSessions = userSettingsService.getAllLastWorkoutSessions()
-            let sortedSessions = allLastSessions.sorted { $0.recordedDate > $1.recordedDate }
+            
+            // 全ての種目を対象に
+            let validSessions = allLastSessions
+            
+            let sortedSessions = validSessions.sorted { $0.recordedDate > $1.recordedDate }
             let recentSessionsToShow = Array(sortedSessions.prefix(5)) // 最新5件
 
             if recentSessionsToShow.isEmpty {
@@ -167,31 +171,53 @@ class WatchDataRelayService: NSObject, WCSessionDelegate {
 
     // 共通の種目詳細取得・返信ロジック
     private func fetchAndReplyWithExerciseDetails(exerciseIds: [String], forKey key: String, replyHandler: @escaping ([String : Any]) -> Void) {
-        apiService.fetchExercises(query: nil, locale: nil) { result in // 全種目取得してIDでフィルタリング
-            switch result {
-            case .success(let allExercises):
-                let exercisesDict = Dictionary(uniqueKeysWithValues: allExercises.map { ($0.id, $0) })
-                var watchWorkouts: [WatchWorkoutData] = []
-                for exerciseId in exerciseIds {
-                    if let exercise = exercisesDict[exerciseId] {
-                        let workoutName = exercise.name ?? exercise.canonicalName
-                        watchWorkouts.append(WatchWorkoutData(id: exercise.id, name: workoutName))
-                    } else {
-                        watchWorkouts.append(WatchWorkoutData(id: exerciseId, name: "不明な種目 (ID: \(exerciseId.prefix(8)))"))
-                    }
-                }
-                do {
-                    let data = try JSONEncoder().encode(watchWorkouts)
-                    replyHandler([key: data])
-                    print("Sent \(watchWorkouts.count) items for key '\\[key]' to Watch in reply.")
-                } catch {
-                    print("Error encoding \(key) for reply: \(error.localizedDescription)")
-                    replyHandler(["error": "Failed to encode \(key) data"])
-                }
-            case .failure(let error):
-                print("Failed to fetch exercises for \(key) reply: \(error.localizedDescription)")
-                replyHandler(["error": "Failed to fetch exercise names for \(key)"])
+        // 最近の種目向けには、専用のエンドポイントを使用
+        if key == "recentWorkouts" {
+            apiService.fetchRecentExercises(limit: 20, offset: 0) { result in
+                self.processExerciseResults(result, exerciseIds: exerciseIds, forKey: key, replyHandler: replyHandler)
             }
+        } else {
+            // 全種目向けには従来のエンドポイントを使用
+            apiService.fetchExercises(query: nil, locale: nil) { result in
+                self.processExerciseResults(result, exerciseIds: exerciseIds, forKey: key, replyHandler: replyHandler)
+            }
+        }
+    }
+    
+    // APIのレスポンスを処理する共通ロジック
+    private func processExerciseResults(_ result: Result<[Exercise], Error>, exerciseIds: [String], forKey key: String, replyHandler: @escaping ([String : Any]) -> Void) {
+        switch result {
+        case .success(let allExercises):
+            print("fetchAndReplyWithExerciseDetails: Got \(allExercises.count) exercises from API")
+            let exercisesDict = Dictionary(uniqueKeysWithValues: allExercises.map { ($0.id, $0) })
+            var watchWorkouts: [WatchWorkoutData] = []
+            for exerciseId in exerciseIds {
+                if let exercise = exercisesDict[exerciseId] {
+                    // APIから取得した種目情報がある場合
+                    let workoutName = exercise.name ?? exercise.canonicalName
+                    print("Found exercise for ID \(exerciseId): name=\(workoutName)")
+                    watchWorkouts.append(WatchWorkoutData(id: exercise.id, name: workoutName))
+                } else {
+                    // APIから対応する種目情報が見つからない場合、代替処理を行う
+                    // UserSettingsから最後の種目セッションの情報を取得
+                    // LastWorkoutSessionForExerciseにはexerciseName属性がないため
+                    // 直接種目IDをフォールバック名として使用
+                    print("No exercise info found for ID \(exerciseId), using ID as name")
+                    let fallbackName = "種目 \(exerciseId.prefix(8))"
+                    watchWorkouts.append(WatchWorkoutData(id: exerciseId, name: fallbackName))
+                }
+            }
+            do {
+                let data = try JSONEncoder().encode(watchWorkouts)
+                replyHandler([key: data])
+                print("Sent \(watchWorkouts.count) items for key '\(key)' to Watch in reply.")
+            } catch {
+                print("Error encoding \(key) for reply: \(error.localizedDescription)")
+                replyHandler(["error": "Failed to encode \(key) data"])
+            }
+        case .failure(let error):
+            print("Failed to fetch exercises for \(key) reply: \(error.localizedDescription)")
+            replyHandler(["error": "Failed to fetch exercise names for \(key)"])
         }
     }
 
@@ -207,11 +233,14 @@ class WatchDataRelayService: NSObject, WCSessionDelegate {
             return
         }
 
-        // 1. UserSettingsServiceから全ての最終セッション記録を取得
+        // 1. UserSettingsServiceから有効な最終セッション記録のみを取得
         let allLastSessions = userSettingsService.getAllLastWorkoutSessions()
+        
+        // 2. 全ての種目を表示するため、フィルタリングを削除
+        let validSessions = allLastSessions
 
-        // 2. recordedDateで降順ソートし、最新N件を取得 (例: 5件)
-        let sortedSessions = allLastSessions.sorted { $0.recordedDate > $1.recordedDate }
+        // recordedDateで降順ソートし、最新N件を取得 (例: 5件)
+        let sortedSessions = validSessions.sorted { $0.recordedDate > $1.recordedDate }
         let recentSessionsToShow = Array(sortedSessions.prefix(5))
 
         if recentSessionsToShow.isEmpty {
@@ -223,9 +252,9 @@ class WatchDataRelayService: NSObject, WCSessionDelegate {
 
         let recentExerciseIds = recentSessionsToShow.map { $0.exerciseId }
 
-        // 3. APIServiceから種目情報を取得 (ここでは全種目取得を仮定)
-        //    実際には、必要なIDのみを取得するAPIやキャッシュ戦略を検討するとより効率的
-        apiService.fetchExercises(query: nil, locale: nil) { [weak self] result in
+        // 3. APIServiceから最近の種目情報を取得
+        //    より効率的なAPIを使用
+        apiService.fetchRecentExercises(limit: 20, offset: 0) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let allExercises):
@@ -234,11 +263,16 @@ class WatchDataRelayService: NSObject, WCSessionDelegate {
                 var watchWorkouts: [WatchWorkoutData] = []
                 for sessionId in recentExerciseIds {
                     if let exercise = exercisesDict[sessionId] {
+                        // APIから取得した種目情報がある場合
                         let workoutName = exercise.name ?? exercise.canonicalName
+                        print("sendRecentWorkoutsToWatch: Found exercise for ID \(sessionId): name=\(workoutName)")
                         watchWorkouts.append(WatchWorkoutData(id: exercise.id, name: workoutName))
                     } else {
-                        // 種目情報が見つからなかった場合のフォールバック
-                        watchWorkouts.append(WatchWorkoutData(id: sessionId, name: "不明な種目 (ID: \(sessionId.prefix(8)))"))
+                        // APIから種目情報が見つからない場合、UserSettingsから直接取得
+                        // sessionIdからマッチするセッションを探す
+                        // LastWorkoutSessionForExerciseには種目名属性がない
+                        print("sendRecentWorkoutsToWatch: No name available for ID \(sessionId), using ID as name")
+                        watchWorkouts.append(WatchWorkoutData(id: sessionId, name: "種目 \(sessionId.prefix(8))"))
                     }
                 }
                 

@@ -23,6 +23,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
     @Published var recentWorkouts: [WorkoutData] = []
     @Published var allAvailableExercises: [WorkoutData] = [] // 全ての種目リスト用
     @Published var errorMessage: String? = nil
+    @Published var isLoading: Bool = false // ローディング状態を追跡
 
     static let shared = WatchSessionManager()
 
@@ -65,6 +66,10 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
                     self.recentWorkouts = decodedWorkouts
                     self.errorMessage = nil
                     print("Successfully decoded and updated recentWorkouts on Watch: \(decodedWorkouts.count) items")
+                    // デバッグ: 各種目の詳細を出力
+                    for workout in decodedWorkouts {
+                        print("Recent workout decoded - ID: \(workout.id), Name: \(workout.name)")
+                    }
                 } else {
                     self.errorMessage = "Failed to decode recent workout data."
                     print("Failed to decode recent workout data from userInfo")
@@ -75,6 +80,10 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
                     self.allAvailableExercises = decodedExercises
                     self.errorMessage = nil
                     print("Successfully decoded and updated allAvailableExercises on Watch: \(decodedExercises.count) items")
+                    // デバッグ: 各種目の詳細を出力
+                    for exercise in decodedExercises {
+                        print("Exercise decoded - ID: \(exercise.id), Name: \(exercise.name)")
+                    }
                 } else {
                     self.errorMessage = "Failed to decode all exercises data."
                     print("Failed to decode all exercises data from userInfo")
@@ -91,10 +100,16 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("iPhone is not reachable to request data.")
             DispatchQueue.main.async {
                 self.errorMessage = "iPhone is not reachable."
+                self.isLoading = false
             }
             return
         }
 
+        // ローディング状態をONに設定
+        DispatchQueue.main.async {
+            self.isLoading = true
+        }
+        
         let message = ["request": "recentWorkouts"]
         validSession.sendMessage(message, replyHandler: { replyMessage in
             // iPhoneからの返信メッセージを処理
@@ -107,22 +122,27 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
                     if let decodedWorkouts = try? decoder.decode([WorkoutData].self, from: workoutDataArray) {
                         self.recentWorkouts = decodedWorkouts
                         self.errorMessage = nil
+                        self.isLoading = false // ローディング状態をOFFに設定
                         print("Successfully updated recentWorkouts from iPhone reply: \(self.recentWorkouts.count) items")
                     } else {
                         self.errorMessage = "Failed to decode recent workout data from iPhone reply."
+                        self.isLoading = false // エラー時もローディング状態をOFF
                         print("Failed to decode recent workout data from iPhone reply")
                     }
                 } else if let errorMsg = replyMessage["error"] as? String {
                      self.errorMessage = errorMsg
+                     self.isLoading = false // エラー時もローディング状態をOFF
                      print("Received error in reply for recentWorkouts: \(errorMsg)")
                 } else {
                     print("Reply for recentWorkouts received, but no expected keys found or data type mismatch.")
+                    self.isLoading = false // 不明なレスポンスでもローディング状態をOFF
                 }
             }
         }, errorHandler: { error in
             print("Error sending message to iPhone: \(error.localizedDescription)")
             DispatchQueue.main.async {
                 self.errorMessage = "Error requesting data from iPhone: \(error.localizedDescription)"
+                self.isLoading = false // エラー時もローディング状態をOFF
             }
         })
         print("Sent request for recent workouts to iPhone.")
@@ -133,10 +153,16 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("iPhone is not reachable to request all exercises data.")
             DispatchQueue.main.async {
                 self.errorMessage = "iPhone is not reachable."
+                self.isLoading = false
             }
             return
         }
 
+        // ローディング状態をONに設定
+        DispatchQueue.main.async {
+            self.isLoading = true
+        }
+        
         let message = ["request": "allExercises"]
         validSession.sendMessage(message, replyHandler: { replyMessage in
             // ★★★ このハンドラが呼び出された直後の replyMessage を確認 ★★★
@@ -151,15 +177,18 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
                         self.allAvailableExercises = decodedExercises
                         print("Specific Handler: Watch self.allAvailableExercises updated. Count: \(self.allAvailableExercises.count)")
                         self.errorMessage = nil
+                        self.isLoading = false // ローディング状態をOFFに設定
                     } else {
                         self.errorMessage = "Specific Handler: Failed to decode all exercises data from iPhone reply."
                         print("Specific Handler: Failed to decode all exercises data from iPhone reply")
                     }
                 } else if let errorMsg = replyMessage["error"] as? String {
                      self.errorMessage = errorMsg
+                     self.isLoading = false // エラー時もローディング状態をOFF
                      print("Specific Handler: Received error in reply from iPhone: \(errorMsg)")
                 } else {
                     print("Specific Handler: Reply received, but no 'allExercises' key or 'error' key found. All keys: \(replyMessage.keys)")
+                    self.isLoading = false // 不明なレスポンスでもローディング状態をOFF
                 }
             }
 
@@ -167,6 +196,7 @@ class WatchSessionManager: NSObject, WCSessionDelegate, ObservableObject {
             print("Error sending allExercises request to iPhone: \(error.localizedDescription)")
             DispatchQueue.main.async {
                 self.errorMessage = "Error requesting all exercises: \(error.localizedDescription)"
+                self.isLoading = false // エラー時もローディング状態をOFF
             }
         })
         print("Sent request for all exercises to iPhone.")
