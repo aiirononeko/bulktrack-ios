@@ -58,6 +58,11 @@ final class WCSessionRelay: NSObject, ObservableObject, SessionSyncRepository {
     }
 
     private func handleReply(_ reply: [String: Any]) {
+        if let errorMessage = reply["wcsErrorMessage"] as? String {
+            recentSubject.send(completion: .failure(ConnectivityError.remoteError(errorMessage)))
+            return
+        }
+        
         guard let jsonString = reply["payload"] as? String,
               let data = jsonString.data(using: .utf8) else {
             recentSubject.send(completion: .failure(ConnectivityError.invalidPayload))
@@ -68,7 +73,8 @@ final class WCSessionRelay: NSObject, ObservableObject, SessionSyncRepository {
             let entityList = PayloadMapper.mapToExerciseEntities(from: dtoList)
             recentSubject.send(entityList)
         } catch {
-            recentSubject.send(completion: .failure(error))
+            // This catch block will handle DTO decoding errors or mapping errors if PayloadMapper throws.
+            recentSubject.send(completion: .failure(ConnectivityError.processingError(error)))
         }
     }
 
@@ -76,10 +82,15 @@ final class WCSessionRelay: NSObject, ObservableObject, SessionSyncRepository {
     enum ConnectivityError: LocalizedError {
         case notReachable
         case invalidPayload
+        case remoteError(String) // Error message received from the counterpart device
+        case processingError(Error) // Error during local processing of received data
+
         var errorDescription: String? {
             switch self {
-            case .notReachable: return "iPhone と通信できません"
-            case .invalidPayload: return "無効な返信フォーマット"
+            case .notReachable: return "iPhoneと通信できません。iPhoneでアプリが起動しているか確認してください。"
+            case .invalidPayload: return "iPhoneからの応答が無効なフォーマットでした。"
+            case .remoteError(let message): return "iPhone側でエラーが発生しました: \(message)"
+            case .processingError(let error): return "受信データの処理中にエラーが発生しました: \(error.localizedDescription)"
             }
         }
     }

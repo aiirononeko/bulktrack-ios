@@ -51,7 +51,7 @@ extension WCSessionRelay: WCSessionDelegate {
         
         guard let type = message["type"] as? String else {
             print("WCSession (iOS) didReceiveMessage: Missing 'type' in message: \(message)")
-            replyHandler(["error": "Missing 'type' in message"])
+            replyHandler(["wcsErrorMessage": "無効なリクエストです (タイプ不明)"])
             return
         }
 
@@ -59,33 +59,28 @@ extension WCSessionRelay: WCSessionDelegate {
 
         if type == "recentExercises" {
             guard let limit = message["limit"] as? Int else {
-                replyHandler(["error": "Missing 'limit' for recentExercises"])
+                replyHandler(["wcsErrorMessage": "無効なリクエストです (リミット不明)"])
                 return
             }
             
             Task {
                 do {
-                    // APIService.recentExercises returns [ExerciseEntity]
-                    // We need to send [ExerciseDTO] to the watch.
-                    // For now, APIService returns mock ExerciseEntity data.
-                    // Let's assume locale is not strictly needed for mock or can be defaulted.
                     let entities = try await apiService.recentExercises(limit: limit, offset: 0, locale: "en") // Locale can be passed or defaulted
-                    
-                    // Map [ExerciseEntity] to [ExerciseDTO]
                     let dtos = mapEntitiesToDTOs(entities)
-                    
                     let responseData = try jsonEncoder.encode(dtos)
                     guard let jsonString = String(data: responseData, encoding: .utf8) else {
-                        replyHandler(["error": "Failed to create JSON string from DTOs"])
+                        replyHandler(["wcsErrorMessage": "応答データの作成に失敗しました。"])
                         return
                     }
                     replyHandler(["payload": jsonString])
+                } catch let error as LocalizedError {
+                    replyHandler(["wcsErrorMessage": error.localizedDescription])
                 } catch {
-                    replyHandler(["error": error.localizedDescription])
+                    replyHandler(["wcsErrorMessage": "不明なサーバーエラーが発生しました。"])
                 }
             }
         } else {
-            replyHandler(["error": "Unknown message type: \(type)"])
+            replyHandler(["wcsErrorMessage": "不明なリクエストタイプです: \(type)"])
         }
     }
 

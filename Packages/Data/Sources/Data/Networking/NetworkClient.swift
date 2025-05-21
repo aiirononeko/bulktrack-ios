@@ -25,8 +25,19 @@ public struct NetworkClient: NetworkClientProtocol {
             }
 
             guard (200..<300).contains(httpResponse.statusCode) else {
-                // TODO: Parse error response body if API provides one
-                throw APIError.unexpectedStatusCode(httpResponse.statusCode)
+                // Attempt to decode ErrorResponseDTO from the data. 'data' is non-optional here.
+                if !data.isEmpty {
+                    do {
+                        let errorResponse = try decoder.decode(ErrorResponseDTO.self, from: data)
+                        throw APIError.serverError(statusCode: httpResponse.statusCode, errorResponse: errorResponse)
+                    } catch {
+                        // If ErrorResponseDTO decoding fails, throw generic status code error with raw data
+                        throw APIError.unexpectedStatusCode(statusCode: httpResponse.statusCode, data: data)
+                    }
+                } else {
+                    // No data in error response
+                    throw APIError.unexpectedStatusCode(statusCode: httpResponse.statusCode, data: nil)
+                }
             }
             
             // The caller is responsible for configuring the decoder,
@@ -49,16 +60,30 @@ public struct NetworkClient: NetworkClientProtocol {
         }
 
         do {
-            let (_, response) = try await urlSession.data(for: urlRequest)
+            // Capture data even for non-decodable requests to parse potential error bodies
+            let (data, response) = try await urlSession.data(for: urlRequest)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.custom("Invalid HTTP response.")
             }
 
             guard (200..<300).contains(httpResponse.statusCode) else {
-                // TODO: Parse error response body if API provides one
-                throw APIError.unexpectedStatusCode(httpResponse.statusCode)
+                // 'data' is non-optional here.
+                if !data.isEmpty {
+                    do {
+                        // Use a default decoder for ErrorResponseDTO
+                        let errorDecoder = JSONDecoder()
+                        // errorDecoder.dateDecodingStrategy = .iso8601 // If ErrorResponseDTO had dates
+                        let errorResponse = try errorDecoder.decode(ErrorResponseDTO.self, from: data)
+                        throw APIError.serverError(statusCode: httpResponse.statusCode, errorResponse: errorResponse)
+                    } catch {
+                        throw APIError.unexpectedStatusCode(statusCode: httpResponse.statusCode, data: data)
+                    }
+                } else {
+                    throw APIError.unexpectedStatusCode(statusCode: httpResponse.statusCode, data: nil)
+                }
             }
+            // If successful (e.g., 204 No Content), no further action needed for this variant.
         } catch let error as APIError {
             throw error
         } catch {
@@ -91,13 +116,9 @@ public extension Endpoint {
     }
 
     var headers: [String: String]? {
-        var defaultHeaders = ["Content-Type": "application/json"]
-        // Add Authorization header if a token is available
-        // This needs a mechanism to access the current auth token.
-        // if let token = AuthManager.shared.accessToken {
-        //     defaultHeaders["Authorization"] = "Bearer \(token)"
-        // }
-        return defaultHeaders
+        // Default to Content-Type only. Authorization should be added by specific Endpoint implementations
+        // or by APIService when creating the Endpoint, if authentication is required.
+        return ["Content-Type": "application/json"]
     }
     
     var parameters: [String: Any]? { nil }
