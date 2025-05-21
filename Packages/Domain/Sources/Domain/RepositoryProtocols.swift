@@ -21,3 +21,11 @@ public protocol SessionSyncRepository {
     /// WCSession.activate() 相当。App 起動時に 1 回呼び出す
     func activate()
 }
+
+public protocol ExerciseRepository {
+    /// クエリ検索（検索語が nil なら全件）
+    func searchExercises(query: String?, locale: String?) async throws -> [ExerciseEntity]
+
+    /// 最近使った種目を取得
+    func recentExercises(limit: Int, offset: Int, locale: String) async throws -> [ExerciseEntity]
+}

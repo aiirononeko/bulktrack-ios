@@ -13,4 +13,18 @@ public struct ExerciseEntity: Equatable, Codable, Identifiable {
     public let isOfficial: Bool?
     public let lastUsedAt: ISODate?
     public let useCount: Int?
+
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        isOfficial: Bool? = nil,
+        lastUsedAt: ISODate? = nil,
+        useCount: Int? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.isOfficial = isOfficial
+        self.lastUsedAt = lastUsedAt
+        self.useCount = useCount
+    }
 }

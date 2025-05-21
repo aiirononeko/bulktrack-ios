@@ -12,6 +12,8 @@
 		4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */; };
 		4FAF0FED2DDD9FDD001554C9 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF0FEC2DDD9FDD001554C9 /* Domain */; };
 		4FAF0FEF2DDD9FE8001554C9 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF0FEE2DDD9FE8001554C9 /* Domain */; };
+		4FAF10032DDDB2D6001554C9 /* Data in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF10022DDDB2D6001554C9 /* Data */; };
+		4FAF10052DDDB2DC001554C9 /* Data in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF10042DDDB2DC001554C9 /* Data */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +98,7 @@
 		4F32FC9D2DDD85B40058F521 /* Exceptions for "Apps" folder in "BulkTrackWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Shared/Services/ActivationService.swift,
 				watchOS/App/Bootstrap/DIContainer.swift,
 				watchOS/App/Bootstrap/WatchAppInitializer.swift,
 				watchOS/App/BulkTrackApp.swift,
@@ -108,12 +111,12 @@
 			);
 			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */;
 		};
-		4FA482992DCDBE2700EDCCB3 /* Exceptions for "BulkTrack" folder in "BulkTrack" target */ = {
+		4FAF0FFE2DDDAF9A001554C9 /* Exceptions for "Packages" folder in "BulkTrackWatch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
+				Data,
 			);
-			target = 4FA481D42DCDAB6000EDCCB3 /* BulkTrack */;
+			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -129,9 +132,6 @@
 		};
 		4FA481D72DCDAB6000EDCCB3 /* BulkTrack */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				4FA482992DCDBE2700EDCCB3 /* Exceptions for "BulkTrack" folder in "BulkTrack" target */,
-			);
 			path = BulkTrack;
 			sourceTree = "<group>";
 		};
@@ -162,6 +162,9 @@
 		};
 		4FAF0FE72DDD9EC5001554C9 /* Packages */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4FAF0FFE2DDDAF9A001554C9 /* Exceptions for "Packages" folder in "BulkTrackWatch" target */,
+			);
 			path = Packages;
 			sourceTree = "<group>";
 		};
@@ -172,6 +175,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FAF10032DDDB2D6001554C9 /* Data in Frameworks */,
 				4FAF0FED2DDD9FDD001554C9 /* Domain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -194,6 +198,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FAF10052DDDB2DC001554C9 /* Data in Frameworks */,
 				4FAF0FEF2DDD9FE8001554C9 /* Domain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -264,11 +269,12 @@
 			);
 			fileSystemSynchronizedGroups = (
 				4F32FC992DDD85930058F521 /* Apps */,
-				4FA481D72DCDAB6000EDCCB3 /* BulkTrack */,
+				4FAF0FE72DDD9EC5001554C9 /* Packages */,
 			);
 			name = BulkTrack;
 			packageProductDependencies = (
 				4FAF0FEC2DDD9FDD001554C9 /* Domain */,
+				4FAF10022DDDB2D6001554C9 /* Data */,
 			);
 			productName = BulkTrack;
 			productReference = 4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */;
@@ -333,12 +339,12 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				4FA481FC2DCDAB6100EDCCB3 /* BulkTrack Watch App */,
 				4FAF0FE72DDD9EC5001554C9 /* Packages */,
 			);
 			name = BulkTrackWatch;
 			packageProductDependencies = (
 				4FAF0FEE2DDD9FE8001554C9 /* Domain */,
+				4FAF10042DDDB2DC001554C9 /* Data */,
 			);
 			productName = "BulkTrack Watch App";
 			productReference = 4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */;
@@ -1060,6 +1066,14 @@
 		4FAF0FEE2DDD9FE8001554C9 /* Domain */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Domain;
+		};
+		4FAF10022DDDB2D6001554C9 /* Data */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Data;
+		};
+		4FAF10042DDDB2DC001554C9 /* Data */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Data;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

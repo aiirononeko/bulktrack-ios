@@ -10,23 +10,6 @@ import Combine
 import WatchConnectivity
 import Domain
 
-// MARK: - Domain‑layer protocol
-
-/// Add this to `Domain/RepositoryProtocols.swift` if not present.
-public protocol SessionSyncRepository {
-    // Reachability status (MainActor)
-    var isReachable: Bool { get }
-
-    // Pushes arrays of recent ExerciseEntity or failure
-    var recentExercisesPublisher: AnyPublisher<[ExerciseEntity], Error> { get }
-
-    /// Request iPhone to send recent exercises (limit param matches REST default)
-    func requestRecentExercises(limit: Int)
-
-    /// Must be called once at startup
-    func activate()
-}
-
 // MARK: - WatchConnectivity implementation
 
 @MainActor

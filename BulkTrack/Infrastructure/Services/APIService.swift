@@ -1,825 +1,825 @@
+////
+////  APIService.swift
+////  BulkTrack
+////
+////  Created by Ryota Katada on 2025/05/10.
+////
 //
-//  APIService.swift
-//  BulkTrack
+//import Foundation
 //
-//  Created by Ryota Katada on 2025/05/10.
+//// API呼び出しに関する共通エラー
+//enum APIError: Error, LocalizedError {
+//    case invalidURL
+//    case requestFailed(Error)
+//    case noData
+//    case decodingError(Error)
+//    case unauthorized // 401など認証エラー用
+//    case apiError(statusCode: Int, message: String?)
 //
-
-import Foundation
-
-// API呼び出しに関する共通エラー
-enum APIError: Error, LocalizedError {
-    case invalidURL
-    case requestFailed(Error)
-    case noData
-    case decodingError(Error)
-    case unauthorized // 401など認証エラー用
-    case apiError(statusCode: Int, message: String?)
-
-    var errorDescription: String? {
-        switch self {
-        case .invalidURL: return "無効なURLです。"
-        case .requestFailed(let err): return "リクエスト失敗: \(err.localizedDescription)"
-        case .noData: return "サーバーからデータが返されませんでした。"
-        case .decodingError(let err): return "データのデコードに失敗しました: \(err.localizedDescription)"
-        case .unauthorized: return "認証に失敗しました。アクセストークンが無効か期限切れの可能性があります。"
-        case .apiError(let code, let msg): return "APIエラー (コード: \(code)): \(msg ?? "詳細不明")"
-        }
-    }
-}
-
-// MARK: - Exercise Models (OpenAPI スキーマに基づく)
-
-struct Exercise: Decodable, Identifiable {
-    let id: String // UUID
-    let canonicalName: String
-    let locale: String?
-    let name: String?
-    let aliases: String?
-    let isOfficial: Bool?
-    let lastUsedAt: String? // date-time (ISO 8601)
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case canonicalName = "canonical_name"
-        case locale
-        case name
-        case aliases
-        case isOfficial = "is_official"
-        case lastUsedAt = "last_used_at"
-    }
-}
-
-// ExerciseCreate は Exercise に含まれるので、ここでは明示的に作成せず、
-// POSTリクエスト時のために別途定義することも可能だが、GETでは不要。
-
-// MARK: - Auth Models (OpenAPI スキーマに基づく)
-
-struct RefreshTokenRequest: Encodable { // POSTリクエストボディ用なのでEncodable
-    let refreshToken: String
-
-    enum CodingKeys: String, CodingKey {
-        case refreshToken = "refresh_token"
-    }
-}
-
-// TokenResponse は ActivationService.swift にあるので、ここでは再定義しないか、
-// 共通のモデルファイルに移動することを検討。今回は簡略化のため、必要であればAPIService内にも定義するが、
-// 本来は重複を避けるべき。
-// (ActivationService.swiftのTokenResponseを参照できるなら、ここでは不要)
-
-// MARK: - Dashboard Models (NEW - OpenAPI スキーマに基づく)
-
-// thisWeek, lastWeek, trend 用
-struct WeekPoint: Decodable, Identifiable {
-    var id = UUID()
-    let weekStart: String
-    let totalVolume: Double
-    let avgSetVolume: Double // 必須
-    let e1rmAvg: Double?
-
-    enum CodingKeys: String, CodingKey {
-        case weekStart
-        case totalVolume
-        case avgSetVolume
-        case e1rmAvg      // トップレベルのJSONキーに合わせる
-    }
-}
-
-// NEW: muscleGroups[].points[] 専用の構造体
-struct MuscleGroupPointDetail: Decodable, Identifiable {
-    // weekStart と setCount, totalVolume で一意性を試みる
-    var id: String { weekStart + "_vol" + String(totalVolume) + "_sets" + String(setCount) }
-    let weekStart: String
-    let totalVolume: Double
-    let setCount: Int
-    let avgE1rm: Double? // JSONキーは "avgE1rm"
-
-    enum CodingKeys: String, CodingKey {
-        case weekStart
-        case totalVolume
-        case setCount
-        case avgE1rm
-    }
-}
-
-// NEW: muscleGroups[] の要素の構造体
-struct MuscleGroupSeries: Decodable, Identifiable {
-    var id: Int { muscleGroupId }
-    let muscleGroupId: Int
-    let groupName: String
-    let points: [MuscleGroupPointDetail]
-
-    enum CodingKeys: String, CodingKey {
-        case muscleGroupId
-        case groupName
-        case points
-    }
-}
-
-struct MetricValuePoint: Decodable, Identifiable { 
-    var id: String { weekStart + "_" + String(value) } // weekStartとvalueでidを生成
-    let weekStart: String
-    let value: Double
-
-    enum CodingKeys: String, CodingKey {
-        case weekStart
-        case value
-    }
-}
-
-struct MetricSeries: Decodable, Identifiable {
-    var id: String { metricKey } // metricKey を id として使用
-    let metricKey: String
-    let unit: String
-    let points: [MetricValuePoint] 
-
-    enum CodingKeys: String, CodingKey {
-        case metricKey
-        case unit
-        case points
-    }
-}
-
-struct DashboardResponse: Decodable {
-    let userId: String?
-    let span: String?
-    let thisWeek: WeekPoint
-    let lastWeek: WeekPoint
-    let trend: [WeekPoint]
-    let muscleGroups: [MuscleGroupSeries] // muscles から muscleGroups に変更
-    let metrics: [MetricSeries]
-
-    enum CodingKeys: String, CodingKey {
-        case userId
-        case span
-        case thisWeek
-        case lastWeek
-        case trend
-        case muscleGroups // CodingKey も変更
-        case metrics
-    }
-}
-
-// MARK: - Session Models (OpenAPI スキーマに基づく)
-
-struct SessionStartRequest: Encodable {
-    // userId と startedAt は必須と仮定 (OpenAPIの SessionStart には元々 user_id, started_at がないので、
-    // これらが実際にはリクエストボディに含まれないなら、それに応じて削除またはオプショナルにする必要あり)
-    // 今回の修正API仕様では menu_id のみが SessionStart のプロパティ
-    // let userId: String // OpenAPIの SessionStart スキーマに準拠するなら削除
-    // let startedAt: String // OpenAPIの SessionStart スキーマに準拠するなら削除
-    let menuId: String? 
-
-    enum CodingKeys: String, CodingKey {
-        // case userId = "user_id"
-        // case startedAt = "started_at"
-        case menuId = "menu_id"
-    }
-}
-
-struct WorkoutSessionResponse: Decodable, Identifiable {
-    let id: String // プロパティ名は id のままでOK (Identifiable準拠のため)
-    let startedAt: String
-    // 以下のプロパティはAPIレスポンスに含まれていないため、オプショナルにするか、
-    // APIが返すように修正する必要がある。今回はオプショナルとして扱う。
-    let userId: String?
-    let menuId: String?
-    let finishedAt: String?
-    let createdAt: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id = "sessionId" // JSONのキー "sessionId" を プロパティ "id" にマッピング
-        case startedAt = "startedAt" // JSONのキー "startedAt" (もしスネークケースなら "started_at")
-        // APIレスポンスに合わせて他のキーも確認・修正
-        case userId = "user_id" // APIが user_id を返さないならコメントアウトかオプショナル対応
-        case menuId = "menu_id" // APIが menu_id を返さないならコメントアウトかオプショナル対応
-        case finishedAt = "finished_at"
-        case createdAt = "created_at"
-    }
-}
-
-// MARK: - Workout Set Models (OpenAPI スキーマに基づく)
-
-struct WorkoutSetCreate: Encodable {
-    let exerciseId: String
-    let weight: Float
-    let reps: Int
-    let rpe: Float?
-    let performedAt: String // ISO8601 date-time string, 必須
-}
-
-struct WorkoutSetResponse: Codable, Identifiable {
-    let id: String
-    let exerciseId: String
-    let setNumber: Int
-    let weight: Float
-    let reps: Int
-    let rpe: Float?
-    let performedAt: String 
-    let volume: Float      
-    let createdAt: String    
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case exerciseId 
-        case setNumber
-        case weight
-        case reps
-        case rpe
-        case performedAt 
-        case volume
-        case createdAt
-    }
-}
-
-// OpenAPI SetUpdate schema
-struct SetUpdate: Encodable {
-    let exerciseId: String?
-    let weight: Float?
-    let reps: Int?
-    let rpe: Float?
-    let notes: String?
-    let performedAt: String? // ISO8601 date-time string
-
-    enum CodingKeys: String, CodingKey {
-        case exerciseId
-        case weight
-        case reps
-        case rpe
-        case notes
-        case performedAt // Renamed from executedAt
-    }
-}
-
-class APIService {
-    private let keychainService = KeychainService()
-    private let baseURLString = APIConfig.baseURL
-    
-    private var isRefreshingToken = false
-    private var pendingRequests: [(URLRequest, (Result<Data, Error>) -> Void)] = []
-
-    private static let iso8601Formatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds] // .sssZ を含む形式
-        return formatter
-    }()
-
-    // Keychainからアクセストークンを取得するヘルパー
-    private func getAccessToken() throws -> String {
-        guard let token = try keychainService.getString(forKey: KeychainService.KeychainKeys.accessToken) else {
-            // アクセストークンがない場合は認証エラーとして扱う
-            print("APIService: Access token not found in Keychain.")
-            throw APIError.unauthorized 
-        }
-        return token
-    }
-
-    // 新しいアクセストークンとリフレッシュトークンをKeychainに保存するヘルパー
-    private func saveTokens(accessToken: String, refreshToken: String?) throws {
-        try keychainService.saveString(accessToken, forKey: KeychainService.KeychainKeys.accessToken)
-        if let newRefreshToken = refreshToken {
-            try keychainService.saveString(newRefreshToken, forKey: KeychainService.KeychainKeys.refreshToken)
-            print("APIService: New refresh token saved to Keychain.")
-        }
-        print("APIService: New access token saved to Keychain.")
-    }
-
-    // トークンリフレッシュ処理
-    private func refreshToken(completion: @escaping (Result<Void, Error>) -> Void) {
-        print("APIService: Attempting to refresh token...")
-        guard let currentRefreshToken = try? keychainService.getString(forKey: KeychainService.KeychainKeys.refreshToken) else {
-            print("APIService: No refresh token found in Keychain. Cannot refresh.")
-            completion(.failure(APIError.unauthorized)) // リフレッシュトークンがなければ認証エラー
-            return
-        }
-
-        guard let url = URL(string: baseURLString + "/v1/auth/refresh") else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        do {
-            let requestBody = RefreshTokenRequest(refreshToken: currentRefreshToken)
-            request.httpBody = try JSONEncoder().encode(requestBody)
-        } catch {
-            print("APIService: Failed to encode refresh token request: \(error)")
-            completion(.failure(APIError.requestFailed(error)))
-            return
-        }
-
-        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self else { return }
-
-            if let error = error {
-                print("APIService: Refresh token API request error: \(error.localizedDescription)")
-                completion(.failure(APIError.requestFailed(error)))
-                return
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                completion(.failure(APIError.apiError(statusCode: 0, message: "Invalid HTTP response from refresh API")))
-                return
-            }
-            
-            print("APIService: Refresh Token API Response Status Code: \(httpResponse.statusCode)")
-
-            guard (200...299).contains(httpResponse.statusCode) else {
-                if httpResponse.statusCode == 401 { // リフレッシュトークン自体が無効/期限切れ
-                    print("APIService: Refresh token is invalid or expired. Re-authentication required.")
-                    // Keychainからアクセストークンとリフレッシュトークンのみを削除
-                    try? self.keychainService.deleteData(forAccount: KeychainService.KeychainKeys.accessToken)
-                    try? self.keychainService.deleteData(forAccount: KeychainService.KeychainKeys.refreshToken)
-                    // デバイスIDは削除しない！
-                    // try? self.keychainService.deleteData(forAccount: KeychainService.KeychainKeys.deviceId)
-                    
-                    // 再アクティベーションを促すためにUserDefaultsを更新
-                    UserDefaults.standard.set(false, forKey: "app.bulktrack.hasActivatedDevice")
-                    print("APIService: Cleared tokens and reset activation flag. Device ID remains. Please restart the app or trigger activation.")
-                }
-                completion(.failure(APIError.apiError(statusCode: httpResponse.statusCode, message: "Refresh token API error")))
-                return
-            }
-
-            guard let responseData = data else {
-                completion(.failure(APIError.noData))
-                return
-            }
-
-            do {
-                // /v1/auth/refresh も TokenResponse を返すと仮定 (OpenAPI仕様に基づく)
-                let tokens = try JSONDecoder().decode(TokenResponse.self, from: responseData)
-                try self.saveTokens(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken) // refreshTokenも更新される場合があるため
-                print("APIService: Tokens refreshed successfully.")
-                completion(.success(()))
-            } catch {
-                print("APIService: Failed to decode or save new tokens: \(error.localizedDescription)")
-                completion(.failure(APIError.decodingError(error)))
-            }
-        }
-        task.resume()
-    }
-
-    // MARK: - Token Refresh (async/await version)
-
-    private func refreshToken() async throws {
-        print("APIService: Attempting to refresh token (async)...")
-
-        guard let currentRefreshToken = try? keychainService.getString(forKey: KeychainService.KeychainKeys.refreshToken) else {
-            print("APIService: No refresh token found in Keychain. Cannot refresh (async).")
-            throw APIError.unauthorized
-        }
-
-        guard let url = URL(string: baseURLString + "/v1/auth/refresh") else {
-            throw APIError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        do {
-            let requestBody = RefreshTokenRequest(refreshToken: currentRefreshToken)
-            request.httpBody = try JSONEncoder().encode(requestBody)
-        } catch {
-            print("APIService: Failed to encode refresh token request (async): \\(error)")
-            throw APIError.requestFailed(error)
-        }
-
-        let data: Data
-        let response: URLResponse
-        
-        do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch {
-            print("APIService: Refresh token API request error (async): \\(error.localizedDescription)")
-            throw APIError.requestFailed(error)
-        }
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("APIService: Invalid HTTP response from refresh API (async)")
-            throw APIError.apiError(statusCode: 0, message: "Invalid HTTP response from refresh API")
-        }
-        
-        print("APIService: Refresh Token API Response Status Code (async): \\(httpResponse.statusCode)")
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 401 { // リフレッシュトークン自体が無効/期限切れ
-                print("APIService: Refresh token is invalid or expired (async). Re-authentication required.")
-                try? keychainService.deleteData(forAccount: KeychainService.KeychainKeys.accessToken)
-                try? keychainService.deleteData(forAccount: KeychainService.KeychainKeys.refreshToken)
-                
-                UserDefaults.standard.set(false, forKey: "app.bulktrack.hasActivatedDevice")
-                print("APIService: Cleared tokens and reset activation flag (async). Device ID remains. Please restart the app or trigger activation.")
-            }
-            throw APIError.apiError(statusCode: httpResponse.statusCode, message: "Refresh token API error (async)")
-        }
-
-        do {
-            // TokenResponseの定義が別途必要
-            let tokens = try JSONDecoder().decode(TokenResponse.self, from: data) 
-            try saveTokens(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken)
-            print("APIService: Tokens refreshed successfully (async).")
-        } catch {
-            print("APIService: Failed to decode or save new tokens (async): \\(error.localizedDescription)")
-            throw APIError.decodingError(error)
-        }
-    }
-
-    // MARK: - Generic Request Handler (リファクタリングしてここに集約するイメージ)
-    // このメソッドはまだ完全ではない。再試行ロジック、リフレッシュ処理の多重実行防止などが必要。
-    private func performRequest(_ originalRequest: URLRequest, originalCompletion: @escaping (Result<Data, Error>) -> Void) {
-        var requestToPerform = originalRequest
-        
-        // ヘッダーにアクセストークンを付与 (既に付与されている場合は上書きしないように注意、または常にここで設定)
-        // この例では、performRequestを呼ぶ前にAuthorizationヘッダーが設定済みであることを期待するか、
-        // ここで毎回getAccessToken()して設定する。
-        // 今回は、呼び出し側 (fetchExercisesなど) で設定済みと仮定。
-        // ただし、リフレッシュ後の再試行では新しいトークンで上書きする必要がある。
-        
-        // print("Performing request: \(requestToPerform.url?.absoluteString ?? "") with headers: \(requestToPerform.allHTTPHeaderFields ?? [:])")
-
-        URLSession.shared.dataTask(with: requestToPerform) { [weak self] data, response, error in
-            guard let self = self else { return }
-
-            if let error = error {
-                originalCompletion(.failure(APIError.requestFailed(error)))
-                return
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                originalCompletion(.failure(APIError.apiError(statusCode: 0, message: "Invalid HTTP response object")))
-                return
-            }
-            
-            print("APIService: Request to \(originalRequest.url?.path ?? "") completed with status: \(httpResponse.statusCode)")
-
-            if httpResponse.statusCode == 401 {
-                print("APIService: Received 401 Unauthorized. Attempting token refresh.")
-                
-                if self.isRefreshingToken {
-                    print("APIService: Token refresh already in progress. Queuing request (actual queueing not yet implemented).")
-                    originalCompletion(.failure(APIError.unauthorized)) 
-                    return
-                }
-                self.isRefreshingToken = true
-                
-                self.refreshToken { refreshResult in
-                    self.isRefreshingToken = false
-                    switch refreshResult {
-                    case .success:
-                        print("APIService: Token refresh successful. Retrying original request.")
-                        var newRequest = originalRequest
-                        do {
-                            let newAccessToken = try self.getAccessToken()
-                            newRequest.setValue("Bearer \(newAccessToken)", forHTTPHeaderField: "Authorization")
-                            self.performRequest(newRequest, originalCompletion: originalCompletion)
-                        } catch {
-                             print("APIService: Failed to get new access token after refresh. \(error.localizedDescription)")
-                            originalCompletion(.failure(APIError.unauthorized))
-                        }
-                    case .failure(let refreshError):
-                        print("APIService: Token refresh failed. \(refreshError.localizedDescription)")
-                        originalCompletion(.failure(refreshError))
-                    }
-                    // TODO: 待機中のリクエストを処理するロジック (pendingRequests)
-                }
-            } else {
-                // 401以外のエラーまたは成功
-                if (200...299).contains(httpResponse.statusCode) {
-                    if let responseData = data {
-                        originalCompletion(.success(responseData))
-                    } else {
-                        originalCompletion(.failure(APIError.noData))
-                    }
-                } else {
-                    var errorMessage: String? = nil
-                    if let responseData = data, let msg = String(data: responseData, encoding: .utf8) { errorMessage = msg }
-                    originalCompletion(.failure(APIError.apiError(statusCode: httpResponse.statusCode, message: errorMessage)))
-                }
-            }
-        }.resume()
-    }
-    
-    // fetchExercises を performRequest を使うように修正
-    func fetchExercises(query: String?, locale: String?, completion: @escaping (Result<[Exercise], Error>) -> Void) {
-        guard let baseURL = URL(string: baseURLString) else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-        var components = URLComponents(url: baseURL.appendingPathComponent("/v1/exercises"), resolvingAgainstBaseURL: true)
-        var queryItems = [URLQueryItem]()
-        if let q = query, !q.isEmpty { queryItems.append(URLQueryItem(name: "q", value: q)) }
-        if let loc = locale, !loc.isEmpty { queryItems.append(URLQueryItem(name: "locale", value: loc)) }
-        if !queryItems.isEmpty { components?.queryItems = queryItems }
-
-        guard let url = components?.url else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        
-        // performRequestを呼び出す前にAuthorizationヘッダーを設定
-        do {
-            let accessToken = try getAccessToken()
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            print("Fetching exercises with URL: \(url) and Token: Bearer \(accessToken.prefix(10))... ")
-        } catch {
-            completion(.failure(error)) // 通常はAPIError.unauthorized
-            return
-        }
-
-        performRequest(request) { result in
-            switch result {
-            case .success(let data):
-                if let responseString = String(data: data, encoding: .utf8) {
-                     print("Raw Exercises API Response JSON: \(responseString)")
-                }
-                do {
-                    let exercises = try JSONDecoder().decode([Exercise].self, from: data)
-                    completion(.success(exercises))
-                } catch let decodingError {
-                    print("Exercise Decoding Error: \(decodingError)")
-                    completion(.failure(APIError.decodingError(decodingError)))
-                }
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
-    }
-
-    // MARK: - Recent Exercises API
-    func fetchRecentExercises(limit: Int = 20, offset: Int = 0, locale: String = "ja", completion: @escaping (Result<[Exercise], Error>) -> Void) {
-        guard let baseURL = URL(string: baseURLString) else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-        var components = URLComponents(url: baseURL.appendingPathComponent("/v1/me/exercises/recent"), resolvingAgainstBaseURL: true)
-        var queryItems = [
-            URLQueryItem(name: "limit", value: String(limit)),
-            URLQueryItem(name: "offset", value: String(offset)),
-            URLQueryItem(name: "locale", value: locale)
-        ]
-        components?.queryItems = queryItems
-
-        guard let url = components?.url else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        do {
-            let accessToken = try getAccessToken()
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            print("Fetching recent exercises with URL: \(url) and Token: Bearer \(accessToken.prefix(10))... ")
-        } catch {
-            completion(.failure(error))
-            return
-        }
-
-        performRequest(request) { result in
-            switch result {
-            case .success(let data):
-                if let responseString = String(data: data, encoding: .utf8) {
-                     print("Raw Recent Exercises API Response JSON: \(responseString)")
-                }
-                do {
-                    let exercises = try JSONDecoder().decode([Exercise].self, from: data)
-                    completion(.success(exercises))
-                } catch let decodingError {
-                    print("Recent Exercise Decoding Error: \(decodingError)")
-                    completion(.failure(APIError.decodingError(decodingError)))
-                }
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
-    }
-
-    // MARK: - Dashboard API
-    func fetchDashboard(period: String? = nil, completion: @escaping (Result<DashboardResponse, Error>) -> Void) {
-        guard let baseURL = URL(string: baseURLString) else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-        var components = URLComponents(url: baseURL.appendingPathComponent("/v1/dashboard"), resolvingAgainstBaseURL: true)
-        
-        var queryItems = [URLQueryItem]()
-        if let p = period, !p.isEmpty {
-            queryItems.append(URLQueryItem(name: "period", value: p))
-        }
-        if !queryItems.isEmpty {
-            components?.queryItems = queryItems
-        }
-
-        guard let url = components?.url else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        
-        do {
-            let accessToken = try getAccessToken()
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            print("Fetching dashboard with URL: \(url) and Token: Bearer \(accessToken.prefix(10))... ")
-        } catch {
-            completion(.failure(error))
-            return
-        }
-
-        performRequest(request) { result in
-            switch result {
-            case .success(let data):
-                if let responseString = String(data: data, encoding: .utf8) {
-                     print("Raw Dashboard API Response JSON: \(responseString)")
-                }
-                do {
-                    let dashboardResponse = try JSONDecoder().decode(DashboardResponse.self, from: data)
-                    completion(.success(dashboardResponse))
-                } catch let decodingError {
-                    print("Dashboard Decoding Error: \(decodingError)")
-                    // より詳細なデコードエラー情報をログに出力
-                    if let decodingError = decodingError as? DecodingError {
-                        switch decodingError {
-                        case .typeMismatch(let type, let context): print("Type mismatch: \(type), context: \(context.debugDescription)")
-                        case .valueNotFound(let type, let context): print("Value not found: \(type), context: \(context.debugDescription)")
-                        case .keyNotFound(let key, let context): print("Key not found: \(key.stringValue), context: \(context.debugDescription)")
-                        case .dataCorrupted(let context): print("Data corrupted: \(context.debugDescription)")
-                        @unknown default: print("Unknown decoding error")
-                        }
-                    }
-                    completion(.failure(APIError.decodingError(decodingError)))
-                }
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
-    }
-
-    // MARK: - Session Management
-
-    // MARK: - Workout Set Management
-
-    // MARK: - Workout Set Operations
-
-    // MARK: - Dashboard Operations
-
-    // MARK: - Workout Sets
-
-    func updateSet(setId: String, setData: SetUpdate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
-        guard let url = URL(string: baseURLString + "/v1/sets/\(setId)") else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "PATCH"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        print("APIService: Updating set \(setId) with data: \(setData)")
-
-        do {
-            let accessToken = try getAccessToken()
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            
-            let encoder = JSONEncoder()
-            request.httpBody = try encoder.encode(setData)
-
-        } catch let apiError as APIError {
-            completion(.failure(apiError))
-            return
-        } catch {
-            completion(.failure(APIError.requestFailed(error)))
-            return
-        }
-
-        performRequest(request) { result in
-            switch result {
-            case .success(let data):
-                do {
-                    let decoder = JSONDecoder()
-                    let setResponse = try decoder.decode(WorkoutSetResponse.self, from: data)
-                    print("APIService: Set updated successfully. Response: \(setResponse)")
-                    completion(.success(setResponse))
-                } catch let decodingError {
-                    print("APIService: Failed to decode set update response: \(decodingError)")
-                    if let dataString = String(data: data, encoding: .utf8) {
-                        print("Raw response data for updateSet: \(dataString)")
-                    }
-                    completion(.failure(APIError.decodingError(decodingError)))
-                }
-            case .failure(let error):
-                print("APIService: Failed to update set: \(error.localizedDescription)")
-                completion(.failure(error as? APIError ?? APIError.requestFailed(error)))
-            }
-        }
-    }
-
-    func deleteSet(setId: String, completion: @escaping (Result<Void, APIError>) -> Void) {
-        guard let url = URL(string: baseURLString + "/v1/sets/\(setId)") else {
-            completion(.failure(APIError.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        do {
-            let accessToken = try getAccessToken()
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            print("APIService: Deleting set \(setId)")
-        } catch let apiError as APIError {
-            completion(.failure(apiError))
-            return
-        } catch {
-            completion(.failure(APIError.requestFailed(error)))
-            return
-        }
-
-        performRequest(request) { result in
-            switch result {
-            case .success(let data):
-                if data.isEmpty {
-                    print("APIService: Set \(setId) deleted successfully (204 No Content).")
-                    completion(.success(()))
-                } else {
-                    print("APIService: Delete set \(setId) returned unexpected data (length: \(data.count)). Assuming success if status was 2xx.")
-                    completion(.success(()))
-                }
-            case .failure(let error):
-                print("APIService: Failed to delete set \(setId): \(error.localizedDescription)")
-                completion(.failure(error as? APIError ?? APIError.requestFailed(error)))
-            }
-        }
-    }
-
-    // 新しいワークアウトセットを登録するメソッド (OpenAPI /v1/sets に準拠)
-    func createWorkoutSet(setCreate: WorkoutSetCreate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
-        guard let url = URL(string: "\(baseURLString)/v1/sets") else {
-            completion(.failure(.invalidURL))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        do {
-            let accessToken = try getAccessToken() 
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        } catch {
-            completion(.failure(error as? APIError ?? .unauthorized))
-            return
-        }
-
-        do {
-            let encoder = JSONEncoder()
-            request.httpBody = try encoder.encode(setCreate)
-        } catch {
-            completion(.failure(.decodingError(error))) 
-            return
-        }
-
-        print("Creating workout set with URL: \(url.absoluteString)")
-        if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
-            print("Request body: \(bodyString)")
-        }
-
-        performRequest(request) { result in
-            switch result {
-            case .success(let data):
-                do {
-                    let decoder = JSONDecoder()
-                    let setResponse = try decoder.decode(WorkoutSetResponse.self, from: data)
-                    print("APIService: Set created successfully. Response: \(setResponse)")
-                    completion(.success(setResponse))
-                } catch let decodingError {
-                    print("APIService: Failed to decode set creation response: \(decodingError.localizedDescription)")
-                    if let dataString = String(data: data, encoding: .utf8) {
-                        print("Raw response data for createWorkoutSet: \(dataString)")
-                    }
-                    completion(.failure(.decodingError(decodingError)))
-                }
-            case .failure(let error):
-                print("APIService: Failed to create workout set: \(error.localizedDescription)")
-                completion(.failure(error as? APIError ?? .requestFailed(error)))
-            }
-        }
-    }
-}
+//    var errorDescription: String? {
+//        switch self {
+//        case .invalidURL: return "無効なURLです。"
+//        case .requestFailed(let err): return "リクエスト失敗: \(err.localizedDescription)"
+//        case .noData: return "サーバーからデータが返されませんでした。"
+//        case .decodingError(let err): return "データのデコードに失敗しました: \(err.localizedDescription)"
+//        case .unauthorized: return "認証に失敗しました。アクセストークンが無効か期限切れの可能性があります。"
+//        case .apiError(let code, let msg): return "APIエラー (コード: \(code)): \(msg ?? "詳細不明")"
+//        }
+//    }
+//}
+//
+//// MARK: - Exercise Models (OpenAPI スキーマに基づく)
+//
+//struct Exercise: Decodable, Identifiable {
+//    let id: String // UUID
+//    let canonicalName: String
+//    let locale: String?
+//    let name: String?
+//    let aliases: String?
+//    let isOfficial: Bool?
+//    let lastUsedAt: String? // date-time (ISO 8601)
+//
+//    enum CodingKeys: String, CodingKey {
+//        case id
+//        case canonicalName = "canonical_name"
+//        case locale
+//        case name
+//        case aliases
+//        case isOfficial = "is_official"
+//        case lastUsedAt = "last_used_at"
+//    }
+//}
+//
+//// ExerciseCreate は Exercise に含まれるので、ここでは明示的に作成せず、
+//// POSTリクエスト時のために別途定義することも可能だが、GETでは不要。
+//
+//// MARK: - Auth Models (OpenAPI スキーマに基づく)
+//
+//struct RefreshTokenRequest: Encodable { // POSTリクエストボディ用なのでEncodable
+//    let refreshToken: String
+//
+//    enum CodingKeys: String, CodingKey {
+//        case refreshToken = "refresh_token"
+//    }
+//}
+//
+//// TokenResponse は ActivationService.swift にあるので、ここでは再定義しないか、
+//// 共通のモデルファイルに移動することを検討。今回は簡略化のため、必要であればAPIService内にも定義するが、
+//// 本来は重複を避けるべき。
+//// (ActivationService.swiftのTokenResponseを参照できるなら、ここでは不要)
+//
+//// MARK: - Dashboard Models (NEW - OpenAPI スキーマに基づく)
+//
+//// thisWeek, lastWeek, trend 用
+//struct WeekPoint: Decodable, Identifiable {
+//    var id = UUID()
+//    let weekStart: String
+//    let totalVolume: Double
+//    let avgSetVolume: Double // 必須
+//    let e1rmAvg: Double?
+//
+//    enum CodingKeys: String, CodingKey {
+//        case weekStart
+//        case totalVolume
+//        case avgSetVolume
+//        case e1rmAvg      // トップレベルのJSONキーに合わせる
+//    }
+//}
+//
+//// NEW: muscleGroups[].points[] 専用の構造体
+//struct MuscleGroupPointDetail: Decodable, Identifiable {
+//    // weekStart と setCount, totalVolume で一意性を試みる
+//    var id: String { weekStart + "_vol" + String(totalVolume) + "_sets" + String(setCount) }
+//    let weekStart: String
+//    let totalVolume: Double
+//    let setCount: Int
+//    let avgE1rm: Double? // JSONキーは "avgE1rm"
+//
+//    enum CodingKeys: String, CodingKey {
+//        case weekStart
+//        case totalVolume
+//        case setCount
+//        case avgE1rm
+//    }
+//}
+//
+//// NEW: muscleGroups[] の要素の構造体
+//struct MuscleGroupSeries: Decodable, Identifiable {
+//    var id: Int { muscleGroupId }
+//    let muscleGroupId: Int
+//    let groupName: String
+//    let points: [MuscleGroupPointDetail]
+//
+//    enum CodingKeys: String, CodingKey {
+//        case muscleGroupId
+//        case groupName
+//        case points
+//    }
+//}
+//
+//struct MetricValuePoint: Decodable, Identifiable { 
+//    var id: String { weekStart + "_" + String(value) } // weekStartとvalueでidを生成
+//    let weekStart: String
+//    let value: Double
+//
+//    enum CodingKeys: String, CodingKey {
+//        case weekStart
+//        case value
+//    }
+//}
+//
+//struct MetricSeries: Decodable, Identifiable {
+//    var id: String { metricKey } // metricKey を id として使用
+//    let metricKey: String
+//    let unit: String
+//    let points: [MetricValuePoint] 
+//
+//    enum CodingKeys: String, CodingKey {
+//        case metricKey
+//        case unit
+//        case points
+//    }
+//}
+//
+//struct DashboardResponse: Decodable {
+//    let userId: String?
+//    let span: String?
+//    let thisWeek: WeekPoint
+//    let lastWeek: WeekPoint
+//    let trend: [WeekPoint]
+//    let muscleGroups: [MuscleGroupSeries] // muscles から muscleGroups に変更
+//    let metrics: [MetricSeries]
+//
+//    enum CodingKeys: String, CodingKey {
+//        case userId
+//        case span
+//        case thisWeek
+//        case lastWeek
+//        case trend
+//        case muscleGroups // CodingKey も変更
+//        case metrics
+//    }
+//}
+//
+//// MARK: - Session Models (OpenAPI スキーマに基づく)
+//
+//struct SessionStartRequest: Encodable {
+//    // userId と startedAt は必須と仮定 (OpenAPIの SessionStart には元々 user_id, started_at がないので、
+//    // これらが実際にはリクエストボディに含まれないなら、それに応じて削除またはオプショナルにする必要あり)
+//    // 今回の修正API仕様では menu_id のみが SessionStart のプロパティ
+//    // let userId: String // OpenAPIの SessionStart スキーマに準拠するなら削除
+//    // let startedAt: String // OpenAPIの SessionStart スキーマに準拠するなら削除
+//    let menuId: String? 
+//
+//    enum CodingKeys: String, CodingKey {
+//        // case userId = "user_id"
+//        // case startedAt = "started_at"
+//        case menuId = "menu_id"
+//    }
+//}
+//
+//struct WorkoutSessionResponse: Decodable, Identifiable {
+//    let id: String // プロパティ名は id のままでOK (Identifiable準拠のため)
+//    let startedAt: String
+//    // 以下のプロパティはAPIレスポンスに含まれていないため、オプショナルにするか、
+//    // APIが返すように修正する必要がある。今回はオプショナルとして扱う。
+//    let userId: String?
+//    let menuId: String?
+//    let finishedAt: String?
+//    let createdAt: String?
+//
+//    enum CodingKeys: String, CodingKey {
+//        case id = "sessionId" // JSONのキー "sessionId" を プロパティ "id" にマッピング
+//        case startedAt = "startedAt" // JSONのキー "startedAt" (もしスネークケースなら "started_at")
+//        // APIレスポンスに合わせて他のキーも確認・修正
+//        case userId = "user_id" // APIが user_id を返さないならコメントアウトかオプショナル対応
+//        case menuId = "menu_id" // APIが menu_id を返さないならコメントアウトかオプショナル対応
+//        case finishedAt = "finished_at"
+//        case createdAt = "created_at"
+//    }
+//}
+//
+//// MARK: - Workout Set Models (OpenAPI スキーマに基づく)
+//
+//struct WorkoutSetCreate: Encodable {
+//    let exerciseId: String
+//    let weight: Float
+//    let reps: Int
+//    let rpe: Float?
+//    let performedAt: String // ISO8601 date-time string, 必須
+//}
+//
+//struct WorkoutSetResponse: Codable, Identifiable {
+//    let id: String
+//    let exerciseId: String
+//    let setNumber: Int
+//    let weight: Float
+//    let reps: Int
+//    let rpe: Float?
+//    let performedAt: String 
+//    let volume: Float      
+//    let createdAt: String    
+//
+//    enum CodingKeys: String, CodingKey {
+//        case id
+//        case exerciseId 
+//        case setNumber
+//        case weight
+//        case reps
+//        case rpe
+//        case performedAt 
+//        case volume
+//        case createdAt
+//    }
+//}
+//
+//// OpenAPI SetUpdate schema
+//struct SetUpdate: Encodable {
+//    let exerciseId: String?
+//    let weight: Float?
+//    let reps: Int?
+//    let rpe: Float?
+//    let notes: String?
+//    let performedAt: String? // ISO8601 date-time string
+//
+//    enum CodingKeys: String, CodingKey {
+//        case exerciseId
+//        case weight
+//        case reps
+//        case rpe
+//        case notes
+//        case performedAt // Renamed from executedAt
+//    }
+//}
+//
+//class APIService {
+//    private let keychainService = KeychainService()
+//    private let baseURLString = APIConfig.baseURL
+//    
+//    private var isRefreshingToken = false
+//    private var pendingRequests: [(URLRequest, (Result<Data, Error>) -> Void)] = []
+//
+//    private static let iso8601Formatter: ISO8601DateFormatter = {
+//        let formatter = ISO8601DateFormatter()
+//        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds] // .sssZ を含む形式
+//        return formatter
+//    }()
+//
+//    // Keychainからアクセストークンを取得するヘルパー
+//    private func getAccessToken() throws -> String {
+//        guard let token = try keychainService.getString(forKey: KeychainService.KeychainKeys.accessToken) else {
+//            // アクセストークンがない場合は認証エラーとして扱う
+//            print("APIService: Access token not found in Keychain.")
+//            throw APIError.unauthorized 
+//        }
+//        return token
+//    }
+//
+//    // 新しいアクセストークンとリフレッシュトークンをKeychainに保存するヘルパー
+//    private func saveTokens(accessToken: String, refreshToken: String?) throws {
+//        try keychainService.saveString(accessToken, forKey: KeychainService.KeychainKeys.accessToken)
+//        if let newRefreshToken = refreshToken {
+//            try keychainService.saveString(newRefreshToken, forKey: KeychainService.KeychainKeys.refreshToken)
+//            print("APIService: New refresh token saved to Keychain.")
+//        }
+//        print("APIService: New access token saved to Keychain.")
+//    }
+//
+//    // トークンリフレッシュ処理
+//    private func refreshToken(completion: @escaping (Result<Void, Error>) -> Void) {
+//        print("APIService: Attempting to refresh token...")
+//        guard let currentRefreshToken = try? keychainService.getString(forKey: KeychainService.KeychainKeys.refreshToken) else {
+//            print("APIService: No refresh token found in Keychain. Cannot refresh.")
+//            completion(.failure(APIError.unauthorized)) // リフレッシュトークンがなければ認証エラー
+//            return
+//        }
+//
+//        guard let url = URL(string: baseURLString + "/v1/auth/refresh") else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "POST"
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        request.setValue("application/json", forHTTPHeaderField: "Accept")
+//
+//        do {
+//            let requestBody = RefreshTokenRequest(refreshToken: currentRefreshToken)
+//            request.httpBody = try JSONEncoder().encode(requestBody)
+//        } catch {
+//            print("APIService: Failed to encode refresh token request: \(error)")
+//            completion(.failure(APIError.requestFailed(error)))
+//            return
+//        }
+//
+//        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+//            guard let self = self else { return }
+//
+//            if let error = error {
+//                print("APIService: Refresh token API request error: \(error.localizedDescription)")
+//                completion(.failure(APIError.requestFailed(error)))
+//                return
+//            }
+//
+//            guard let httpResponse = response as? HTTPURLResponse else {
+//                completion(.failure(APIError.apiError(statusCode: 0, message: "Invalid HTTP response from refresh API")))
+//                return
+//            }
+//            
+//            print("APIService: Refresh Token API Response Status Code: \(httpResponse.statusCode)")
+//
+//            guard (200...299).contains(httpResponse.statusCode) else {
+//                if httpResponse.statusCode == 401 { // リフレッシュトークン自体が無効/期限切れ
+//                    print("APIService: Refresh token is invalid or expired. Re-authentication required.")
+//                    // Keychainからアクセストークンとリフレッシュトークンのみを削除
+//                    try? self.keychainService.deleteData(forAccount: KeychainService.KeychainKeys.accessToken)
+//                    try? self.keychainService.deleteData(forAccount: KeychainService.KeychainKeys.refreshToken)
+//                    // デバイスIDは削除しない！
+//                    // try? self.keychainService.deleteData(forAccount: KeychainService.KeychainKeys.deviceId)
+//                    
+//                    // 再アクティベーションを促すためにUserDefaultsを更新
+//                    UserDefaults.standard.set(false, forKey: "app.bulktrack.hasActivatedDevice")
+//                    print("APIService: Cleared tokens and reset activation flag. Device ID remains. Please restart the app or trigger activation.")
+//                }
+//                completion(.failure(APIError.apiError(statusCode: httpResponse.statusCode, message: "Refresh token API error")))
+//                return
+//            }
+//
+//            guard let responseData = data else {
+//                completion(.failure(APIError.noData))
+//                return
+//            }
+//
+//            do {
+//                // /v1/auth/refresh も TokenResponse を返すと仮定 (OpenAPI仕様に基づく)
+//                let tokens = try JSONDecoder().decode(TokenResponse.self, from: responseData)
+//                try self.saveTokens(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken) // refreshTokenも更新される場合があるため
+//                print("APIService: Tokens refreshed successfully.")
+//                completion(.success(()))
+//            } catch {
+//                print("APIService: Failed to decode or save new tokens: \(error.localizedDescription)")
+//                completion(.failure(APIError.decodingError(error)))
+//            }
+//        }
+//        task.resume()
+//    }
+//
+//    // MARK: - Token Refresh (async/await version)
+//
+//    private func refreshToken() async throws {
+//        print("APIService: Attempting to refresh token (async)...")
+//
+//        guard let currentRefreshToken = try? keychainService.getString(forKey: KeychainService.KeychainKeys.refreshToken) else {
+//            print("APIService: No refresh token found in Keychain. Cannot refresh (async).")
+//            throw APIError.unauthorized
+//        }
+//
+//        guard let url = URL(string: baseURLString + "/v1/auth/refresh") else {
+//            throw APIError.invalidURL
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "POST"
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        request.setValue("application/json", forHTTPHeaderField: "Accept")
+//
+//        do {
+//            let requestBody = RefreshTokenRequest(refreshToken: currentRefreshToken)
+//            request.httpBody = try JSONEncoder().encode(requestBody)
+//        } catch {
+//            print("APIService: Failed to encode refresh token request (async): \\(error)")
+//            throw APIError.requestFailed(error)
+//        }
+//
+//        let data: Data
+//        let response: URLResponse
+//        
+//        do {
+//            (data, response) = try await URLSession.shared.data(for: request)
+//        } catch {
+//            print("APIService: Refresh token API request error (async): \\(error.localizedDescription)")
+//            throw APIError.requestFailed(error)
+//        }
+//        
+//        guard let httpResponse = response as? HTTPURLResponse else {
+//            print("APIService: Invalid HTTP response from refresh API (async)")
+//            throw APIError.apiError(statusCode: 0, message: "Invalid HTTP response from refresh API")
+//        }
+//        
+//        print("APIService: Refresh Token API Response Status Code (async): \\(httpResponse.statusCode)")
+//
+//        guard (200...299).contains(httpResponse.statusCode) else {
+//            if httpResponse.statusCode == 401 { // リフレッシュトークン自体が無効/期限切れ
+//                print("APIService: Refresh token is invalid or expired (async). Re-authentication required.")
+//                try? keychainService.deleteData(forAccount: KeychainService.KeychainKeys.accessToken)
+//                try? keychainService.deleteData(forAccount: KeychainService.KeychainKeys.refreshToken)
+//                
+//                UserDefaults.standard.set(false, forKey: "app.bulktrack.hasActivatedDevice")
+//                print("APIService: Cleared tokens and reset activation flag (async). Device ID remains. Please restart the app or trigger activation.")
+//            }
+//            throw APIError.apiError(statusCode: httpResponse.statusCode, message: "Refresh token API error (async)")
+//        }
+//
+//        do {
+//            // TokenResponseの定義が別途必要
+//            let tokens = try JSONDecoder().decode(TokenResponse.self, from: data) 
+//            try saveTokens(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken)
+//            print("APIService: Tokens refreshed successfully (async).")
+//        } catch {
+//            print("APIService: Failed to decode or save new tokens (async): \\(error.localizedDescription)")
+//            throw APIError.decodingError(error)
+//        }
+//    }
+//
+//    // MARK: - Generic Request Handler (リファクタリングしてここに集約するイメージ)
+//    // このメソッドはまだ完全ではない。再試行ロジック、リフレッシュ処理の多重実行防止などが必要。
+//    private func performRequest(_ originalRequest: URLRequest, originalCompletion: @escaping (Result<Data, Error>) -> Void) {
+//        var requestToPerform = originalRequest
+//        
+//        // ヘッダーにアクセストークンを付与 (既に付与されている場合は上書きしないように注意、または常にここで設定)
+//        // この例では、performRequestを呼ぶ前にAuthorizationヘッダーが設定済みであることを期待するか、
+//        // ここで毎回getAccessToken()して設定する。
+//        // 今回は、呼び出し側 (fetchExercisesなど) で設定済みと仮定。
+//        // ただし、リフレッシュ後の再試行では新しいトークンで上書きする必要がある。
+//        
+//        // print("Performing request: \(requestToPerform.url?.absoluteString ?? "") with headers: \(requestToPerform.allHTTPHeaderFields ?? [:])")
+//
+//        URLSession.shared.dataTask(with: requestToPerform) { [weak self] data, response, error in
+//            guard let self = self else { return }
+//
+//            if let error = error {
+//                originalCompletion(.failure(APIError.requestFailed(error)))
+//                return
+//            }
+//
+//            guard let httpResponse = response as? HTTPURLResponse else {
+//                originalCompletion(.failure(APIError.apiError(statusCode: 0, message: "Invalid HTTP response object")))
+//                return
+//            }
+//            
+//            print("APIService: Request to \(originalRequest.url?.path ?? "") completed with status: \(httpResponse.statusCode)")
+//
+//            if httpResponse.statusCode == 401 {
+//                print("APIService: Received 401 Unauthorized. Attempting token refresh.")
+//                
+//                if self.isRefreshingToken {
+//                    print("APIService: Token refresh already in progress. Queuing request (actual queueing not yet implemented).")
+//                    originalCompletion(.failure(APIError.unauthorized)) 
+//                    return
+//                }
+//                self.isRefreshingToken = true
+//                
+//                self.refreshToken { refreshResult in
+//                    self.isRefreshingToken = false
+//                    switch refreshResult {
+//                    case .success:
+//                        print("APIService: Token refresh successful. Retrying original request.")
+//                        var newRequest = originalRequest
+//                        do {
+//                            let newAccessToken = try self.getAccessToken()
+//                            newRequest.setValue("Bearer \(newAccessToken)", forHTTPHeaderField: "Authorization")
+//                            self.performRequest(newRequest, originalCompletion: originalCompletion)
+//                        } catch {
+//                             print("APIService: Failed to get new access token after refresh. \(error.localizedDescription)")
+//                            originalCompletion(.failure(APIError.unauthorized))
+//                        }
+//                    case .failure(let refreshError):
+//                        print("APIService: Token refresh failed. \(refreshError.localizedDescription)")
+//                        originalCompletion(.failure(refreshError))
+//                    }
+//                    // TODO: 待機中のリクエストを処理するロジック (pendingRequests)
+//                }
+//            } else {
+//                // 401以外のエラーまたは成功
+//                if (200...299).contains(httpResponse.statusCode) {
+//                    if let responseData = data {
+//                        originalCompletion(.success(responseData))
+//                    } else {
+//                        originalCompletion(.failure(APIError.noData))
+//                    }
+//                } else {
+//                    var errorMessage: String? = nil
+//                    if let responseData = data, let msg = String(data: responseData, encoding: .utf8) { errorMessage = msg }
+//                    originalCompletion(.failure(APIError.apiError(statusCode: httpResponse.statusCode, message: errorMessage)))
+//                }
+//            }
+//        }.resume()
+//    }
+//    
+//    // fetchExercises を performRequest を使うように修正
+//    func fetchExercises(query: String?, locale: String?, completion: @escaping (Result<[Exercise], Error>) -> Void) {
+//        guard let baseURL = URL(string: baseURLString) else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//        var components = URLComponents(url: baseURL.appendingPathComponent("/v1/exercises"), resolvingAgainstBaseURL: true)
+//        var queryItems = [URLQueryItem]()
+//        if let q = query, !q.isEmpty { queryItems.append(URLQueryItem(name: "q", value: q)) }
+//        if let loc = locale, !loc.isEmpty { queryItems.append(URLQueryItem(name: "locale", value: loc)) }
+//        if !queryItems.isEmpty { components?.queryItems = queryItems }
+//
+//        guard let url = components?.url else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "GET"
+//        request.setValue("application/json", forHTTPHeaderField: "Accept")
+//        
+//        // performRequestを呼び出す前にAuthorizationヘッダーを設定
+//        do {
+//            let accessToken = try getAccessToken()
+//            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+//            print("Fetching exercises with URL: \(url) and Token: Bearer \(accessToken.prefix(10))... ")
+//        } catch {
+//            completion(.failure(error)) // 通常はAPIError.unauthorized
+//            return
+//        }
+//
+//        performRequest(request) { result in
+//            switch result {
+//            case .success(let data):
+//                if let responseString = String(data: data, encoding: .utf8) {
+//                     print("Raw Exercises API Response JSON: \(responseString)")
+//                }
+//                do {
+//                    let exercises = try JSONDecoder().decode([Exercise].self, from: data)
+//                    completion(.success(exercises))
+//                } catch let decodingError {
+//                    print("Exercise Decoding Error: \(decodingError)")
+//                    completion(.failure(APIError.decodingError(decodingError)))
+//                }
+//            case .failure(let error):
+//                completion(.failure(error))
+//            }
+//        }
+//    }
+//
+//    // MARK: - Recent Exercises API
+//    func fetchRecentExercises(limit: Int = 20, offset: Int = 0, locale: String = "ja", completion: @escaping (Result<[Exercise], Error>) -> Void) {
+//        guard let baseURL = URL(string: baseURLString) else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//        var components = URLComponents(url: baseURL.appendingPathComponent("/v1/me/exercises/recent"), resolvingAgainstBaseURL: true)
+//        var queryItems = [
+//            URLQueryItem(name: "limit", value: String(limit)),
+//            URLQueryItem(name: "offset", value: String(offset)),
+//            URLQueryItem(name: "locale", value: locale)
+//        ]
+//        components?.queryItems = queryItems
+//
+//        guard let url = components?.url else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "GET"
+//        request.setValue("application/json", forHTTPHeaderField: "Accept")
+//
+//        do {
+//            let accessToken = try getAccessToken()
+//            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+//            print("Fetching recent exercises with URL: \(url) and Token: Bearer \(accessToken.prefix(10))... ")
+//        } catch {
+//            completion(.failure(error))
+//            return
+//        }
+//
+//        performRequest(request) { result in
+//            switch result {
+//            case .success(let data):
+//                if let responseString = String(data: data, encoding: .utf8) {
+//                     print("Raw Recent Exercises API Response JSON: \(responseString)")
+//                }
+//                do {
+//                    let exercises = try JSONDecoder().decode([Exercise].self, from: data)
+//                    completion(.success(exercises))
+//                } catch let decodingError {
+//                    print("Recent Exercise Decoding Error: \(decodingError)")
+//                    completion(.failure(APIError.decodingError(decodingError)))
+//                }
+//            case .failure(let error):
+//                completion(.failure(error))
+//            }
+//        }
+//    }
+//
+//    // MARK: - Dashboard API
+//    func fetchDashboard(period: String? = nil, completion: @escaping (Result<DashboardResponse, Error>) -> Void) {
+//        guard let baseURL = URL(string: baseURLString) else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//        var components = URLComponents(url: baseURL.appendingPathComponent("/v1/dashboard"), resolvingAgainstBaseURL: true)
+//        
+//        var queryItems = [URLQueryItem]()
+//        if let p = period, !p.isEmpty {
+//            queryItems.append(URLQueryItem(name: "period", value: p))
+//        }
+//        if !queryItems.isEmpty {
+//            components?.queryItems = queryItems
+//        }
+//
+//        guard let url = components?.url else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "GET"
+//        request.setValue("application/json", forHTTPHeaderField: "Accept")
+//        
+//        do {
+//            let accessToken = try getAccessToken()
+//            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+//            print("Fetching dashboard with URL: \(url) and Token: Bearer \(accessToken.prefix(10))... ")
+//        } catch {
+//            completion(.failure(error))
+//            return
+//        }
+//
+//        performRequest(request) { result in
+//            switch result {
+//            case .success(let data):
+//                if let responseString = String(data: data, encoding: .utf8) {
+//                     print("Raw Dashboard API Response JSON: \(responseString)")
+//                }
+//                do {
+//                    let dashboardResponse = try JSONDecoder().decode(DashboardResponse.self, from: data)
+//                    completion(.success(dashboardResponse))
+//                } catch let decodingError {
+//                    print("Dashboard Decoding Error: \(decodingError)")
+//                    // より詳細なデコードエラー情報をログに出力
+//                    if let decodingError = decodingError as? DecodingError {
+//                        switch decodingError {
+//                        case .typeMismatch(let type, let context): print("Type mismatch: \(type), context: \(context.debugDescription)")
+//                        case .valueNotFound(let type, let context): print("Value not found: \(type), context: \(context.debugDescription)")
+//                        case .keyNotFound(let key, let context): print("Key not found: \(key.stringValue), context: \(context.debugDescription)")
+//                        case .dataCorrupted(let context): print("Data corrupted: \(context.debugDescription)")
+//                        @unknown default: print("Unknown decoding error")
+//                        }
+//                    }
+//                    completion(.failure(APIError.decodingError(decodingError)))
+//                }
+//            case .failure(let error):
+//                completion(.failure(error))
+//            }
+//        }
+//    }
+//
+//    // MARK: - Session Management
+//
+//    // MARK: - Workout Set Management
+//
+//    // MARK: - Workout Set Operations
+//
+//    // MARK: - Dashboard Operations
+//
+//    // MARK: - Workout Sets
+//
+//    func updateSet(setId: String, setData: SetUpdate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
+//        guard let url = URL(string: baseURLString + "/v1/sets/\(setId)") else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "PATCH"
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        request.setValue("application/json", forHTTPHeaderField: "Accept")
+//
+//        print("APIService: Updating set \(setId) with data: \(setData)")
+//
+//        do {
+//            let accessToken = try getAccessToken()
+//            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+//            
+//            let encoder = JSONEncoder()
+//            request.httpBody = try encoder.encode(setData)
+//
+//        } catch let apiError as APIError {
+//            completion(.failure(apiError))
+//            return
+//        } catch {
+//            completion(.failure(APIError.requestFailed(error)))
+//            return
+//        }
+//
+//        performRequest(request) { result in
+//            switch result {
+//            case .success(let data):
+//                do {
+//                    let decoder = JSONDecoder()
+//                    let setResponse = try decoder.decode(WorkoutSetResponse.self, from: data)
+//                    print("APIService: Set updated successfully. Response: \(setResponse)")
+//                    completion(.success(setResponse))
+//                } catch let decodingError {
+//                    print("APIService: Failed to decode set update response: \(decodingError)")
+//                    if let dataString = String(data: data, encoding: .utf8) {
+//                        print("Raw response data for updateSet: \(dataString)")
+//                    }
+//                    completion(.failure(APIError.decodingError(decodingError)))
+//                }
+//            case .failure(let error):
+//                print("APIService: Failed to update set: \(error.localizedDescription)")
+//                completion(.failure(error as? APIError ?? APIError.requestFailed(error)))
+//            }
+//        }
+//    }
+//
+//    func deleteSet(setId: String, completion: @escaping (Result<Void, APIError>) -> Void) {
+//        guard let url = URL(string: baseURLString + "/v1/sets/\(setId)") else {
+//            completion(.failure(APIError.invalidURL))
+//            return
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "DELETE"
+//        request.setValue("application/json", forHTTPHeaderField: "Accept")
+//
+//        do {
+//            let accessToken = try getAccessToken()
+//            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+//            print("APIService: Deleting set \(setId)")
+//        } catch let apiError as APIError {
+//            completion(.failure(apiError))
+//            return
+//        } catch {
+//            completion(.failure(APIError.requestFailed(error)))
+//            return
+//        }
+//
+//        performRequest(request) { result in
+//            switch result {
+//            case .success(let data):
+//                if data.isEmpty {
+//                    print("APIService: Set \(setId) deleted successfully (204 No Content).")
+//                    completion(.success(()))
+//                } else {
+//                    print("APIService: Delete set \(setId) returned unexpected data (length: \(data.count)). Assuming success if status was 2xx.")
+//                    completion(.success(()))
+//                }
+//            case .failure(let error):
+//                print("APIService: Failed to delete set \(setId): \(error.localizedDescription)")
+//                completion(.failure(error as? APIError ?? APIError.requestFailed(error)))
+//            }
+//        }
+//    }
+//
+//    // 新しいワークアウトセットを登録するメソッド (OpenAPI /v1/sets に準拠)
+//    func createWorkoutSet(setCreate: WorkoutSetCreate, completion: @escaping (Result<WorkoutSetResponse, APIError>) -> Void) {
+//        guard let url = URL(string: "\(baseURLString)/v1/sets") else {
+//            completion(.failure(.invalidURL))
+//            return
+//        }
+//
+//        var request = URLRequest(url: url)
+//        request.httpMethod = "POST"
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        do {
+//            let accessToken = try getAccessToken() 
+//            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+//        } catch {
+//            completion(.failure(error as? APIError ?? .unauthorized))
+//            return
+//        }
+//
+//        do {
+//            let encoder = JSONEncoder()
+//            request.httpBody = try encoder.encode(setCreate)
+//        } catch {
+//            completion(.failure(.decodingError(error))) 
+//            return
+//        }
+//
+//        print("Creating workout set with URL: \(url.absoluteString)")
+//        if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
+//            print("Request body: \(bodyString)")
+//        }
+//
+//        performRequest(request) { result in
+//            switch result {
+//            case .success(let data):
+//                do {
+//                    let decoder = JSONDecoder()
+//                    let setResponse = try decoder.decode(WorkoutSetResponse.self, from: data)
+//                    print("APIService: Set created successfully. Response: \(setResponse)")
+//                    completion(.success(setResponse))
+//                } catch let decodingError {
+//                    print("APIService: Failed to decode set creation response: \(decodingError.localizedDescription)")
+//                    if let dataString = String(data: data, encoding: .utf8) {
+//                        print("Raw response data for createWorkoutSet: \(dataString)")
+//                    }
+//                    completion(.failure(.decodingError(decodingError)))
+//                }
+//            case .failure(let error):
+//                print("APIService: Failed to create workout set: \(error.localizedDescription)")
+//                completion(.failure(error as? APIError ?? .requestFailed(error)))
+//            }
+//        }
+//    }
+//}

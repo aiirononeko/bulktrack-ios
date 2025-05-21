@@ -11,6 +11,7 @@ import Domain
 @MainActor
 final class DIContainer {
     static let shared = DIContainer()
+
     let sessionSyncRepository: SessionSyncRepository
 
     private init() {
