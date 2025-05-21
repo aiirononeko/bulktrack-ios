@@ -76,6 +76,21 @@ class WatchDataRelayService: NSObject, WCSessionDelegate {
         sendRecentWorkoutsToWatch()
     }
     
+//    func session(_ session: WCSession, didReceiveMessage message: [String : Any],
+//                 replyHandler: @escaping ([String : Any]) -> Void) {
+//        guard message["type"] as? String == "recentExercises" else { return }
+//        let limit = message["limit"] as? Int ?? 20
+//        Task {
+//            do {
+//                let list = try await apiService.fetchRecentExercises(limit: 20, offset: 20)
+//                let data = try JSONEncoder().encode(list)
+//                replyHandler(["payload": String(data: data, encoding: .utf8)!])
+//            } catch {
+//                replyHandler(["error": error.localizedDescription])
+//            }
+//        }
+//    }
+    
     func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
         print("iPhone received message: \(message)")
         if message["request"] as? String == "recentWorkouts" {

@@ -8,8 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		4F3185292DCFAD17005D398A /* Prod.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4F3185282DCFAD17005D398A /* Prod.xcconfig */; };
-		4FA481F92DCDAB6100EDCCB3 /* BulkTrack Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4FA481F92DCDAB6100EDCCB3 /* BulkTrackWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */; };
+		4FAF0FED2DDD9FDD001554C9 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF0FEC2DDD9FDD001554C9 /* Domain */; };
+		4FAF0FEF2DDD9FE8001554C9 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF0FEE2DDD9FE8001554C9 /* Domain */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,7 +59,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				4FA481F92DCDAB6100EDCCB3 /* BulkTrack Watch App.app in Embed Watch Content */,
+				4FA481F92DCDAB6100EDCCB3 /* BulkTrackWatch.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -69,13 +71,43 @@
 		4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BulkTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BulkTrack Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BulkTrackWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4F32FC9C2DDD85B40058F521 /* Exceptions for "Apps" folder in "BulkTrack" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				watchOS/App/Bootstrap/DIContainer.swift,
+				watchOS/App/Bootstrap/WatchAppInitializer.swift,
+				watchOS/App/BulkTrackApp.swift,
+				watchOS/Features/RecentExercises/View/RecentExercisesView.swift,
+				watchOS/Features/RecentExercises/ViewModel/RecentExercisesViewModel.swift,
+				watchOS/Resources/Assets.xcassets,
+				watchOS/Services/Connectivity/PayloadMapper.swift,
+				watchOS/Services/Connectivity/WCSessionRelay.swift,
+				watchOS/Services/HealthKitRepository.swift,
+			);
+			target = 4FA481D42DCDAB6000EDCCB3 /* BulkTrack */;
+		};
+		4F32FC9D2DDD85B40058F521 /* Exceptions for "Apps" folder in "BulkTrackWatch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				watchOS/App/Bootstrap/DIContainer.swift,
+				watchOS/App/Bootstrap/WatchAppInitializer.swift,
+				watchOS/App/BulkTrackApp.swift,
+				watchOS/Features/RecentExercises/View/RecentExercisesView.swift,
+				watchOS/Features/RecentExercises/ViewModel/RecentExercisesViewModel.swift,
+				watchOS/Resources/Assets.xcassets,
+				watchOS/Services/Connectivity/PayloadMapper.swift,
+				watchOS/Services/Connectivity/WCSessionRelay.swift,
+				watchOS/Services/HealthKitRepository.swift,
+			);
+			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */;
+		};
 		4FA482992DCDBE2700EDCCB3 /* Exceptions for "BulkTrack" folder in "BulkTrack" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -86,6 +118,15 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		4F32FC992DDD85930058F521 /* Apps */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4F32FC9C2DDD85B40058F521 /* Exceptions for "Apps" folder in "BulkTrack" target */,
+				4F32FC9D2DDD85B40058F521 /* Exceptions for "Apps" folder in "BulkTrackWatch" target */,
+			);
+			path = Apps;
+			sourceTree = "<group>";
+		};
 		4FA481D72DCDAB6000EDCCB3 /* BulkTrack */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -119,6 +160,11 @@
 			path = "BulkTrack Watch AppUITests";
 			sourceTree = "<group>";
 		};
+		4FAF0FE72DDD9EC5001554C9 /* Packages */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Packages;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +172,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FAF0FED2DDD9FDD001554C9 /* Domain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,6 +194,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FAF0FEF2DDD9FE8001554C9 /* Domain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -179,6 +227,8 @@
 				4FA481D62DCDAB6000EDCCB3 /* Products */,
 				4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */,
 				4F3185282DCFAD17005D398A /* Prod.xcconfig */,
+				4F32FC992DDD85930058F521 /* Apps */,
+				4FAF0FE72DDD9EC5001554C9 /* Packages */,
 			);
 			sourceTree = "<group>";
 		};
@@ -188,7 +238,7 @@
 				4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */,
 				4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */,
 				4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */,
-				4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */,
+				4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */,
 				4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */,
 				4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */,
 			);
@@ -213,10 +263,12 @@
 				4FA481FB2DCDAB6100EDCCB3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				4F32FC992DDD85930058F521 /* Apps */,
 				4FA481D72DCDAB6000EDCCB3 /* BulkTrack */,
 			);
 			name = BulkTrack;
 			packageProductDependencies = (
+				4FAF0FEC2DDD9FDD001554C9 /* Domain */,
 			);
 			productName = BulkTrack;
 			productReference = 4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */;
@@ -268,9 +320,9 @@
 			productReference = 4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */ = {
+		4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4FA4821B2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack Watch App" */;
+			buildConfigurationList = 4FA4821B2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrackWatch" */;
 			buildPhases = (
 				4FA481F42DCDAB6100EDCCB3 /* Sources */,
 				4FA481F52DCDAB6100EDCCB3 /* Frameworks */,
@@ -282,12 +334,14 @@
 			);
 			fileSystemSynchronizedGroups = (
 				4FA481FC2DCDAB6100EDCCB3 /* BulkTrack Watch App */,
+				4FAF0FE72DDD9EC5001554C9 /* Packages */,
 			);
-			name = "BulkTrack Watch App";
+			name = BulkTrackWatch;
 			packageProductDependencies = (
+				4FAF0FEE2DDD9FE8001554C9 /* Domain */,
 			);
 			productName = "BulkTrack Watch App";
-			productReference = 4FA481F82DCDAB6100EDCCB3 /* BulkTrack Watch App.app */;
+			productReference = 4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4FA482062DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */ = {
@@ -379,15 +433,18 @@
 			);
 			mainGroup = 4FA481CC2DCDAB6000EDCCB3;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4F32FCED2DDD9A720058F521 /* XCLocalSwiftPackageReference "Domain" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4FA481D62DCDAB6000EDCCB3 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				4FA481D42DCDAB6000EDCCB3 /* BulkTrack */,
+				4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */,
 				4FA481E12DCDAB6100EDCCB3 /* BulkTrackTests */,
 				4FA481EB2DCDAB6100EDCCB3 /* BulkTrackUITests */,
-				4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */,
 				4FA482062DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */,
 				4FA482102DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
 			);
@@ -499,17 +556,17 @@
 		};
 		4FA481FB2DCDAB6100EDCCB3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */;
+			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */;
 			targetProxy = 4FA481FA2DCDAB6100EDCCB3 /* PBXContainerItemProxy */;
 		};
 		4FA482092DCDAB6200EDCCB3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */;
+			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */;
 			targetProxy = 4FA482082DCDAB6200EDCCB3 /* PBXContainerItemProxy */;
 		};
 		4FA482132DCDAB6200EDCCB3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrack Watch App */;
+			target = 4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */;
 			targetProxy = 4FA482122DCDAB6200EDCCB3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -932,7 +989,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4FA4821B2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrack Watch App" */ = {
+		4FA4821B2DCDAB6200EDCCB3 /* Build configuration list for PBXNativeTarget "BulkTrackWatch" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4FA4821C2DCDAB6200EDCCB3 /* Debug */,
@@ -987,6 +1044,24 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		4F32FCED2DDD9A720058F521 /* XCLocalSwiftPackageReference "Domain" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Domain;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4FAF0FEC2DDD9FDD001554C9 /* Domain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Domain;
+		};
+		4FAF0FEE2DDD9FE8001554C9 /* Domain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Domain;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4FA481CD2DCDAB6000EDCCB3 /* Project object */;
 }
