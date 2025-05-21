@@ -12,12 +12,17 @@ import Data
 final class DIContainer {
     static let shared = DIContainer()
 
-    let sessionSyncRepository: SessionSyncRepository
+    // Renamed to reflect its role on iOS: handling WCSession events.
+    // The type is the concrete WCSessionRelay class for iOS.
+    let watchConnectivityHandler: WCSessionRelay
     let activationService: ActivationServiceProtocol
+    // TODO: Add other services like APIService here
+    // let exerciseRepository: ExerciseRepository
 
     private init() {
-        // 基本サービス
+        // Basic services
         self.activationService = ActivationService()
-        self.sessionSyncRepository = WCSessionRelay()
+        self.watchConnectivityHandler = WCSessionRelay()
+        // self.exerciseRepository = APIService() // Example for APIService
     }
 }

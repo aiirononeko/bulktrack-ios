@@ -9,6 +9,7 @@ import Foundation
 import Combine
 import WatchConnectivity
 import Domain
+import Data
 
 // MARK: - WatchConnectivity implementation
 
@@ -22,10 +23,14 @@ final class WCSessionRelay: NSObject, ObservableObject, SessionSyncRepository {
     }
 
     private let session: WCSession
+    private let jsonDecoder: JSONDecoder
 
     // MARK: – Lifecycle
     override init() {
         self.session = WCSession.default
+        self.jsonDecoder = JSONDecoder()
+        // Configure decoder for date-time strings
+        self.jsonDecoder.dateDecodingStrategy = .iso8601
         super.init()
     }
 
@@ -59,8 +64,9 @@ final class WCSessionRelay: NSObject, ObservableObject, SessionSyncRepository {
             return
         }
         do {
-            let dtoList = try JSONDecoder().decode([ExerciseEntity].self, from: data)
-            recentSubject.send(dtoList)
+            let dtoList = try jsonDecoder.decode([ExerciseDTO].self, from: data)
+            let entityList = PayloadMapper.mapToExerciseEntities(from: dtoList)
+            recentSubject.send(entityList)
         } catch {
             recentSubject.send(completion: .failure(error))
         }
