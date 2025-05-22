@@ -1,41 +1,57 @@
 import SwiftUI
-// import Domain // viewModelがDomainの型に依存していなければ不要になる可能性
 
 struct HomeView: View {
-    // AppInitializerへの参照は不要になる
+    @Environment(\.colorScheme) var colorScheme
+
     @StateObject private var viewModel: HomeViewModel
 
     init(viewModel: HomeViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
+    @State private var selectedTab = 0
+    private let tabTitles = ["今週のボリューム", "週次ボリュームの推移", "週次平均RMの推移"]
+
     var body: some View {
         NavigationView {
-            VStack {
-                Text("Hello, World!")
-                    .font(.largeTitle)
-                .padding()
-
-                if viewModel.isLoading {
-                    ProgressView("データを取得中...")
-                } else if let errorMessage = viewModel.errorMessage {
-                    Text("エラー: \(errorMessage)")
-                        .foregroundColor(.red)
-                } else if let dashboardData = viewModel.dashboardData {
-                    Text("今週の総ボリューム: \(dashboardData.thisWeek.totalVolume, specifier: "%.0f")")
+            VStack(spacing: 0) {
+                TabView(selection: $selectedTab) {
+                    ForEach(0..<tabTitles.count, id: \.self) { index in
+                        Text(tabTitles[index])
+                            .tag(index)
+                    }
                 }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // 標準のインジケータは非表示
+                .frame(height: UIScreen.main.bounds.height * 4 / 9)
+                .background(colorScheme == .dark ? Color.black : Color.white)
 
-                Button("ダッシュボードデータ取得") {
-                    viewModel.fetchDashboardData()
+                // 自作ドットインジケータ
+                DotIndicatorView(count: tabTitles.count, selectedIndex: $selectedTab)
+                    .padding(.vertical, 18) // インジケータの上下にパディング
+
+                // 残りのスペースに既存のコンテンツを表示
+                VStack {
+                    if viewModel.isLoading {
+                        ProgressView("データを取得中...")
+                    } else if let errorMessage = viewModel.errorMessage {
+                        Text("エラー: \(errorMessage)")
+                            .foregroundColor(.red)
+                    } else if let dashboardData = viewModel.dashboardData {
+                        Text("今週の総ボリューム: \(dashboardData.thisWeek.totalVolume, specifier: "%.0f")")
+                    }
+
+                    Button("ダッシュボードデータ取得") {
+                        viewModel.fetchDashboardData()
+                    }
+                    .padding()
                 }
-                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity) // 残りのスペースを埋める
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity) // VStackを画面全体に広げる
-            .background(Color(uiColor: .systemGray6).ignoresSafeArea()) // 背景色を設定し、セーフエリアを無視
+            .background((colorScheme == .dark ? .black : Color(uiColor: .systemGray6)).ignoresSafeArea())
             .navigationTitle("ホーム")
             .onAppear {
                 print("[HomeView] onAppear - データを自動取得します。")
-                viewModel.fetchDashboardData() // 画面表示時にデータを取得
+                viewModel.fetchDashboardData()
             }
         }
     }
@@ -43,5 +59,6 @@ struct HomeView: View {
 
 // Preview Provider (Optional, for development)
 struct HomeView_Previews: PreviewProvider {
-    static var previews: some View {}
+    static var previews: some View {
+    }
 }
