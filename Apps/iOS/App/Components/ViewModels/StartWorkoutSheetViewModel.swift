@@ -48,17 +48,16 @@ class StartWorkoutSheetViewModel: ObservableObject {
         }
     }
 
-    func loadAllExercises() {
+    func loadAllExercises(query: String? = nil) {
         isLoadingAll = true
         errorMessageAll = nil
 
         Task {
             do {
-                // query: nil で全件取得を意図
                 let exercises = try await fetchAllExercisesUseCase.execute(
                     limit: defaultLimit, // 必要に応じて調整
                     offset: defaultOffset, // 必要に応じて調整
-                    query: nil,
+                    query: query, // query を渡す
                     locale: "ja"
                 )
                 self.allExercises = exercises
