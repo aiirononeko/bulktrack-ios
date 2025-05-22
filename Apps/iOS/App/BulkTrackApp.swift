@@ -23,10 +23,12 @@ struct BulkTrackApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView(viewModel: diContainer.makeHomeViewModel()) // HomeView を表示
-            .task {
-                await appInitializer.initializeApp() // await を追加
-            }
+            HomeView(viewModel: diContainer.makeHomeViewModel())
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(uiColor: .systemGray5).ignoresSafeArea())
+                .task {
+                    appInitializer.initializeApp()
+                }
         }
     }
 
