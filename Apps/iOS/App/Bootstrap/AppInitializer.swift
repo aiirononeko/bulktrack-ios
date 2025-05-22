@@ -13,7 +13,7 @@ import Data
 @MainActor
 final class AppInitializer: ObservableObject {
 
-    @Published var userFacingError: UserFacingAuthError?
+    @Published var initializationState: ResultState<Void, AppError> = .idle
 
     private let activateDeviceUseCase: ActivateDeviceUseCaseProtocol
     private let deviceIdentifierService: DeviceIdentifierServiceProtocol
@@ -27,6 +27,11 @@ final class AppInitializer: ObservableObject {
 
     /// アプリ起動時の初期化
     func initializeApp() {
+        guard initializationState.isIdle || initializationState.failureError != nil else {
+            // Already loading or successfully initialized
+            return
+        }
+        initializationState = .loading
         Task {
             do {
                 // AuthManagerのisAuthenticatedを最初に確認し、既に認証済みなら何もしないか、
@@ -56,30 +61,43 @@ final class AppInitializer: ObservableObject {
                 if !authManager.isAuthenticated.value {
                     print("[AppInitializer] User not authenticated, attempting activation.")
                     _ = try await activateDeviceUseCase.execute(deviceId: deviceId)
-                    // ActivateDeviceUseCaseが成功すれば、AuthManagerのisAuthenticatedも更新されるはず
-                    // (APIService -> AuthRepository -> AuthManagerのトークン保存フロー経由で)
                 } else {
                     print("[AppInitializer] User already authenticated.")
                 }
                                 
                 if authManager.isAuthenticated.value { // 再度確認
                     print("[AppInitializer] App initialized. User is authenticated.")
+                    self.initializationState = .success(())
                 } else {
-                    // This case might occur if activation was expected but didn't result in an authenticated state,
-                    // though activateDeviceIfNeeded should throw if it fails to authenticate.
-                    print("[AppInitializer] App initialized. User is NOT authenticated.")
-                    // Potentially set a specific UserFacingAuthError if this state is unexpected after activation attempt.
+                    print("[AppInitializer] App initialized. User is NOT authenticated. This might be an issue if activation was expected.")
+                    // Consider if this state should be an error.
+                    // If activation was attempted and didn't make isAuthenticated true, it's a failure.
+                    // For now, if it reaches here without throwing, but not authenticated, treat as a specific auth error.
+                    self.initializationState = .failure(.authenticationError(.activationFailed("認証状態になりませんでした。")))
                 }
-            } catch let error as UserFacingAuthError {
+            } catch let error as AppError {
+                print("[AppInitializer] Initialization failed with AppError: \(error.localizedDescription)")
+                self.initializationState = .failure(error)
+            } catch let error as UserFacingAuthError { // Keep catching UserFacingAuthError for now, map to AppError
                 print("[AppInitializer] Initialization failed with UserFacingAuthError: \(error.localizedDescription)")
-                self.userFacingError = error
-            } catch {
+                // Map UserFacingAuthError to AppError
+                // This mapping logic might need to be more sophisticated
+                switch error {
+                case .activationFailed(let underlying):
+                    self.initializationState = .failure(.authenticationError(.activationFailed(underlying.localizedDescription)))
+                case .refreshTokenFailed(let underlying): // Should not happen here ideally
+                    self.initializationState = .failure(.authenticationError(.refreshTokenFailed(underlying.localizedDescription)))
+                default:
+                    self.initializationState = .failure(.unknownError(error.localizedDescription))
+                }
+            }
+            catch {
                 print("[AppInitializer] Initialization failed with an unexpected error: \(error.localizedDescription)")
-                self.userFacingError = .unknown(error)
+                self.initializationState = .failure(.unknownError(error.localizedDescription))
             }
         }
     }
 }
 
 // Note: The main App struct (e.g., BulkTrackApp.swift) should observe 
-// AppInitializer's userFacingError property and present an alert or other UI to the user.
+// AppInitializer's initializationState property and present an alert or other UI to the user.

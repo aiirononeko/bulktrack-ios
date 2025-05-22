@@ -12,9 +12,7 @@ import Combine
 @MainActor
 final class RecentExercisesViewModel: ObservableObject {
     // MARK: - Output
-    @Published var exercises: [ExerciseEntity] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    @Published var recentExercisesState: ResultState<[ExerciseEntity], AppError> = .idle
 
     // MARK: - Dependencies
     private let requestRecentExercisesUseCase: RequestRecentExercisesUseCaseProtocol
@@ -32,15 +30,13 @@ final class RecentExercisesViewModel: ObservableObject {
 
     /// iPhone へメッセージを送り「最近種目」を取得
     func fetchRecentExercises(limit: Int = 20) {
-        guard session.isReachable else { // isReachableの確認はViewModelの責務として残すか、UseCaseに含めるか検討
-            errorMessage = "iPhone と通信できません"
-            isLoading = false // エラー時はisLoadingをfalseに
+        guard session.isReachable else {
+            recentExercisesState = .failure(.networkError(.noConnection)) // Or a more specific WCSession error
             return
         }
-        errorMessage = nil
-        isLoading = true
+        recentExercisesState = .loading
         requestRecentExercisesUseCase.execute(limit: limit)
-        // 結果はPublisher経由で受け取るため、isLoadingをfalseにするタイミングはPublisher側
+        // 結果はPublisher経由で受け取る
     }
 
     // MARK: - private
@@ -48,13 +44,14 @@ final class RecentExercisesViewModel: ObservableObject {
         session.recentExercisesPublisher
             .receive(on: RunLoop.main)        // 念のためメインスレッドへ
             .sink { [weak self] completion in
-                self?.isLoading = false
                 if case let .failure(err) = completion {
-                    self?.errorMessage = err.localizedDescription
+                    // Map WCSession error to AppError
+                    // This mapping might need to be more specific based on actual errors from WCSessionRelay
+                    self?.recentExercisesState = .failure(.networkError(.underlying(err.localizedDescription)))
                 }
+                // isLoading is handled by setting state to .success or .failure
             } receiveValue: { [weak self] list in
-                self?.isLoading = false
-                self?.exercises = list
+                self?.recentExercisesState = .success(list)
             }
             .store(in: &cancellables)
     }
