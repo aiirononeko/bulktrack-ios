@@ -66,6 +66,12 @@ public protocol SecureStorageServiceProtocol {
     func deleteTokenInfo() throws
 }
 
+// MARK: - Dashboard
+
+public protocol DashboardRepository {
+    func fetchDashboard(span: String) async -> Result<DashboardEntity, AppError>
+}
+
 // MARK: - Authentication
 
 public protocol AuthManagerProtocol {

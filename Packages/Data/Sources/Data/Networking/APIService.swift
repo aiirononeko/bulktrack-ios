@@ -11,7 +11,7 @@ import Domain
 // However, if DTOs are directly exposed or used in signatures, it might be needed.
 // For now, let's assume DTOs are encapsulated. If ExerciseDTO is from Data package, it's fine.
 
-public final class APIService: ExerciseRepository, AuthRepository {
+public final class APIService: ExerciseRepository, AuthRepository, DashboardRepository {
 
     private let networkClient: NetworkClientProtocol
     private let secureStorageService: SecureStorageServiceProtocol
@@ -87,10 +87,31 @@ public final class APIService: ExerciseRepository, AuthRepository {
         query: String?,
         locale: String?
     ) async throws -> [ExerciseEntity] {
-        // TODO: Implement actual searchExercises API call
-        // For now, returning mock or a subset of recent as placeholder
-        print("searchExercises called with query: \(query ?? "nil"), locale: \(locale ?? "nil") - NOT IMPLEMENTED, returning recent as placeholder")
-        return try await recentExercises(limit: 5, offset: 0, locale: locale ?? "ja")
+    // TODO: Implement actual searchExercises API call
+    // For now, returning mock or a subset of recent as placeholder
+    print("searchExercises called with query: \(query ?? "nil"), locale: \(locale ?? "nil") - NOT IMPLEMENTED, returning recent as placeholder")
+    return try await recentExercises(limit: 5, offset: 0, locale: locale ?? "ja")
+  }
+}
+
+// MARK: - DashboardRepository Conformance
+extension APIService {
+    public func fetchDashboard(span: String) async -> Result<DashboardEntity, AppError> {
+        do {
+            let headers = try await getAuthenticatedHeaders()
+            let endpoint = DashboardEndpoint(span: span, customHeaders: headers)
+            let dto: DashboardResponse = try await networkClient.sendRequest(endpoint: endpoint, decoder: jsonDecoder) // Changed DashboardResponseDTO to DashboardResponse
+            let entity = try DashboardMapper.toEntity(dto: dto)
+            return .success(entity)
+        } catch let error as DashboardMapper.MappingError { // Catch specific mapping errors first
+            return .failure(.networkError(.decodingError("Dashboardデータのマッピングに失敗しました: \(error.localizedDescription)")))
+        } catch let error where String(describing: type(of: error)).contains("NetworkError") { // Heuristic for NetworkError if not directly visible
+            // This is a fallback. Ideally, NetworkClientProtocol would define its error type.
+            return .failure(.networkError(.underlying("ネットワークエラーが発生しました: \(error.localizedDescription)")))
+        }
+        catch { // Catch all other errors
+            return .failure(.unknownError("予期せぬエラーが発生しました: \(error.localizedDescription)"))
+        }
     }
 }
 
@@ -107,6 +128,20 @@ private struct RecentExercisesEndpoint: Endpoint {
         ["limit": String(limit), "offset": String(offset)]
     }
     var headers: [String : String]? { customHeaders }
+}
+
+private struct DashboardEndpoint: Endpoint {
+    let span: String
+    var customHeaders: [String: String]?
+
+    var path: String { "/dashboard" }
+    var method: HTTPMethod { .get }
+    var parameters: [String: Any]? {
+        ["span": span]
+    }
+    var headers: [String : String]? { customHeaders }
+    // Accept-Language ヘッダーは NetworkClient 側で共通処理されるか、
+    // もしくは個別に指定が必要な場合はここに追加
 }
 
 // MARK: - Auth Endpoints

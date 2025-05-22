@@ -18,9 +18,11 @@ final class DIContainer {
     let secureStorageService: SecureStorageServiceProtocol
     let authRepository: AuthRepository // Implemented by APIService
     let exerciseRepository: ExerciseRepository // Implemented by APIService
+    let dashboardRepository: DashboardRepository // Implemented by APIService
     let authManager: AuthManagerProtocol
     let activateDeviceUseCase: ActivateDeviceUseCaseProtocol
     let logoutUseCase: LogoutUseCaseProtocol
+    let fetchDashboardUseCase: FetchDashboardUseCase // Added
     let handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol // Added
     
     // let oldActivationService: ActivationServiceProtocol // Keep or remove based on its current use
@@ -62,6 +64,7 @@ final class DIContainer {
         )
         self.authRepository = apiServiceInstance
         self.exerciseRepository = apiServiceInstance
+        self.dashboardRepository = apiServiceInstance // Added: APIService conforms to DashboardRepository
 
         // 2. Create AuthManager, injecting the APIService instance as its AuthRepository.
         let authManagerInstance = AuthManager(authRepository: apiServiceInstance, deviceIdentifierService: self.deviceIdentifierService)
@@ -76,11 +79,17 @@ final class DIContainer {
         // 4. Initialize UseCases
         self.activateDeviceUseCase = ActivateDeviceUseCase(authRepository: apiServiceInstance)
         self.logoutUseCase = LogoutUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
+        self.fetchDashboardUseCase = DefaultFetchDashboardUseCase(repository: apiServiceInstance) // Added
         self.handleRecentExercisesRequestUseCase = HandleRecentExercisesRequestUseCase(exerciseRepository: apiServiceInstance) // Added
         
         // 5. Initialize WCSessionRelay with the correct ExerciseRepository (apiServiceInstance)
         self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
 
         // self.oldActivationService = ActivationService() // If still needed
+    }
+
+    // MARK: - ViewModel Factory Methods
+    func makeHomeViewModel() -> HomeViewModel {
+        HomeViewModel(fetchDashboardUseCase: fetchDashboardUseCase)
     }
 }

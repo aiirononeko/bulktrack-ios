@@ -6,26 +6,26 @@
 //
 
 import SwiftUI
+import Domain // DIContainer と HomeViewModel のために Domain をインポート
 
 @main
 struct BulkTrackApp: App {
-    // MARK: - State
-    @StateObject private var appInitializer = AppInitializer()
-//    @StateObject private var sessionManager = SessionManager()
-
-    @State private var selection: Tab = .home
-    @State private var showingAddWorkoutSheet = false
+    // MARK: - Dependencies
+    private let diContainer = DIContainer.shared
+    private let appInitializer: AppInitializer
 
     // MARK: - Life‑cycle
     init() {
+        // AppInitializer を DIContainer インスタンスを渡して初期化
+        self.appInitializer = AppInitializer(container: diContainer)
         configureAppearance()
     }
 
     var body: some Scene {
         WindowGroup {
-            Text("Hello, World!")
+            HomeView(viewModel: diContainer.makeHomeViewModel()) // HomeView を表示
             .task {
-                appInitializer.initializeApp()
+                await appInitializer.initializeApp() // await を追加
             }
         }
     }
@@ -35,12 +35,5 @@ struct BulkTrackApp: App {
         let pageControl = UIPageControl.appearance()
         pageControl.pageIndicatorTintColor = UIColor.secondarySystemBackground
         pageControl.currentPageIndicatorTintColor = UIColor.label
-    }
-}
-
-// MARK: - Tab Definition
-extension BulkTrackApp {
-    enum Tab: Int, CaseIterable {
-        case home, history, dummyCenter, menu, settings
     }
 }
