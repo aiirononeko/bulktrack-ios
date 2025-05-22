@@ -326,6 +326,15 @@ public final class AuthManager: ObservableObject, AuthManagerProtocol {
         // For logout, usually the refresh token is sent regardless of access token expiry.
         return currentTokenState.token.refreshToken
     }
+
+    public func loginWithNewToken(_ token: AuthToken, retrievedAt: Date = Date()) async throws {
+        print("[AuthManager] loginWithNewToken called.")
+
+        try authRepository.saveAuthToken(token) // This should save to Keychain via APIService -> SecureStorageService
+
+        self.updateTokenState(with: token, retrievedAt: retrievedAt)
+        print("[AuthManager] loginWithNewToken successful. isAuthenticated: \(self.isAuthenticated.value)")
+    }
 }
 
 public enum AuthError: LocalizedError, Equatable {

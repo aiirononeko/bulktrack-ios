@@ -11,22 +11,42 @@ import Domain // DIContainer と HomeViewModel のために Domain をインポ�
 @main
 struct BulkTrackApp: App {
     // MARK: - Dependencies
-    private let diContainer = DIContainer.shared
-    private let appInitializer: AppInitializer
+    @StateObject private var appInitializer = DIContainer.shared.appInitializer // DIContainer から取得し @StateObject で保持
 
     // MARK: - Life‑cycle
     init() {
-        // AppInitializer を DIContainer インスタンスを渡して初期化
-        self.appInitializer = AppInitializer(container: diContainer)
+        // AppInitializer の初期化は DIContainer で行われるため、ここでは不要
         configureAppearance()
     }
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .task {
-                    appInitializer.initializeApp()
+            switch appInitializer.initializationState {
+            case .idle, .loading:
+                ProgressView("アプリケーションを準備中...")
+                    .task { // ProgressView が表示されたときに一度だけ実行
+                        if appInitializer.initializationState.isIdle { // 既に実行中でなければ
+                           await appInitializer.initializeApp()
+                        }
+                    }
+            case .success:
+                MainTabView()
+                    .environmentObject(appInitializer) // MainTabView 以下で必要なら渡す
+            case .failure(let error):
+                VStack {
+                    Text("アプリケーションの起動に失敗しました")
+                        .font(.headline)
+                    Text(error.localizedDescription)
+                        .foregroundColor(.red)
+                        .padding()
+                    Button("再試行") {
+                        Task {
+                            await appInitializer.initializeApp()
+                        }
+                    }
+                    .padding()
                 }
+            }
         }
     }
 

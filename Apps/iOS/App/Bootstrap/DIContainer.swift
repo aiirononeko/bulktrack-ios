@@ -24,6 +24,7 @@ final class DIContainer {
     let logoutUseCase: LogoutUseCaseProtocol
     let fetchDashboardUseCase: FetchDashboardUseCase // Added
     let handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol // Added
+    let appInitializer: AppInitializer // AppInitializer を追加
     
     // let oldActivationService: ActivationServiceProtocol // Keep or remove based on its current use
 
@@ -77,13 +78,20 @@ final class DIContainer {
         }
 
         // 4. Initialize UseCases
-        self.activateDeviceUseCase = ActivateDeviceUseCase(authRepository: apiServiceInstance)
+        self.activateDeviceUseCase = ActivateDeviceUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance) // authManagerInstance を追加
         self.logoutUseCase = LogoutUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
         self.fetchDashboardUseCase = DefaultFetchDashboardUseCase(repository: apiServiceInstance) // Added
         self.handleRecentExercisesRequestUseCase = HandleRecentExercisesRequestUseCase(exerciseRepository: apiServiceInstance) // Added
         
         // 5. Initialize WCSessionRelay with the correct ExerciseRepository (apiServiceInstance)
         self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
+
+        // 6. Initialize AppInitializer (depends on other services like AuthManager, DeviceIdentifierService)
+        self.appInitializer = AppInitializer(
+            activateDeviceUseCase: self.activateDeviceUseCase, // activateDeviceUseCase を再度追加
+            deviceIdentifierService: self.deviceIdentifierService,
+            authManager: self.authManager
+        )
 
         // self.oldActivationService = ActivationService() // If still needed
     }

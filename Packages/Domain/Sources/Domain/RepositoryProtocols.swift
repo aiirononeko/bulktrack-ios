@@ -80,6 +80,7 @@ public protocol AuthManagerProtocol {
     func activateDeviceIfNeeded(deviceId: String) async throws
     func logout() async throws
     func getRefreshTokenForLogout() async throws -> String?
+    func loginWithNewToken(_ token: AuthToken, retrievedAt: Date) async throws
 }
 
 public protocol AuthRepository {

@@ -1,45 +1,101 @@
 import SwiftUI
 
-enum Tab {
+enum Tab: Hashable {
     case home
     case history
+    case addPlaceholder // ダミーのタブ
     case articles
     case settings
 }
 
 struct MainTabView: View {
-    @Environment(\.colorScheme) var colorScheme // 現在のカラースキームを取得
+    @Environment(\.colorScheme) var colorScheme
+
     @State private var selectedTab: Tab = .home
-    private let diContainer = DIContainer.shared // HomeViewModel のために DIContainer を利用
+    @State private var previousSelectedTab: Tab = .home // 直前のタブを保持
+    @State private var showingAddSheet = false // シート表示用の状態変数
+
+    private let diContainer = DIContainer.shared
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            HomeView(viewModel: diContainer.makeHomeViewModel())
-                .tabItem {
-                    Label("ホーム", systemImage: "house.fill")
-                }
-                .tag(Tab.home)
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selectedTab) {
+                HomeView(viewModel: diContainer.makeHomeViewModel())
+                    .tabItem {
+                        Label("ホーム", systemImage: "house.fill")
+                    }
+                    .tag(Tab.home)
 
-            HistoryView() // 後で作成
-                .tabItem {
-                    Label("トレーニング履歴", systemImage: "list.bullet.rectangle.fill")
-                }
-                .tag(Tab.history)
+                HistoryView()
+                    .tabItem {
+                        Label("履歴", systemImage: "list.bullet.rectangle.fill")
+                    }
+                    .tag(Tab.history)
 
-            ArticlesView() // 後で作成
-                .tabItem {
-                    Label("コラム", systemImage: "newspaper.fill")
-                }
-                .tag(Tab.articles)
+                // 中央のダミータブ
+                Text("") // 空のビュー
+                    .tabItem {
+                        Label("", systemImage: "")
+                    }
+                    .tag(Tab.addPlaceholder)
 
-            SettingsView() // 後で作成
-                .tabItem {
-                    Label("アプリ設定", systemImage: "gearshape.fill")
+
+                ArticlesView()
+                    .tabItem {
+                        Label("コラム", systemImage: "newspaper.fill")
+                    }
+                    .tag(Tab.articles)
+
+                SettingsView()
+                    .tabItem {
+                        Label("アプリ設定", systemImage: "gearshape.fill")
+                    }
+                    .tag(Tab.settings)
+            }
+            .onChange(of: selectedTab) { newTab in
+                if newTab == .addPlaceholder {
+                    // ダミータブが選択されたらシートを表示し、タブ選択を元に戻す
+                    showingAddSheet = true
+                    // DispatchQueue.main.async を使って、現在の更新サイクルが完了した後に selectedTab を変更
+                    DispatchQueue.main.async {
+                        selectedTab = previousSelectedTab
+                    }
+                } else {
+                    // 有効なタブが選択されたら previousSelectedTab を更新
+                    previousSelectedTab = newTab
                 }
-                .tag(Tab.settings)
+            }
+            .tint(colorScheme == .dark ? .white : .black)
+
+            // フローティングボタン
+            Button(action: {
+                showingAddSheet = true
+            }) {
+                Image(systemName: "plus.circle.fill")
+                    .resizable()
+                    .frame(width: 48, height: 48)
+                    .foregroundColor(colorScheme == .dark ? .white : .black) // アイコンの色
+                    .background(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.white) // ボタンの背景色
+                    .clipShape(Circle())
+                    .padding(.bottom, 4)
+            }
+
         }
-        .tint(colorScheme == .dark ? .white : .black) // ダークモード時は白、ライトモード時は黒に設定
-        .frame(maxWidth: .infinity, maxHeight: .infinity) // ビューを画面全体に広げる
-        .background(Color(uiColor: .systemGray6).ignoresSafeArea()) // セーフエリアを無視して背景色を設定
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGray6).ignoresSafeArea())
+        .sheet(isPresented: $showingAddSheet) {
+            // シートのコンテンツ
+            VStack {
+                Text("新しい記録を追加")
+                    .font(.headline)
+                    .padding()
+                Spacer()
+                Button("閉じる") {
+                    showingAddSheet = false
+                }
+                .padding()
+            }
+            .presentationDetents([.medium])
+        }
     }
 }
