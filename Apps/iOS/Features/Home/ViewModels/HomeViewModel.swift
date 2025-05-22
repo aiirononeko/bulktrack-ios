@@ -24,7 +24,7 @@ final class HomeViewModel: ObservableObject {
         dashboardData = nil
 
         Task {
-            let result = await fetchDashboardUseCase.execute(span: span)
+            let result = await fetchDashboardUseCase.execute(span: span, locale: "ja")
             isLoading = false
             switch result {
             case .success(let entity):

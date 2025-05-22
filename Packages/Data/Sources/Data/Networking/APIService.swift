@@ -74,10 +74,13 @@ public final class APIService: ExerciseRepository, AuthRepository, DashboardRepo
     public func recentExercises(
         limit: Int,
         offset: Int,
-        locale: String // locale is not used by /v1/me/exercises/recent endpoint in OpenAPI spec
+        locale: String? // locale is not used by /v1/me/exercises/recent endpoint in OpenAPI spec
     ) async throws -> [ExerciseEntity] {
         
-        let headers = try await getAuthenticatedHeaders() // Changed to try await
+        var headers = try await getAuthenticatedHeaders() // Changed to try await
+        if let lang = locale {
+            headers["Accept-Language"] = lang
+        }
         let endpoint = RecentExercisesEndpoint(limit: limit, offset: offset, customHeaders: headers)
         let dtos = try await networkClient.sendRequest(endpoint: endpoint, decoder: jsonDecoder) as [ExerciseDTO]
         return ExerciseMapper.toEntities(dtos: dtos)
@@ -105,9 +108,12 @@ public final class APIService: ExerciseRepository, AuthRepository, DashboardRepo
 
 // MARK: - DashboardRepository Conformance
 extension APIService {
-    public func fetchDashboard(span: String) async -> Result<DashboardEntity, AppError> {
+    public func fetchDashboard(span: String, locale: String?) async -> Result<DashboardEntity, AppError> {
         do {
-            let headers = try await getAuthenticatedHeaders()
+            var headers = try await getAuthenticatedHeaders()
+            if let lang = locale {
+                headers["Accept-Language"] = lang
+            }
             let endpoint = DashboardEndpoint(span: span, customHeaders: headers)
             let dto: DashboardResponse = try await networkClient.sendRequest(endpoint: endpoint, decoder: jsonDecoder) // Changed DashboardResponseDTO to DashboardResponse
             let entity = try DashboardMapper.toEntity(dto: dto)

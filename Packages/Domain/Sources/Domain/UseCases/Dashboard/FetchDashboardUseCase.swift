@@ -1,7 +1,7 @@
 import Foundation
 
 public protocol FetchDashboardUseCase {
-    func execute(span: String) async -> Result<DashboardEntity, AppError>
+    func execute(span: String, locale: String?) async -> Result<DashboardEntity, AppError>
 }
 
 public final class DefaultFetchDashboardUseCase: FetchDashboardUseCase {
@@ -11,7 +11,7 @@ public final class DefaultFetchDashboardUseCase: FetchDashboardUseCase {
         self.repository = repository
     }
 
-    public func execute(span: String) async -> Result<DashboardEntity, AppError> {
-        return await repository.fetchDashboard(span: span)
+    public func execute(span: String, locale: String?) async -> Result<DashboardEntity, AppError> {
+        return await repository.fetchDashboard(span: span, locale: locale)
     }
 }

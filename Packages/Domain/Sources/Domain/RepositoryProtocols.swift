@@ -27,7 +27,7 @@ public protocol ExerciseRepository {
     func searchExercises(query: String?, locale: String?) async throws -> [ExerciseEntity]
 
     /// 最近使った種目を取得
-    func recentExercises(limit: Int, offset: Int, locale: String) async throws -> [ExerciseEntity]
+    func recentExercises(limit: Int, offset: Int, locale: String?) async throws -> [ExerciseEntity]
 }
 
 // MARK: - Secure Storage for Tokens
@@ -69,7 +69,7 @@ public protocol SecureStorageServiceProtocol {
 // MARK: - Dashboard
 
 public protocol DashboardRepository {
-    func fetchDashboard(span: String) async -> Result<DashboardEntity, AppError>
+    func fetchDashboard(span: String, locale: String?) async -> Result<DashboardEntity, AppError>
 }
 
 // MARK: - Authentication

@@ -16,8 +16,6 @@ class StartWorkoutSheetViewModel: ObservableObject {
     private let fetchRecentExercisesUseCase: FetchRecentExercisesUseCaseProtocol
     private let fetchAllExercisesUseCase: FetchAllExercisesUseCaseProtocol // Added
 
-    // TODO: locale は適切に設定する必要がある
-    private let defaultLocale = "ja_JP" // 仮のロケール
     private let defaultLimit = 20 // 仮の取得件数
     private let defaultOffset = 0 // 仮のオフセット
 
@@ -38,7 +36,7 @@ class StartWorkoutSheetViewModel: ObservableObject {
                 let exercises = try await fetchRecentExercisesUseCase.execute(
                     limit: defaultLimit,
                     offset: defaultOffset,
-                    locale: defaultLocale
+                    locale: "ja"
                 )
                 self.recentExercises = exercises
             } catch let error as AppError {
@@ -61,7 +59,7 @@ class StartWorkoutSheetViewModel: ObservableObject {
                     limit: defaultLimit, // 必要に応じて調整
                     offset: defaultOffset, // 必要に応じて調整
                     query: nil,
-                    locale: defaultLocale
+                    locale: "ja"
                 )
                 self.allExercises = exercises
             } catch let error as AppError {
