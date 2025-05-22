@@ -36,14 +36,19 @@
 #### 3-1 最近行った種目 (高頻度)
 
 ```
-WatchView.onAppear ─▶ sendMessage("recentExercises")
-                └─▶ Show cached list (SwiftData)
-                              ▲
-iPhone didReceiveMessage ──┐  │
-    fetchRecentExercises() │  │
-    reply(recents DTO) ────┘  │
-                              │
-         save to SwiftData ◀──┘  (watch side)
+WatchView.onAppear ─▶ ViewModel.fetchRecentExercises() ─▶ RequestRecentExercisesUseCase.execute()
+                │                                      └─▶ SessionSyncRepo.requestRecentExercises("recentExercises")
+                │
+                └─▶ Show cached list (SwiftData / ViewModel.State.success)
+                                                                   ▲
+iPhone (WCSessionRelay.didReceiveMessage) ─────────────────────────┤
+    └─▶ HandleRecentExercisesRequestUseCase.execute() ────────────┤
+        └─▶ ExerciseRepository.recentExercises() ────────────────┤
+            └─▶ reply(recents DTO) ──────────────────────────────┘
+                                                                   │
+Watch (SessionSyncRepo.recentExercisesPublisher) ◀─────────────────┘
+    └─▶ ViewModel.recentExercisesState = .success(data)
+        └─▶ save to SwiftData (if needed for caching)
 ```
 
 *失敗時* は `WCSessionReachabilityDidChange` で再試行。

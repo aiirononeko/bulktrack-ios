@@ -9,6 +9,7 @@
 | **Shared UI (optional)** | `Packages/SharedUI` | import                | import                    |
 | **Presentation**         | –                   | `Apps/iOS/Features/*` | `Apps/watchOS/Features/*` |
 | **App Bootstrap**        | –                   | `Apps/iOS/App/`       | `Apps/watchOS/App/`       |
+| **Shared (Error Handling)** | `Packages/Domain`  | import                | import                    |
 
 `Apps/watchOS` は **single target**（WatchApp）方式。Extension フォルダは不要で、SwiftUI の `@main` が直接 WatchApp に入ります。
 
@@ -24,42 +25,52 @@ BulkTrack/
 ├── Packages/
 │   ├── Domain/                         ← 100 % Pure Swift
 │   │   ├── Sources/Domain/
-│   │   │   ├── Entities.swift          # Week, Dashboard, ExerciseEntity …
+│   │   │   ├── Entities/               # Business model objects
+│   │   │   │   ├── AuthToken.swift
+│   │   │   │   └── ExerciseEntity.swift # (e.g., Week, Dashboard ... are future additions)
 │   │   │   ├── RepositoryProtocols.swift
-│   │   │   └── UseCases/
-│   │   │       └── FetchDashboardUseCase.swift
+│   │   │   ├── UseCases/               # Application-specific business rules
+│   │   │   │   ├── Auth/
+│   │   │   │   │   ├── ActivateDeviceUseCase.swift
+│   │   │   │   │   └── LogoutUseCase.swift
+│   │   │   │   └── WatchSync/
+│   │   │   │       ├── RequestRecentExercisesUseCase.swift
+│   │   │   │       └── HandleRecentExercisesRequestUseCase.swift
+│   │   │   └── Shared/                 # Shared Domain Models (e.g. AppError, ResultState)
+│   │   │       ├── AppError.swift
+│   │   │       └── ResultState.swift
 │   │   └── Tests/DomainTests/
-│   │       └── DashboardEntityTests.swift
+│   │       └── DashboardEntityTests.swift # (Example test, actual tests may vary)
 │   │
 │   ├── Data/                           ← External data tech
 │   │   ├── Sources/Data/
 │   │   │   ├── Networking/
-│   │   │   │   ├── APIService.swift    # Conforms to *Repository* protocols
+│   │   │   │   ├── APIService.swift    # Conforms to *Repository* protocols (e.g., AuthRepository, ExerciseRepository)
 │   │   │   │   ├── NetworkClient.swift
-│   │   │   │   └── APIError.swift
+│   │   │   │   └── APIError.swift      # (Now potentially wrapped by Domain/Shared/AppError.swift)
 │   │   │   ├── Mapper/
-│   │   │   │   ├── DashboardMapper.swift
-│   │   │   │   └── ExerciseMapper.swift
-│   │   │   ├── DTO/
-│   │   │   │   ├── DashboardResponse.swift
+│   │   │   │   ├── ExerciseMapper.swift
+│   │   │   │   └── TokenMapper.swift   # (DashboardMapper etc. are future additions)
+│   │   │   ├── DTO/                    # Data Transfer Objects mirroring API schema
+│   │   │   │   ├── DashboardResponse.swift # (Actual DTOs based on API)
 │   │   │   │   ├── ExerciseDTO.swift
-│   │   │   │   └── WorkoutSetDTO.swift
-│   │   │   └── Models/
-│   │   │       └── TokenResponse.swift
+│   │   │   │   └── WorkoutSetDTO.swift # (And others like TokenResponseDTO etc.)
+│   │   │   ├── Storage/                # Secure storage (e.g. KeychainService)
+│   │   │   │   └── KeychainService.swift
 │   │   └── Tests/DataTests/
-│   │       └── APIServiceMockTests.swift
+│   │       └── DataTests.swift         # (Formerly APIServiceMockTests.swift)
 │   │
 │   └── SharedUI/                       ← Design-system level components
-│       ├── Sources/SharedUI/
-│       │   └── Charts/
+│       ├── Sources/SharedUI/           # (Currently not extensively used or may not exist)
+│       │   └── Charts/                 # (Example, actual components may vary)
 │       │       ├── VolumeTrendGraph.swift
 │       │       └── AverageRMTrendGraph.swift
 │       └── Tests/SharedUITests/
 │
-├── Shared/                             ← Build & infra
-│   └── Configuration/
-│       ├── Debug.xcconfig
-│       └── Release.xcconfig
+├── Config/                             ← Build & infra configurations (formerly Shared/Configuration)
+│   ├── Prod.xcconfig
+│   ├── Secrets.xcconfig
+│   └── Secrets.sample.xcconfig
 │
 ├── Apps/
 │   ├── iOS/
@@ -69,14 +80,10 @@ BulkTrack/
 │   │   │       ├── DIContainer.swift
 │   │   │       └── AppInitializer.swift
 │   │   │
-│   │   └── Features/
-│   │       ├── Home/
-│   │       │   ├── View/
-│   │       │   │   ├── HomeView.swift
-│   │       │   │   └── Components/
-│   │       │   │       └── BodyPartVolumeCard.swift
-│   │       │   └── ViewModels/
-│   │       │       └── HomeViewModel.swift
+│   │   └── Features/                   # Feature-sliced UI modules
+│   │       ├── Home/                   # (Example, actual features may vary, current code might be in BulkTrack/Presentation/)
+│   │       │   ├── View/HomeView.swift
+│   │       │   └── ViewModels/HomeViewModel.swift
 │   │       ├── Menu/ …                 # future features
 │   │       └── Settings/ …
 │   │
@@ -84,16 +91,19 @@ BulkTrack/
 │       ├── App/                        ← Single-target WatchApp
 │       │   ├── BulkTrackWatchApp.swift # @main (SwiftUI)
 │       │   └── Bootstrap/
-│       │       ├── DIContainer.swift   # same code, re-import
+│       │       ├── DIContainer.swift   # Manages dependencies for watchOS
 │       │       └── WatchAppInitializer.swift
 │       │
 │       ├── Features/
-│       │   ├── Dashboard/
+│       │   ├── RecentExercises/        # Example feature (PoC scope)
+│       │   │   ├── View/RecentExercisesView.swift
+│       │   │   └── ViewModel/RecentExercisesViewModel.swift
+│       │   ├── Dashboard/              # (Future feature)
 │       │   │   ├── DashboardView.swift
 │       │   │   └── DashboardViewModel.swift
-│       │   ├── QuickLog/
+│       │   ├── QuickLog/               # (Future feature)
 │       │   │   └── QuickLogView.swift
-│       │   └── Settings/
+│       │   └── Settings/               # (Future feature)
 │       │       └── WatchSettingsView.swift
 │       │
 │       ├── Services/
@@ -117,41 +127,41 @@ BulkTrack/
 
 ### 2.1 Domain (Packages/Domain)
 
-| Folder                      | 内容                                                                                        |
-| --------------------------- | ----------------------------------------------------------------------------------------- |
-| `Entities.swift`            | **純粋モデル**: `Week`, `Dashboard`, `BodyPartVolume`, `ExerciseEntity`, `WorkoutSetEntity` …  |
-| `RepositoryProtocols.swift` | `DashboardRepository`, `ExerciseRepository`, `WorkoutSetRepository`, `HealthRepository` … |
-| `UseCases/`                 | 1 UseCase = 1 file (`FetchDashboardUseCase`, `CreateWorkoutSetUseCase` …)                 |
-| **依存禁止**                    | UIKit / SwiftUI / CoreData / URLSession など一切 import しない                                   |
+| Folder                      | 内容                                                                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `Entities/`                 | **純粋モデル**: `AuthToken.swift`, `ExerciseEntity.swift`。 (例: `Week`, `Dashboard` は将来追加)                                       |
+| `RepositoryProtocols.swift` | `AuthRepository`, `ExerciseRepository`, `SessionSyncRepository`, `SecureStorageServiceProtocol` など。 (例: `DashboardRepository` は将来追加) |
+| `UseCases/`                 | 各UseCaseは機能単位でサブディレクトリに配置 (例: `Auth/ActivateDeviceUseCase.swift`, `WatchSync/RequestRecentExercisesUseCase.swift`) |
+| `Shared/`                   | `AppError.swift`, `ResultState.swift` など、Domainレイヤ内で共有されるモデルやユーティリティ。                                                |
+| **依存禁止**                    | UIKit / SwiftUI / CoreData / URLSession など一切 import しない                                                                        |
 
 ### 2.2 Data (Packages/Data)
 
-| Sub-folder                   | 記述内容                                                                                  |
-| ---------------------------- | ------------------------------------------------------------------------------------- |
-| `Networking/`                | `APIService.swift` (facade + Repository実装) / `NetworkClient.swift` / `APIError.swift` |
-| `DTO/`                       | Codable structs mirroring OpenAPI schema (`DashboardResponse`, `ExerciseDTO`)         |
-| `Mapper/`                    | `DashboardMapper`: DTO → Domain.Entity / `ExerciseMapper` など                          |
-| `Models/TokenResponse.swift` | refresh-token用 model                                                                  |
-| **依存**                       | `import Domain`, `import Foundation`, **UI framework禁止**                              |
+| Sub-folder    | 記述内容                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------- |
+| `Networking/` | `APIService.swift` (Repository実装), `NetworkClient.swift`, `APIError.swift` (Domainの`AppError`にラップされる想定) |
+| `DTO/`        | APIスキーマに対応するCodable struct (例: `ExerciseDTO.swift`, `TokenResponseDTO.swift`)                         |
+| `Mapper/`     | DTO ⇔ Domain Entity変換 (例: `ExerciseMapper.swift`, `TokenMapper.swift`)                                     |
+| `Storage/`    | `KeychainService.swift` (SecureStorageServiceProtocolの実装)                                               |
+| **依存**        | `import Domain`, `import Foundation`。**UIフレームワーク禁止**                                                      |
 
 ### 2.3 SharedUI (Packages/SharedUI) ≪任意≫
 
-Reusable View components (Charts, Buttons, Modifiers)
-Fully SwiftUI, no business logic.
+再利用可能なViewコンポーネント (Charts, Buttons, Modifiersなど)。
+SwiftUIのみで構成され、ビジネスロジックは含まない。現状は積極的には利用されていない可能性あり。
 
 ### 2.4 Presentation (iOS / watchOS Features)
 
-* **View** – SwiftUI only.
-* **ViewModel** – `@MainActor`, depends on **Domain Repository protocols** *only* (`DashboardRepository`).
-  Conversion Domain → UI happens here (e.g. `BodyPartVolumeViewModel`).
+* **View** – SwiftUI のみ。
+* **ViewModel** – `@MainActor`。**Domain UseCaseプロトコル**に依存 (推奨)。シンプルなケースではRepositoryプロトコルに直接依存することもある。UI表示のためのデータ変換や状態管理を行う。
 
 ### 2.5 Bootstrap (App layer)
 
-| ファイル                                             | 役割                                                                                  |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `BulkTrackApp.swift` / `BulkTrackWatchApp.swift` | `@main`, owns `WindowGroup` / `.task` startup                                       |
-| `DIContainer.swift`                              | `Resolver`-like singleton.<br>`register(DashboardRepository.self) { APIService() }` |
-| `AppInitializer.swift`                           | activation check, token refresh pre-flight                                          |
+| ファイル                                             | 役割                                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `BulkTrackApp.swift` / `BulkTrackWatchApp.swift` | `@main` struct。`WindowGroup`のオーナーであり、アプリ起動時の処理 (`.task` modifierなど) を持つ。                 |
+| `DIContainer.swift`                              | シングルトンとして依存性を管理・提供。各プラットフォームで必要なインスタンスを生成・保持。                                  |
+| `AppInitializer.swift` / `WatchAppInitializer.swift` | アプリ起動時の初期化処理（デバイス認証、WCSessionアクティベートなど）を実行。`DIContainer`から必要な依存を取得。 |
 
 ---
 
