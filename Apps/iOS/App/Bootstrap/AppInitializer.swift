@@ -31,6 +31,14 @@ final class AppInitializer: ObservableObject {
 
     /// アプリ起動時の初期化
     func initializeApp() {
+        // TabBarの外観をシステム標準に設定
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        UITabBar.appearance().standardAppearance = appearance
+        if #available(iOS 15.0, *) {
+            UITabBar.appearance().scrollEdgeAppearance = appearance
+        }
+
         guard initializationState.isIdle || initializationState.failureError != nil else {
             // Already loading or successfully initialized
             return

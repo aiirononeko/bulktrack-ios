@@ -22,7 +22,6 @@ struct HomeView: View {
                     Text("エラー: \(errorMessage)")
                         .foregroundColor(.red)
                 } else if let dashboardData = viewModel.dashboardData {
-                    // dashboardDataの型がDomain.DashboardEntityであればDomainのimportは必要
                     Text("今週の総ボリューム: \(dashboardData.thisWeek.totalVolume, specifier: "%.0f")")
                 }
 
@@ -31,9 +30,10 @@ struct HomeView: View {
                 }
                 .padding()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity) // VStackを画面全体に広げる
+            .background(Color(uiColor: .systemGray6).ignoresSafeArea()) // 背景色を設定し、セーフエリアを無視
             .navigationTitle("ホーム")
             .onAppear {
-                // このビューが表示される時点でアプリの初期化は完了している前提
                 print("[HomeView] onAppear - データを自動取得します。")
                 viewModel.fetchDashboardData() // 画面表示時にデータを取得
             }

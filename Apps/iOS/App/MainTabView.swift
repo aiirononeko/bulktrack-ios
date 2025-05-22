@@ -73,16 +73,15 @@ struct MainTabView: View {
             }) {
                 Image(systemName: "plus.circle.fill")
                     .resizable()
-                    .frame(width: 48, height: 48)
+                    .frame(width: 44, height: 44)
                     .foregroundColor(colorScheme == .dark ? .white : .black) // アイコンの色
-                    .background(colorScheme == .dark ? Color.gray.opacity(0.3) : Color.white) // ボタンの背景色
+                    .background(colorScheme == .dark ? Color.black : Color.white) // ボタンの背景色
                     .clipShape(Circle())
-                    .padding(.bottom, 4)
+                    .padding(.bottom, 1)
             }
 
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(uiColor: .systemGray6).ignoresSafeArea())
         .sheet(isPresented: $showingAddSheet) {
             // シートのコンテンツ
             VStack {
