@@ -24,6 +24,8 @@ final class DIContainer {
     let logoutUseCase: LogoutUseCaseProtocol
     let fetchDashboardUseCase: FetchDashboardUseCase // Added
     let handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol // Added
+    let fetchRecentExercisesUseCase: FetchRecentExercisesUseCaseProtocol // New UseCase
+    let fetchAllExercisesUseCase: FetchAllExercisesUseCaseProtocol // New UseCase for all exercises
     let appInitializer: AppInitializer // AppInitializer を追加
     
     // let oldActivationService: ActivationServiceProtocol // Keep or remove based on its current use
@@ -82,6 +84,8 @@ final class DIContainer {
         self.logoutUseCase = LogoutUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
         self.fetchDashboardUseCase = DefaultFetchDashboardUseCase(repository: apiServiceInstance) // Added
         self.handleRecentExercisesRequestUseCase = HandleRecentExercisesRequestUseCase(exerciseRepository: apiServiceInstance) // Added
+        self.fetchRecentExercisesUseCase = FetchRecentExercisesUseCase(exerciseRepository: apiServiceInstance) // Initialize new UseCase
+        self.fetchAllExercisesUseCase = FetchAllExercisesUseCase(exerciseRepository: apiServiceInstance) // Initialize new UseCase for all exercises
         
         // 5. Initialize WCSessionRelay with the correct ExerciseRepository (apiServiceInstance)
         self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
@@ -99,5 +103,12 @@ final class DIContainer {
     // MARK: - ViewModel Factory Methods
     func makeHomeViewModel() -> HomeViewModel {
         HomeViewModel(fetchDashboardUseCase: fetchDashboardUseCase)
+    }
+
+    func makeStartWorkoutSheetViewModel() -> StartWorkoutSheetViewModel {
+        StartWorkoutSheetViewModel(
+            fetchRecentExercisesUseCase: fetchRecentExercisesUseCase,
+            fetchAllExercisesUseCase: fetchAllExercisesUseCase // Pass new UseCase
+        )
     }
 }

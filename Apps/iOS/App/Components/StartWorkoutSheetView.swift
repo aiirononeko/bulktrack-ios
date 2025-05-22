@@ -1,7 +1,9 @@
 import SwiftUI
+import Domain // ExerciseEntity を使用するため
 
 struct StartWorkoutSheetView: View {
     @Environment(\.dismiss) var dismiss
+    @StateObject var viewModel: StartWorkoutSheetViewModel // ViewModel を StateObject として保持
     @State private var selectedTab: Int = 0
 
     var body: some View {
@@ -14,14 +16,50 @@ struct StartWorkoutSheetView: View {
                 .pickerStyle(SegmentedPickerStyle())
                 .padding()
 
-                // TODO: 各タブに対応するコンテンツをここに表示
-                if selectedTab == 0 {
-                    Text("最近行った種目のリスト") // Placeholder
-                } else {
-                    Text("すべての種目のリスト") // Placeholder
+                if selectedTab == 0 { // 最近行った種目
+                    if viewModel.isLoadingRecent {
+                        ProgressView()
+                    } else if let errorMessage = viewModel.errorMessageRecent {
+                        Text("エラー: \(errorMessage)")
+                            .foregroundColor(.red)
+                    } else if viewModel.recentExercises.isEmpty {
+                        Text("最近行った種目はありません。")
+                    } else {
+                        List(viewModel.recentExercises) { exercise in
+                            Text(exercise.name)
+                        }
+                    }
+                } else { // すべての種目
+                    if viewModel.isLoadingAll {
+                        ProgressView()
+                    } else if let errorMessage = viewModel.errorMessageAll {
+                        Text("エラー: \(errorMessage)")
+                            .foregroundColor(.red)
+                    } else if viewModel.allExercises.isEmpty {
+                        Text("種目がありません。")
+                    } else {
+                        List(viewModel.allExercises) { exercise in
+                            Text(exercise.name)
+                        }
+                    }
                 }
 
                 Spacer()
+            }
+            .onAppear {
+                // 初期表示時に選択されているタブのデータをロード
+                if selectedTab == 0 {
+                    viewModel.loadRecentExercises()
+                } else {
+                    viewModel.loadAllExercises()
+                }
+            }
+            .onChange(of: selectedTab) { newTab in
+                if newTab == 0 {
+                    viewModel.loadRecentExercises()
+                } else {
+                    viewModel.loadAllExercises()
+                }
             }
             .navigationTitle("トレーニングを開始する")
             .navigationBarTitleDisplayMode(.inline)
@@ -35,8 +73,4 @@ struct StartWorkoutSheetView: View {
             }
         }
     }
-}
-
-#Preview {
-    StartWorkoutSheetView()
 }

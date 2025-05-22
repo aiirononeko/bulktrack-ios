@@ -87,10 +87,19 @@ public final class APIService: ExerciseRepository, AuthRepository, DashboardRepo
         query: String?,
         locale: String?
     ) async throws -> [ExerciseEntity] {
-    // TODO: Implement actual searchExercises API call
-    // For now, returning mock or a subset of recent as placeholder
-    print("searchExercises called with query: \(query ?? "nil"), locale: \(locale ?? "nil") - NOT IMPLEMENTED, returning recent as placeholder")
-    return try await recentExercises(limit: 5, offset: 0, locale: locale ?? "ja")
+    
+    var effectiveHeaders = try await getAuthenticatedHeaders()
+    if let lang = locale {
+        effectiveHeaders["Accept-Language"] = lang
+    }
+
+    // OpenAPI 仕様に基づき、limit と offset を追加。デフォルト値を設定。
+    // UseCase 側でこれらの値を指定できるようにするべきだが、一旦固定値またはデフォルトを使用。
+    // ここでは limit/offset を RepositoryProtocol に追加していないため、一旦固定値で対応。
+    // 将来的には Protocol と UseCase も修正して limit/offset を渡せるようにする。
+    let endpoint = SearchExercisesEndpoint(query: query, limit: 200, offset: 0, customHeaders: effectiveHeaders) // limit を大きめに設定して全件取得を試みる
+    let dtos = try await networkClient.sendRequest(endpoint: endpoint, decoder: jsonDecoder) as [ExerciseDTO]
+    return ExerciseMapper.toEntities(dtos: dtos)
   }
 }
 
@@ -142,6 +151,27 @@ private struct DashboardEndpoint: Endpoint {
     var headers: [String : String]? { customHeaders }
     // Accept-Language ヘッダーは NetworkClient 側で共通処理されるか、
     // もしくは個別に指定が必要な場合はここに追加
+}
+
+private struct SearchExercisesEndpoint: Endpoint {
+    let query: String?
+    let limit: Int
+    let offset: Int
+    var customHeaders: [String: String]?
+
+    var path: String { "/exercises" } // Corrected path
+    var method: HTTPMethod { .get }
+    var parameters: [String : Any]? {
+        var params: [String: Any] = [
+            "limit": String(limit),
+            "offset": String(offset)
+        ]
+        if let q = query, !q.isEmpty {
+            params["q"] = q
+        }
+        return params
+    }
+    var headers: [String : String]? { customHeaders }
 }
 
 // MARK: - Auth Endpoints

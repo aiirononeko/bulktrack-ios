@@ -83,7 +83,7 @@ struct MainTabView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showingAddSheet) {
-            StartWorkoutSheetView()
+            StartWorkoutSheetView(viewModel: diContainer.makeStartWorkoutSheetViewModel())
                 .presentationDetents([.medium])
         }
         .onAppear {

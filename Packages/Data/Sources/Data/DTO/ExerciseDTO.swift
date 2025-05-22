@@ -10,7 +10,7 @@ import Foundation
 public struct ExerciseDTO: Codable {
     public let id: UUID
     public let name: String
-    public let isOfficial: Bool
+    public let isOfficial: Bool?
     public let lastUsedAt: Date?
     public let useCount: Int?
 
@@ -22,7 +22,7 @@ public struct ExerciseDTO: Codable {
         case useCount
     }
 
-    public init(id: UUID, name: String, isOfficial: Bool, lastUsedAt: Date?, useCount: Int?) {
+    public init(id: UUID, name: String, isOfficial: Bool?, lastUsedAt: Date?, useCount: Int?) {
         self.id = id
         self.name = name
         self.isOfficial = isOfficial

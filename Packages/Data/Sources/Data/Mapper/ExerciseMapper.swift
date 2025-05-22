@@ -46,7 +46,7 @@ public enum ExerciseMapper {
         return ExerciseDTO(
             id: entity.id,
             name: entity.name,
-            isOfficial: entity.isOfficial ?? false, // Default if nil, as DTO is non-optional Bool
+            isOfficial: entity.isOfficial,
             lastUsedAt: lastUsedAtDate,
             useCount: entity.useCount
         )
