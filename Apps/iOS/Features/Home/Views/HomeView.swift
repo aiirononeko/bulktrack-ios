@@ -16,10 +16,12 @@ struct HomeView: View {
         NavigationView {
             VStack(spacing: 0) {
                 TabView(selection: $selectedTab) {
-                    ForEach(0..<tabTitles.count, id: \.self) { index in
-                        Text(tabTitles[index])
-                            .tag(index)
-                    }
+                    CurrentWeekVolumeView(viewModel: viewModel)
+                        .tag(0)
+                    WeeklyVolumeTrendView() // ViewModelを渡す必要があれば後で修正
+                        .tag(1)
+                    WeeklyAverageRMView() // ViewModelを渡す必要があれば後で修正
+                        .tag(2)
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // 標準のインジケータは非表示
                 .frame(height: UIScreen.main.bounds.height * 4 / 9)
