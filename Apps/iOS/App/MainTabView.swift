@@ -83,18 +83,8 @@ struct MainTabView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showingAddSheet) {
-            // シートのコンテンツ
-            VStack {
-                Text("新しい記録を追加")
-                    .font(.headline)
-                    .padding()
-                Spacer()
-                Button("閉じる") {
-                    showingAddSheet = false
-                }
-                .padding()
-            }
-            .presentationDetents([.medium])
+            StartWorkoutSheetView()
+                .presentationDetents([.medium])
         }
         .onAppear {
             updateTabBarAppearance(colorScheme: colorScheme)
