@@ -78,7 +78,6 @@ struct CurrentWeekVolumeView: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .padding(.bottom, 20)
 
             } else if let errorMessage = viewModel.errorMessage {
                 Text("エラー: \(errorMessage)")

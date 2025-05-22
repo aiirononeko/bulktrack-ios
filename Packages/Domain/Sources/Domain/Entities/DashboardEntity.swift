@@ -7,6 +7,27 @@ public struct DashboardEntity: Equatable {
     public let muscleGroups: [MuscleGroupSeriesEntity]
     public let metrics: [MetricSeriesEntity]
 
+    // Helper struct for HomeView
+    public struct CurrentWeekMuscleGroupVolume: Identifiable {
+        public var id: Int { muscleGroupId }
+        let muscleGroupId: Int
+        public let muscleGroupName: String
+        public let totalVolume: Double
+    }
+
+    public var currentWeekMuscleGroupVolumes: [CurrentWeekMuscleGroupVolume] {
+        // muscleGroups にはAPIから取得した全ての部位グループが含まれていると仮定
+        // 各部位グループについて、今週のボリュームを計算する。データがなければ0とする。
+        muscleGroups.map { groupSeries in
+            let currentWeekVolume = groupSeries.points.first { $0.weekStart == thisWeek.weekStart }?.totalVolume ?? 0.0
+            return CurrentWeekMuscleGroupVolume(
+                muscleGroupId: groupSeries.muscleGroupId,
+                muscleGroupName: groupSeries.groupName,
+                totalVolume: currentWeekVolume
+            )
+        }
+    }
+
     public init(
         thisWeek: WeekPointEntity,
         lastWeek: WeekPointEntity,

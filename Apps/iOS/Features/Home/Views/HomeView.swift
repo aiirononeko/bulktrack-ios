@@ -29,25 +29,32 @@ struct HomeView: View {
 
                 // 自作ドットインジケータ
                 DotIndicatorView(count: tabTitles.count, selectedIndex: $selectedTab)
-                    .padding(.vertical, 18) // インジケータの上下にパディング
+                    .padding(.vertical, 18)
 
-                // 残りのスペースに既存のコンテンツを表示
-                VStack {
+                VStack(spacing: 0) {
                     if viewModel.isLoading {
                         ProgressView("データを取得中...")
                     } else if let errorMessage = viewModel.errorMessage {
                         Text("エラー: \(errorMessage)")
                             .foregroundColor(.red)
                     } else if let dashboardData = viewModel.dashboardData {
-                        Text("今週の総ボリューム: \(dashboardData.thisWeek.totalVolume, specifier: "%.0f")")
-                    }
+                        Text("部位別ボリューム")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
 
-                    Button("ダッシュボードデータ取得") {
-                        viewModel.fetchDashboardData()
+                        // 部位別ボリュームカード
+                        let currentWeekMuscleVolumes = dashboardData.currentWeekMuscleGroupVolumes
+                        VStack(spacing: 16) {
+                            ForEach(currentWeekMuscleVolumes) { volumeData in
+                                MuscleGroupVolumeView(muscleGroupName: volumeData.muscleGroupName, totalVolume: volumeData.totalVolume)
+                            }
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity) // 残りのスペースを埋める
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             .background((colorScheme == .dark ? .black : Color(uiColor: .systemGray6)).ignoresSafeArea())
             .navigationTitle("ホーム")
