@@ -18,9 +18,9 @@ struct HomeView: View {
                 TabView(selection: $selectedTab) {
                     CurrentWeekVolumeView(viewModel: viewModel)
                         .tag(0)
-                    WeeklyVolumeTrendView() // ViewModelを渡す必要があれば後で修正
+                    WeeklyVolumeTrendView(viewModel: viewModel)
                         .tag(1)
-                    WeeklyAverageRMView() // ViewModelを渡す必要があれば後で修正
+                    WeeklyAverageRMView(viewModel: viewModel)
                         .tag(2)
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // 標準のインジケータは非表示
