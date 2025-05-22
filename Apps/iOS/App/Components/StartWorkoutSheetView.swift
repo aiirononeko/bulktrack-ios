@@ -14,35 +14,27 @@ struct StartWorkoutSheetView: View {
                     Text("すべての種目").tag(1)
                 }
                 .pickerStyle(SegmentedPickerStyle())
-                .padding()
+                .padding(.top)
+                .padding(.horizontal)
 
-                if selectedTab == 0 { // 最近行った種目
-                    if viewModel.isLoadingRecent {
-                        ProgressView()
-                    } else if let errorMessage = viewModel.errorMessageRecent {
-                        Text("エラー: \(errorMessage)")
-                            .foregroundColor(.red)
-                    } else if viewModel.recentExercises.isEmpty {
-                        Text("最近行った種目はありません。")
-                    } else {
-                        List(viewModel.recentExercises) { exercise in
-                            Text(exercise.name)
-                        }
-                    }
-                } else { // すべての種目
-                    if viewModel.isLoadingAll {
-                        ProgressView()
-                    } else if let errorMessage = viewModel.errorMessageAll {
-                        Text("エラー: \(errorMessage)")
-                            .foregroundColor(.red)
-                    } else if viewModel.allExercises.isEmpty {
-                        Text("種目がありません。")
-                    } else {
-                        List(viewModel.allExercises) { exercise in
-                            Text(exercise.name)
-                        }
-                    }
+                TabView(selection: $selectedTab) {
+                    exerciseListView(
+                        exercises: viewModel.recentExercises,
+                        isLoading: viewModel.isLoadingRecent,
+                        errorMessage: viewModel.errorMessageRecent,
+                        emptyMessage: "最近行った種目はありません。"
+                    )
+                    .tag(0)
+
+                    exerciseListView(
+                        exercises: viewModel.allExercises,
+                        isLoading: viewModel.isLoadingAll,
+                        errorMessage: viewModel.errorMessageAll,
+                        emptyMessage: "種目がありません。"
+                    )
+                    .tag(1)
                 }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // インジケーターを非表示にし、スワイプで切り替え可能に
 
                 Spacer()
             }
@@ -70,6 +62,40 @@ struct StartWorkoutSheetView: View {
                     }
                     .foregroundColor(.primary)
                 }
+            }
+        }
+    }
+
+    // プライベートメソッドとして種目リストビューを定義
+    @ViewBuilder
+    private func exerciseListView(
+        exercises: [ExerciseEntity],
+        isLoading: Bool,
+        errorMessage: String?,
+        emptyMessage: String
+    ) -> some View {
+        if isLoading {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let errorMessage = errorMessage {
+            Text("エラー: \(errorMessage)")
+                .foregroundColor(.red)
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if exercises.isEmpty {
+            Text(emptyMessage)
+                .font(.callout)
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 10) { // カード間のスペース
+                    ForEach(exercises) { exercise in
+                        ExerciseCardView(exercise: exercise)
+                    }
+                }
+                .padding(.horizontal) // 左右のパディング
+                .padding(.top) // 上部のパディング
             }
         }
     }
