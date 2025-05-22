@@ -8,9 +8,10 @@ struct HomeView: View {
     }
 
     var body: some View {
-        VStack {
-            Text("Hello, World!")
-                .font(.largeTitle)
+        NavigationView {
+            VStack {
+                Text("Hello, World!")
+                    .font(.largeTitle)
                 .padding()
 
             if viewModel.isLoading {
@@ -26,10 +27,12 @@ struct HomeView: View {
                 viewModel.fetchDashboardData()
             }
             .padding()
-        }
-        .onAppear {
-            print("[HomeView] onAppear - データを自動取得します。")
-            viewModel.fetchDashboardData() // 画面表示時にデータを取得
+            }
+            .navigationTitle("ホーム")
+            .onAppear {
+                print("[HomeView] onAppear - データを自動取得します。")
+                viewModel.fetchDashboardData() // 画面表示時にデータを取得
+            }
         }
     }
 }

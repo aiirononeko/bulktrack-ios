@@ -23,9 +23,7 @@ struct BulkTrackApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView(viewModel: diContainer.makeHomeViewModel())
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(uiColor: .systemGray5).ignoresSafeArea())
+            MainTabView()
                 .task {
                     appInitializer.initializeApp()
                 }
