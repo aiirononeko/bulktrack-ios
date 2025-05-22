@@ -19,11 +19,15 @@ final class DIContainer {
     let authRepository: AuthRepository // Implemented by APIService
     let exerciseRepository: ExerciseRepository // Implemented by APIService
     let authManager: AuthManagerProtocol
+    let activateDeviceUseCase: ActivateDeviceUseCaseProtocol
+    let logoutUseCase: LogoutUseCaseProtocol
+    let handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol // Added
     
     // let oldActivationService: ActivationServiceProtocol // Keep or remove based on its current use
 
     private init() {
-        self.watchConnectivityHandler = WCSessionRelay()
+        print("[DIContainer] Initializing...") // Added log
+        // self.watchConnectivityHandler = WCSessionRelay() // Old initialization
         self.deviceIdentifierService = DeviceIdentifierService()
         self.secureStorageService = KeychainService()
 
@@ -47,33 +51,35 @@ final class DIContainer {
         // This requires APIService's accessTokenProvider to be a `var`.
         // For now, let's assume APIService can take a nil provider and AuthManager will handle it.
         
-        // APIService requires secureStorageService and an accessTokenProvider.
-        // AuthManager requires authRepository (which is APIService).
-        // This creates a circular dependency if not handled carefully.
+        // APIService needs an accessTokenProvider. AuthManager provides this.
+        // AuthManager needs an AuthRepository (which is APIService).
+        // This creates a circular dependency that can be resolved by setting the provider post-init.
 
-        // Solution:
-        // 1. Create a "bootstrap" APIService instance for AuthManager, without accessTokenProvider.
-        //    AuthManager will use this for its authRepository needs (like activateDevice, refreshToken).
-        //    These specific auth calls in APIService don't typically need an accessTokenProvider themselves.
-        let bootstrapAPIService = APIService(
+        // 1. Create the APIService instance first, with accessTokenProvider initially nil.
+        let apiServiceInstance = APIService(
             secureStorageService: self.secureStorageService,
-            accessTokenProvider: nil // Auth-specific calls in APIService don't need this.
+            accessTokenProvider: nil // Will be set later
         )
+        self.authRepository = apiServiceInstance
+        self.exerciseRepository = apiServiceInstance
 
-        // 2. Create AuthManager using the bootstrap APIService.
-        let authManagerInstance = AuthManager(authRepository: bootstrapAPIService)
+        // 2. Create AuthManager, injecting the APIService instance as its AuthRepository.
+        let authManagerInstance = AuthManager(authRepository: apiServiceInstance, deviceIdentifierService: self.deviceIdentifierService)
         self.authManager = authManagerInstance
         
-        // 3. Create the main APIService instance for general repository use,
-        //    now with a proper accessTokenProvider from the created AuthManager.
-        let mainAPIService = APIService(
-            secureStorageService: self.secureStorageService,
-            accessTokenProvider: { [weak authManagerInstance] in // Closure captures the real AuthManager
-                try await authManagerInstance?.getAccessToken() // Added try
-            }
-        )
-        self.authRepository = mainAPIService // Use the fully configured APIService for AuthRepository
-        self.exerciseRepository = mainAPIService
+        // 3. Now that AuthManager instance exists, set the accessTokenProvider on the APIService instance.
+        //    This closure captures the authManagerInstance.
+        apiServiceInstance.setAccessTokenProvider { [weak authManagerInstance] in
+            try await authManagerInstance?.getAccessToken()
+        }
+
+        // 4. Initialize UseCases
+        self.activateDeviceUseCase = ActivateDeviceUseCase(authRepository: apiServiceInstance)
+        self.logoutUseCase = LogoutUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
+        self.handleRecentExercisesRequestUseCase = HandleRecentExercisesRequestUseCase(exerciseRepository: apiServiceInstance) // Added
+        
+        // 5. Initialize WCSessionRelay with the correct ExerciseRepository (apiServiceInstance)
+        self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
 
         // self.oldActivationService = ActivationService() // If still needed
     }

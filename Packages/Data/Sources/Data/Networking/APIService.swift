@@ -16,27 +16,55 @@ public final class APIService: ExerciseRepository, AuthRepository {
     private let networkClient: NetworkClientProtocol
     private let secureStorageService: SecureStorageServiceProtocol
     private let jsonDecoder: JSONDecoder
-    private let accessTokenProvider: (() async throws -> String?)? // Changed to throws
+    private var accessTokenProvider: (() async throws -> String?)? // Changed to var
+
+    private let instanceUUID = UUID() // For instance identification in logs
 
     // TODO: Inject dependencies via DIContainer for better testability
     public init(
         networkClient: NetworkClientProtocol = NetworkClient(),
         secureStorageService: SecureStorageServiceProtocol = KeychainService(), // Default for convenience
-        accessTokenProvider: (() async throws -> String?)? = nil // Changed to throws. Injected by App layer.
+        accessTokenProvider: (() async throws -> String?)? = nil 
     ) {
         self.networkClient = networkClient
         self.secureStorageService = secureStorageService
         self.accessTokenProvider = accessTokenProvider
         self.jsonDecoder = JSONDecoder()
         self.jsonDecoder.dateDecodingStrategy = .iso8601 // Ensure DTO dates are decoded correctly
+        print("[APIService-\(instanceUUID.uuidString.prefix(4))] Initialized. accessTokenProvider is \(accessTokenProvider == nil ? "nil" : "set").")
+    }
+
+    // Public method to set the access token provider post-initialization
+    public func setAccessTokenProvider(_ provider: (() async throws -> String?)?) {
+        self.accessTokenProvider = provider
+        print("[APIService-\(instanceUUID.uuidString.prefix(4))] accessTokenProvider was set. Provider is \(provider == nil ? "nil" : "set").")
     }
 
     // MARK: - Helper to get authenticated headers
     private func getAuthenticatedHeaders() async throws -> [String: String] { // Changed to throws
         var headers = ["Content-Type": "application/json"]
-        // Call the provider, which might throw. The error should propagate.
-        if let token = try await accessTokenProvider?() {
-            headers["Authorization"] = "Bearer \(token)"
+        let instanceIdPrefix = instanceUUID.uuidString.prefix(4)
+        
+        guard let provider = accessTokenProvider else {
+            print("[APIService-\(instanceIdPrefix)] getAuthenticatedHeaders: accessTokenProvider is nil. No Authorization header will be added.")
+            return headers
+        }
+        
+        print("[APIService-\(instanceIdPrefix)] getAuthenticatedHeaders: accessTokenProvider is set. Attempting to get token.")
+        do {
+            if let token = try await provider() {
+                if token.isEmpty {
+                    print("[APIService-\(instanceIdPrefix)] getAuthenticatedHeaders: accessTokenProvider returned an empty token.")
+                } else {
+                    print("[APIService-\(instanceIdPrefix)] getAuthenticatedHeaders: Successfully retrieved access token (length: \(token.count)). Adding Authorization header.")
+                    headers["Authorization"] = "Bearer \(token)"
+                }
+            } else {
+                print("[APIService-\(instanceIdPrefix)] getAuthenticatedHeaders: accessTokenProvider returned nil token.")
+            }
+        } catch {
+            print("[APIService-\(instanceIdPrefix)] getAuthenticatedHeaders: Error from accessTokenProvider: \(error.localizedDescription).")
+            throw error 
         }
         return headers
     }

@@ -13,13 +13,14 @@ import Data   // For ExerciseDTO and APIService
 
 @MainActor
 final class WCSessionRelay: NSObject, ObservableObject {
-    // TODO: Inject APIService via DIContainer
-    private let apiService = APIService()
+    private let handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol
     private let session = WCSession.default
     private let jsonEncoder: JSONEncoder
     private let jsonDecoder: JSONDecoder // For potential future use if iOS needs to decode from watch
 
-    override init() {
+    // Updated initializer to accept HandleRecentExercisesRequestUseCaseProtocol
+    init(handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol = DIContainer.shared.handleRecentExercisesRequestUseCase) {
+        self.handleRecentExercisesRequestUseCase = handleRecentExercisesRequestUseCase
         self.jsonEncoder = JSONEncoder()
         self.jsonEncoder.dateEncodingStrategy = .iso8601
         self.jsonDecoder = JSONDecoder()
@@ -65,8 +66,9 @@ extension WCSessionRelay: WCSessionDelegate {
             
             Task {
                 do {
-                    let entities = try await apiService.recentExercises(limit: limit, offset: 0, locale: "en") // Locale can be passed or defaulted
-                    let dtos = mapEntitiesToDTOs(entities)
+                    // UseCaseのexecuteメソッドはlocaleを内部で解決するため、引数として渡す必要はない
+                    let entities = try await handleRecentExercisesRequestUseCase.execute(limit: limit)
+                    let dtos = mapEntitiesToDTOs(entities) // DTOへのマッピングはWCSessionRelayの責務として残す
                     let responseData = try jsonEncoder.encode(dtos)
                     guard let jsonString = String(data: responseData, encoding: .utf8) else {
                         replyHandler(["wcsErrorMessage": "応答データの作成に失敗しました。"])

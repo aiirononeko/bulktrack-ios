@@ -17,23 +17,30 @@ final class RecentExercisesViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     // MARK: - Dependencies
-    private let session: SessionSyncRepository
+    private let requestRecentExercisesUseCase: RequestRecentExercisesUseCaseProtocol
+    private let session: SessionSyncRepository // Publisher購読のために保持
     private var cancellables = Set<AnyCancellable>()
 
-    init(session: SessionSyncRepository = DIContainer.shared.sessionSyncRepository) {
+    init(
+        requestRecentExercisesUseCase: RequestRecentExercisesUseCaseProtocol = DIContainer.shared.requestRecentExercisesUseCase,
+        session: SessionSyncRepository = DIContainer.shared.sessionSyncRepository
+    ) {
+        self.requestRecentExercisesUseCase = requestRecentExercisesUseCase
         self.session = session
         bindSessionCallbacks()
     }
 
     /// iPhone へメッセージを送り「最近種目」を取得
     func fetchRecentExercises(limit: Int = 20) {
-        guard session.isReachable else {
+        guard session.isReachable else { // isReachableの確認はViewModelの責務として残すか、UseCaseに含めるか検討
             errorMessage = "iPhone と通信できません"
+            isLoading = false // エラー時はisLoadingをfalseに
             return
         }
         errorMessage = nil
         isLoading = true
-        session.requestRecentExercises(limit: limit)
+        requestRecentExercisesUseCase.execute(limit: limit)
+        // 結果はPublisher経由で受け取るため、isLoadingをfalseにするタイミングはPublisher側
     }
 
     // MARK: - private

@@ -68,6 +68,14 @@ public protocol SecureStorageServiceProtocol {
 
 // MARK: - Authentication
 
+public protocol AuthManagerProtocol {
+    var isAuthenticated: CurrentValueSubject<Bool, Never> { get }
+    func getAccessToken() async throws -> String?
+    func activateDeviceIfNeeded(deviceId: String) async throws
+    func logout() async throws
+    func getRefreshTokenForLogout() async throws -> String?
+}
+
 public protocol AuthRepository {
     /// Activates a new device (anonymous onboarding).
     /// - Parameter deviceId: The unique identifier for the device.

@@ -13,8 +13,11 @@ final class DIContainer {
     static let shared = DIContainer()
 
     let sessionSyncRepository: SessionSyncRepository
+    let requestRecentExercisesUseCase: RequestRecentExercisesUseCaseProtocol
 
     private init() {
-        self.sessionSyncRepository = WCSessionRelay()
+        let sessionSyncRepoInstance = WCSessionRelay() // WCSessionRelayがSessionSyncRepositoryに準拠していると仮定
+        self.sessionSyncRepository = sessionSyncRepoInstance
+        self.requestRecentExercisesUseCase = RequestRecentExercisesUseCase(sessionSyncRepository: sessionSyncRepoInstance)
     }
 }
