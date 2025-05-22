@@ -15,7 +15,6 @@ struct BulkTrackApp: App {
 
     // MARK: - Life‑cycle
     init() {
-        // AppInitializer の初期化は DIContainer で行われるため、ここでは不要
         configureAppearance()
     }
 
@@ -55,5 +54,6 @@ struct BulkTrackApp: App {
         let pageControl = UIPageControl.appearance()
         pageControl.pageIndicatorTintColor = UIColor.secondarySystemBackground
         pageControl.currentPageIndicatorTintColor = UIColor.label
+
     }
 }

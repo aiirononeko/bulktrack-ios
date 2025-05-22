@@ -96,5 +96,37 @@ struct MainTabView: View {
             }
             .presentationDetents([.medium])
         }
+        .onAppear {
+            updateTabBarAppearance(colorScheme: colorScheme)
+        }
+        .onChange(of: colorScheme) { newColorScheme in
+            updateTabBarAppearance(colorScheme: newColorScheme)
+        }
+    }
+
+    private func updateTabBarAppearance(colorScheme: ColorScheme) {
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+
+        if colorScheme == .dark {
+            tabBarAppearance.backgroundColor = UIColor(white: 0.06, alpha: 1.0) // Even darker gray, very near black
+            // You might want to adjust item colors for dark mode if needed
+            // tabBarAppearance.stackedLayoutAppearance.normal.iconColor = .lightGray
+            // tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.lightGray]
+            // tabBarAppearance.stackedLayoutAppearance.selected.iconColor = .white
+            // tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.white]
+        } else {
+            // For light mode, use default or specify colors
+            tabBarAppearance.backgroundColor = .white // Reverted to system default for light mode
+            // tabBarAppearance.stackedLayoutAppearance.normal.iconColor = .darkGray
+            // tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.darkGray]
+            // tabBarAppearance.stackedLayoutAppearance.selected.iconColor = .black
+            // tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.black]
+        }
+
+        UITabBar.appearance().standardAppearance = tabBarAppearance
+        if #available(iOS 15.0, *) {
+            UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+        }
     }
 }

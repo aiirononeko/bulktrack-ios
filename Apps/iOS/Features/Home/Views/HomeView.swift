@@ -25,7 +25,7 @@ struct HomeView: View {
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // 標準のインジケータは非表示
                 .frame(height: UIScreen.main.bounds.height * 4 / 9)
-                .background(colorScheme == .dark ? Color.black : Color.white)
+                .background(colorScheme == .dark ? Color(UIColor(white: 0.06, alpha: 1.0)) : Color.white)
 
                 // 自作ドットインジケータ
                 DotIndicatorView(count: tabTitles.count, selectedIndex: $selectedTab)
