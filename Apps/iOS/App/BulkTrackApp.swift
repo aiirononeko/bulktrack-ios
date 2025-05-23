@@ -54,6 +54,5 @@ struct BulkTrackApp: App {
         let pageControl = UIPageControl.appearance()
         pageControl.pageIndicatorTintColor = UIColor.secondarySystemBackground
         pageControl.currentPageIndicatorTintColor = UIColor.label
-
     }
 }
