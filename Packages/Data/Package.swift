@@ -23,7 +23,10 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "Data",
-            dependencies: ["Domain"]
+            dependencies: ["Domain"],
+            resources: [
+                .process("Persistence/CoreData/BulkTrack.xcdatamodeld")
+            ]
         ),
         .testTarget(
             name: "DataTests",

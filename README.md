@@ -10,10 +10,10 @@
 
 | Pillar                         | Why it Matters                                                                              | How it Shows Up in the App (Current & Planned)                                                                                                                               |
 | ------------------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1 Frustration-free Logging** | A set should be captured in <800 ms, even offline.                                         | Device-ID onboarding (no account needed initially). Future: Offline caching, single-tap set duplication, auto-prefill, display of previous session's sets.                     |
+| **1 Frustration-free Logging** | A set should be captured in <800 ms, even offline.                                         | Device-ID onboarding (no account needed initially). CoreData caching for offline support, single-tap set duplication, auto-prefill, display of previous session's sets.     |
 | **2 Volume-Centric Insights**  | Hypertrophy hinges on *effective volume*. Users need a gut-level view of "did I do enough?" | Future: Daily/weekly muscle‐volume aggregation, highlight under-stimulated areas, deload warnings.                                                                         |
-| **3 AI-Ready Data Rails**      | Tomorrow's coach learns from your history + recovery. Clean data > fancy models.            | Clear separation of concerns (Domain, Data, Presentation layers), well-defined DTOs and Entities. Future: Normalised local schema, explicit tempo/rest, deterministic IDs. |
-| **4 Edge-native Speed**        | Millisecond APIs worldwide without DevOps drag.                                             | Communication with Cloudflare-Workers based API. Future: Aggressive caching, background refresh.                                                                             |
+| **3 AI-Ready Data Rails**      | Tomorrow's coach learns from your history + recovery. Clean data > fancy models.            | Clear separation of concerns (Domain, Data, Presentation layers), well-defined DTOs and Entities. CoreData local schema, explicit tempo/rest, deterministic IDs.          |
+| **4 Edge-native Speed**        | Millisecond APIs worldwide without DevOps drag.                                             | Communication with Cloudflare-Workers based API. CoreData caching reduces API calls to once daily for exercise data.                                                        |
 
 ---
 
@@ -68,7 +68,9 @@ BulkTrack/
 │   │   │   ├── Entities/       # Business model objects (e.g., AuthToken.swift, ExerciseEntity.swift)
 │   │   │   ├── UseCases/       # Application-specific business rules (e.g., Auth/, WatchSync/)
 │   │   │   ├── Shared/         # Shared Domain Models (e.g. AppError.swift, ResultState.swift)
-│   │   │   └── RepositoryProtocols.swift # Interfaces for data access
+│   │   │   ├── RepositoryProtocols.swift # Interfaces for data access
+│   │   │   ├── CacheableExerciseRepositoryProtocol.swift # Cache-enabled repository protocol
+│   │   │   └── CacheInvalidationServiceProtocol.swift    # Cache invalidation service protocol
 │   │   └── Tests/DomainTests/
 │   │
 │   ├── Data/                   # Data sources: API client, persistence, mappers
@@ -76,7 +78,11 @@ BulkTrack/
 │   │   │   ├── DTO/            # Data Transfer Objects (mirroring API schema)
 │   │   │   ├── Mapper/         # DTO <-> Entity mappers (e.g., ExerciseMapper.swift, TokenMapper.swift)
 │   │   │   ├── Networking/     # API client (NetworkClient, APIService, Endpoints)
-│   │   │   └── Storage/        # Secure storage (e.g., KeychainService.swift)
+│   │   │   ├── Storage/        # Secure storage (e.g., KeychainService.swift)
+│   │   │   └── Persistence/    # CoreData caching layer
+│   │   │       ├── CoreData/   # CoreData stack and entities
+│   │   │       ├── CacheRepository/ # Cache repository implementations
+│   │   │       └── CachedExerciseRepository.swift # Main cached exercise repository
 │   │   └── Tests/DataTests/
 │   │
 │   └── SharedUI/ (Optional)    # Reusable SwiftUI components across targets
@@ -87,7 +93,7 @@ BulkTrack/
 │   ├── iOS/
 │   │   ├── App/                # iOS App entry point & bootstrap
 │   │   │   ├── BulkTrackApp.swift  # @main struct
-│   │   │   └── Bootstrap/      # DIContainer, AppInitializer
+│   │   │   └── Bootstrap/      # DIContainer (with cache dependencies), AppInitializer
 │   │   ├── Features/           # Feature-sliced UI modules (View, ViewModel)
 │   │   │   └── (e.g., Home, RecentExercises, Settings)
 │   │   └── Services/           # iOS-specific services (e.g., WCSessionRelay)
@@ -95,7 +101,7 @@ BulkTrack/
 │   └── watchOS/
 │       ├── App/                # watchOS App entry point & bootstrap (single target)
 │       │   ├── BulkTrackApp.swift # @main struct for watchOS
-│       │   └── Bootstrap/      # DIContainer, WatchAppInitializer
+│       │   └── Bootstrap/      # DIContainer (with cache support), WatchAppInitializer
 │       ├── Features/           # watchOS specific UI features
 │       │   └── RecentExercises/# Example feature (View/RecentExercisesView.swift, ViewModel/RecentExercisesViewModel.swift)
 │       ├── Services/           # watchOS-specific services (WCSessionRelay, HealthKit)
@@ -112,12 +118,12 @@ BulkTrack/
 
 ### Layer Responsibilities:
 
-*   **Domain Package:** Contains the core business logic, entities, and use cases of the application. It is independent of UI and data source implementations. Defines repository protocols (interfaces) for data access and shared domain models like `AppError` and `ResultState`.
-*   **Data Package:** Implements the repository protocols defined in the Domain layer. Handles data retrieval from APIs (via `NetworkClient` and `APIService`), local storage (e.g., `KeychainService` for tokens, UserDefaults for device ID), and mapping between Data Transfer Objects (DTOs) and Domain Entities.
+*   **Domain Package:** Contains the core business logic, entities, and use cases of the application. It is independent of UI and data source implementations. Defines repository protocols (interfaces) for data access, cache-enabled repositories, and shared domain models like `AppError` and `ResultState`.
+*   **Data Package:** Implements the repository protocols defined in the Domain layer. Handles data retrieval from APIs (via `NetworkClient` and `APIService`), local storage (e.g., `KeychainService` for tokens, UserDefaults for device ID), **CoreData caching for exercise data**, and mapping between Data Transfer Objects (DTOs) and Domain Entities.
 *   **SharedUI Package (Optional):** Contains common SwiftUI views, components, or design system elements reusable across different app targets or features.
 *   **Apps (iOS & watchOS):**
     *   **Presentation Layer:** Resides within each app target's `Features/` directory. Consists of SwiftUI Views and ViewModels. ViewModels orchestrate data flow to and from Views, interact with Domain UseCases, and manage UI state (often using `ResultState`).
-    *   **Bootstrap:** Handles app initialization (e.g., `AppInitializer`), dependency injection (via `DIContainer`), and setup of app-level services.
+    *   **Bootstrap:** Handles app initialization (e.g., `AppInitializer`), dependency injection (via `DIContainer` with cache services), and setup of app-level services.
     *   **App-Specific Services:** Platform-specific services like Watch Connectivity (`WCSessionRelay`) or HealthKit integration.
 
 ### Data Flow (Conceptual)
@@ -138,9 +144,10 @@ graph TD
     end
 
     subgraph "Data Layer (Package)"
-        RepositoryImpl["Repository Implementation (e.g., APIService, KeychainService)"]
+        RepositoryImpl["Repository Implementation (e.g., CachedExerciseRepository, KeychainService)"]
         DTO["Data Transfer Object (DTO)"]
         NetworkClient["NetworkClient / Local Storage"]
+        CoreDataCache["CoreData Cache"]
         APIError_Data["APIError (Data specific)"]
     end
 
@@ -151,7 +158,9 @@ graph TD
 
     RepositoryProtocol -- Implemented by --> RepositoryImpl
     RepositoryImpl -->|Fetches/Sends| NetworkClient
+    RepositoryImpl -->|Cache-First Strategy| CoreDataCache
     NetworkClient -->|Raw Data/API DTOs| RepositoryImpl
+    CoreDataCache -->|Cached Entities| RepositoryImpl
     RepositoryImpl -->|Maps DTO to Entity / APIError to AppError| Entity
     RepositoryImpl -- Returns Result or Throws AppError --> UseCase
     Entity -- Returned to/Used by --> UseCase
@@ -167,7 +176,7 @@ graph TD
     end
     subgraph "iOS App"
         iOS_UseCase_Handle["HandleRecentExercisesRequestUseCase"]
-        iOS_ExerciseRepo["ExerciseRepository (APIService iOS)"]
+        iOS_ExerciseRepo["CachedExerciseRepository (iOS)"]
         iOS_SessionSyncRepo_Relay["WCSessionRelay (iOS)"]
     end
 
@@ -178,8 +187,8 @@ graph TD
 
     iOS_SessionSyncRepo_Relay -->|Calls| iOS_UseCase_Handle
     iOS_UseCase_Handle --> iOS_ExerciseRepo
-    iOS_ExerciseRepo -->|Fetches from API| ExternalAPI["External API"]
-    ExternalAPI -->|DTOs| iOS_ExerciseRepo
+    iOS_ExerciseRepo -->|Cache-First, API Fallback| ExternalAPI["External API / CoreData Cache"]
+    ExternalAPI -->|DTOs / Cached Entities| iOS_ExerciseRepo
     iOS_ExerciseRepo -->|Entities| iOS_UseCase_Handle
     iOS_UseCase_Handle -->|Entities| iOS_SessionSyncRepo_Relay
     
@@ -194,12 +203,36 @@ graph TD
 
 ---
 
+## CoreData Caching Strategy
+
+The application implements a sophisticated caching layer using CoreData to optimize performance and provide offline support:
+
+### Cache-First Strategy
+1. **Cache Hit**: Valid cache data is returned immediately without API calls
+2. **Cache Miss**: API is called, data is cached, then returned
+3. **Stale Cache Fallback**: On API failure, expired cache data is used as fallback
+4. **24-hour TTL**: Cache automatically invalidates after 24 hours
+
+### Performance Benefits
+- **Exercise Selection**: Instant display after first load
+- **Data Usage**: Reduced from constant API calls to once daily
+- **Offline Support**: Continued functionality during network issues
+- **Battery Life**: Fewer network operations
+
+### Cache Entities
+- **ExerciseCacheEntity**: All exercise data with 24-hour TTL
+- **RecentExerciseCacheEntity**: Recently accessed exercises with ordering
+- **CacheMetadata**: TTL and validity management
+
+---
+
 ## API Client
 
 The application interacts with the BulkTrack API using a custom-built networking layer:
 *   **`NetworkClient.swift`** (`Packages/Data/Sources/Data/Networking/`): A generic client responsible for executing URLRequests and handling basic response/error processing. It uses `async/await` with `URLSession`.
 *   **`Endpoint.swift`** (typically defined alongside `NetworkClient` or per API): A protocol to define individual API endpoints (URL, path, method, headers, parameters).
 *   **`APIService.swift`** (`Packages/Data/Sources/Data/Networking/`): Implements repository protocols (e.g., `ExerciseRepository`, `AuthRepository`). It uses `NetworkClient` to make specific API calls (e.g., fetching recent exercises, activating device).
+*   **`CachedExerciseRepository.swift`** (`Packages/Data/Sources/Data/Persistence/`): Implements cache-first strategy, wrapping `APIService` with CoreData caching for exercise-related operations.
 *   **DTOs (Data Transfer Objects)** (`Packages/Data/Sources/Data/DTO/`): Swift `struct`s conforming to `Codable`, mirroring the JSON schemas defined in the API's OpenAPI specification.
 *   **Mappers** (`Packages/Data/Sources/Data/Mapper/`): Responsible for converting between DTOs and Domain Entities (currently `ExerciseMapper.swift`, `TokenMapper.swift`).
 
@@ -258,7 +291,7 @@ The app uses a Bearer token-based authentication system.
     *   ViewModels (`AppInitializer`, `RecentExercisesViewModel`) updated to use these UseCases.
 *   **UI for Errors:** `AppInitializer` and `RecentExercisesView` now reflect loading/error states based on `ResultState`.
 *   **watchOS App:** PoC for recent exercises sync with UseCase implemented.
-*   **Core Data / SwiftData:** Implement local database caching for offline support and performance (TODO).
+*   **CoreData Caching:** ✅ **COMPLETED** - Implemented cache-first strategy with 24-hour TTL for exercise data. Includes fallback mechanisms and cache invalidation for custom exercise creation.
 *   Workout timer & rest-push notifications
 *   Live Activity for session timer
 

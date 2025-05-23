@@ -29,6 +29,8 @@ BulkTrack/
 │   │   │   │   ├── AuthToken.swift
 │   │   │   │   └── ExerciseEntity.swift # (e.g., Week, Dashboard ... are future additions)
 │   │   │   ├── RepositoryProtocols.swift
+│   │   │   ├── CacheableExerciseRepositoryProtocol.swift # Cache-enabled repository protocol
+│   │   │   ├── CacheInvalidationServiceProtocol.swift    # Cache invalidation service protocol
 │   │   │   ├── UseCases/               # Application-specific business rules
 │   │   │   │   ├── Auth/
 │   │   │   │   │   ├── ActivateDeviceUseCase.swift
@@ -42,10 +44,10 @@ BulkTrack/
 │   │   └── Tests/DomainTests/
 │   │       └── DashboardEntityTests.swift # (Example test, actual tests may vary)
 │   │
-│   ├── Data/                           ← External data tech
+│   ├── Data/                           ← External data tech + CoreData caching
 │   │   ├── Sources/Data/
 │   │   │   ├── Networking/
-│   │   │   │   ├── APIService.swift    # Conforms to *Repository* protocols (e.g., AuthRepository, ExerciseRepository)
+│   │   │   │   ├── APIService.swift    # Conforms to *Repository* protocols (e.g., AuthRepository)
 │   │   │   │   ├── NetworkClient.swift
 │   │   │   │   └── APIError.swift      # (Now potentially wrapped by Domain/Shared/AppError.swift)
 │   │   │   ├── Mapper/
@@ -57,6 +59,19 @@ BulkTrack/
 │   │   │   │   └── WorkoutSetDTO.swift # (And others like TokenResponseDTO etc.)
 │   │   │   ├── Storage/                # Secure storage (e.g. KeychainService)
 │   │   │   │   └── KeychainService.swift
+│   │   │   └── Persistence/            # CoreData caching layer
+│   │   │       ├── CoreData/
+│   │   │       │   ├── PersistentContainer.swift           # CoreData stack management
+│   │   │       │   ├── BulkTrack.xcdatamodeld/             # CoreData model
+│   │   │       │   └── Entities/                           # CoreData entities
+│   │   │       │       ├── ExerciseCacheEntity+CoreData.swift
+│   │   │       │       ├── RecentExerciseCacheEntity+CoreData.swift
+│   │   │       │       └── CacheMetadata+CoreData.swift
+│   │   │       ├── CacheRepository/                        # Cache repository implementations
+│   │   │       │   ├── ExerciseCacheRepository.swift       # Exercise cache operations
+│   │   │       │   ├── RecentExerciseCacheRepository.swift # Recent exercise cache operations
+│   │   │       │   └── CacheInvalidationService.swift     # Cache invalidation service
+│   │   │       └── CachedExerciseRepository.swift         # Main cached exercise repository
 │   │   └── Tests/DataTests/
 │   │       └── DataTests.swift         # (Formerly APIServiceMockTests.swift)
 │   │
@@ -77,7 +92,7 @@ BulkTrack/
 │   │   ├── App/
 │   │   │   ├── BulkTrackApp.swift      # @main
 │   │   │   └── Bootstrap/
-│   │   │       ├── DIContainer.swift
+│   │   │       ├── DIContainer.swift   # Now includes cache dependencies
 │   │   │       └── AppInitializer.swift
 │   │   │
 │   │   └── Features/                   # Feature-sliced UI modules
@@ -91,7 +106,7 @@ BulkTrack/
 │       ├── App/                        ← Single-target WatchApp
 │       │   ├── BulkTrackWatchApp.swift # @main (SwiftUI)
 │       │   └── Bootstrap/
-│       │       ├── DIContainer.swift   # Manages dependencies for watchOS
+│       │       ├── DIContainer.swift   # Manages dependencies for watchOS (with cache support)
 │       │       └── WatchAppInitializer.swift
 │       │
 │       ├── Features/
@@ -127,23 +142,36 @@ BulkTrack/
 
 ### 2.1 Domain (Packages/Domain)
 
-| Folder                      | 内容                                                                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `Entities/`                 | **純粋モデル**: `AuthToken.swift`, `ExerciseEntity.swift`。 (例: `Week`, `Dashboard` は将来追加)                                       |
-| `RepositoryProtocols.swift` | `AuthRepository`, `ExerciseRepository`, `SessionSyncRepository`, `SecureStorageServiceProtocol` など。 (例: `DashboardRepository` は将来追加) |
-| `UseCases/`                 | 各UseCaseは機能単位でサブディレクトリに配置 (例: `Auth/ActivateDeviceUseCase.swift`, `WatchSync/RequestRecentExercisesUseCase.swift`) |
-| `Shared/`                   | `AppError.swift`, `ResultState.swift` など、Domainレイヤ内で共有されるモデルやユーティリティ。                                                |
-| **依存禁止**                    | UIKit / SwiftUI / CoreData / URLSession など一切 import しない                                                                        |
+| Folder                                  | 内容                                                                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `Entities/`                             | **純粋モデル**: `AuthToken.swift`, `ExerciseEntity.swift`。 (例: `Week`, `Dashboard` は将来追加)                                       |
+| `RepositoryProtocols.swift`             | `AuthRepository`, `ExerciseRepository`, `SessionSyncRepository`, `SecureStorageServiceProtocol` など。                                |
+| `CacheableExerciseRepositoryProtocol.swift` | キャッシュ機能付きExerciseRepositoryのプロトコル定義                                                                                         |
+| `CacheInvalidationServiceProtocol.swift`   | キャッシュ無効化サービスのプロトコル定義                                                                                                    |
+| `UseCases/`                             | 各UseCaseは機能単位でサブディレクトリに配置 (例: `Auth/ActivateDeviceUseCase.swift`, `WatchSync/RequestRecentExercisesUseCase.swift`) |
+| `Shared/`                               | `AppError.swift`, `ResultState.swift` など、Domainレイヤ内で共有されるモデルやユーティリティ。                                                |
+| **依存禁止**                                | UIKit / SwiftUI / CoreData / URLSession など一切 import しない                                                                        |
 
 ### 2.2 Data (Packages/Data)
 
-| Sub-folder    | 記述内容                                                                                                   |
-| ------------- | ---------------------------------------------------------------------------------------------------------- |
-| `Networking/` | `APIService.swift` (Repository実装), `NetworkClient.swift`, `APIError.swift` (Domainの`AppError`にラップされる想定) |
-| `DTO/`        | APIスキーマに対応するCodable struct (例: `ExerciseDTO.swift`, `TokenResponseDTO.swift`)                         |
-| `Mapper/`     | DTO ⇔ Domain Entity変換 (例: `ExerciseMapper.swift`, `TokenMapper.swift`)                                     |
-| `Storage/`    | `KeychainService.swift` (SecureStorageServiceProtocolの実装)                                               |
-| **依存**        | `import Domain`, `import Foundation`。**UIフレームワーク禁止**                                                      |
+| Sub-folder          | 記述内容                                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `Networking/`       | `APIService.swift` (Repository実装), `NetworkClient.swift`, `APIError.swift` (Domainの`AppError`にラップされる想定) |
+| `DTO/`              | APIスキーマに対応するCodable struct (例: `ExerciseDTO.swift`, `TokenResponseDTO.swift`)                         |
+| `Mapper/`           | DTO ⇔ Domain Entity変換 (例: `ExerciseMapper.swift`, `TokenMapper.swift`)                                     |
+| `Storage/`          | `KeychainService.swift` (SecureStorageServiceProtocolの実装)                                               |
+| `Persistence/`      | **CoreDataキャッシュレイヤ**: エンティティ、リポジトリ、統合実装                                                             |
+| **依存**              | `import Domain`, `import Foundation`, `import CoreData`。**UIフレームワーク禁止**                                |
+
+#### 2.2.1 Persistence Sub-layer (CoreData Caching)
+
+| Component                    | 責務                                                      |
+| ---------------------------- | --------------------------------------------------------- |
+| **PersistentContainer**      | CoreDataスタックの管理（シングルトン、スレッドセーフ）                         |
+| **CoreData Entities**        | ExerciseCacheEntity, RecentExerciseCacheEntity, CacheMetadata |
+| **Cache Repositories**       | 個別キャッシュ操作（全種目、最近種目）                                     |
+| **CachedExerciseRepository** | API + キャッシュの統合実装（24時間有効期限、フォールバック）                      |
+| **CacheInvalidationService** | 手動キャッシュ無効化（カスタム種目作成時等）                                  |
 
 ### 2.3 SharedUI (Packages/SharedUI) ≪任意≫
 
@@ -160,12 +188,38 @@ SwiftUIのみで構成され、ビジネスロジックは含まない。現状�
 | ファイル                                             | 役割                                                                                                |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
 | `BulkTrackApp.swift` / `BulkTrackWatchApp.swift` | `@main` struct。`WindowGroup`のオーナーであり、アプリ起動時の処理 (`.task` modifierなど) を持つ。                 |
-| `DIContainer.swift`                              | シングルトンとして依存性を管理・提供。各プラットフォームで必要なインスタンスを生成・保持。                                  |
+| `DIContainer.swift`                              | シングルトンとして依存性を管理・提供。**キャッシュサービスも含む**各プラットフォームで必要なインスタンスを生成・保持。               |
 | `AppInitializer.swift` / `WatchAppInitializer.swift` | アプリ起動時の初期化処理（デバイス認証、WCSessionアクティベートなど）を実行。`DIContainer`から必要な依存を取得。 |
 
 ---
 
-## 3. watchOS (single-target) 特記事項
+## 3. CoreData Caching Strategy
+
+### 3.1 キャッシュ対象
+
+| データ種別     | キャッシュ期間 | 取得頻度 | キャッシュエンティティ               |
+| ------------- | ------------ | -------- | ---------------------------------- |
+| **全種目**     | 24時間       | 中頻度    | ExerciseCacheEntity                |
+| **最近種目**   | 24時間       | 高頻度    | RecentExerciseCacheEntity (順序保持) |
+
+### 3.2 キャッシュ戦略
+
+1. **Cache-First**: キャッシュが有効な場合はAPIを呼ばない
+2. **API Fallback**: キャッシュ失敗時はAPIから取得
+3. **Stale Cache**: API失敗時は期限切れキャッシュをフォールバック
+4. **Automatic Invalidation**: 24時間後に自動無効化
+5. **Manual Invalidation**: カスタム種目作成時等に手動無効化
+
+### 3.3 パフォーマンス効果
+
+- **種目選択画面**: 初回以降は即座に表示
+- **データ使用量**: 1日1回のAPIリクエストに削減
+- **オフライン対応**: ネットワーク障害時の継続利用
+- **バッテリー**: 頻繁なAPI呼び出しの削減
+
+---
+
+## 4. watchOS (single-target) 特記事項
 
 | 項目                         | 実装指針                                                                                                             |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -173,10 +227,11 @@ SwiftUIのみで構成され、ビジネスロジックは含まない。現状�
 | **HealthKit / WorkoutKit** | Device-only data; make `HealthKitRepository` conform to `HealthRepository` (Domain).                             |
 | **Assets & Localizable**   | 直接 `WatchApp/Resources/` に含める。ターゲット Membership は WatchApp のみ。                                                    |
 | **BackgroundTasks**        | If needed, add `BGProcessing` entitlement directly to WatchApp target.                                           |
+| **CoreData Cache**         | iPhone側のキャッシュを `WCSession` 経由で共有。watchOS独自キャッシュは将来検討。                                                     |
 
 ---
 
-## 4. Build Dependencies
+## 5. Build Dependencies
 
 ```text
 Domain        (no deps)
@@ -197,20 +252,28 @@ Add the frameworks in **Xcode ▸ General ▸ Frameworks, Libraries & Embedded C
 
 ---
 
-## 5. Testing Strategy
+## 6. Testing Strategy
 
 | Package / Target | Test Target              | What to test                            |
 | ---------------- | ------------------------ | --------------------------------------- |
 | Domain           | `DomainTests`            | Entity equality, UseCase pure logic     |
-| Data             | `DataTests`              | NetworkClient stubs, Mapper correctness |
+| Data             | `DataTests`              | NetworkClient stubs, Mapper correctness, **Cache operations** |
 | iOS App          | `PresentationTests`      | ViewModel with **mock repositories**    |
 | watchOS App      | `WatchPresentationTests` | QuickLogViewModel, WCSession stubs      |
+
+### 6.1 Cache Testing
+
+- **Unit Tests**: 個別キャッシュリポジトリの動作確認
+- **Integration Tests**: API + キャッシュの統合動作確認
+- **Performance Tests**: キャッシュヒット時の応答時間測定
+- **Edge Case Tests**: ネットワーク障害、期限切れキャッシュ等
 
 ---
 
 > **Principle Recap**
 >
 > 1. Domain is framework-free and platform-agnostic.
-> 2. Data converts the outside world (REST, HK, WCSession) into Domain.
+> 2. Data converts the outside world (REST, HK, WCSession, **CoreData Cache**) into Domain.
 > 3. Presentation converts Domain into pixels.
 > 4. DIContainer wires everything together at the very edge (App layer).
+> 5. **Cache provides performance and offline resilience without breaking clean architecture.**

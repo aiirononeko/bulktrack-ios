@@ -18,89 +18,90 @@ final class DIContainer {
     let deviceIdentifierService: DeviceIdentifierServiceProtocol
     let secureStorageService: SecureStorageServiceProtocol
     let authRepository: AuthRepository // Implemented by APIService
-    let exerciseRepository: ExerciseRepository // Implemented by APIService
+    let exerciseRepository: CacheableExerciseRepository // Implemented by CachedExerciseRepository
     let dashboardRepository: DashboardRepository // Implemented by APIService
     let authManager: AuthManagerProtocol
+    
+    // MARK: - Cache Services
+    let persistentContainer: PersistentContainer
+    let exerciseCacheRepository: ExerciseCacheRepositoryProtocol
+    let recentExerciseCacheRepository: RecentExerciseCacheRepositoryProtocol
+    let cacheInvalidationService: CacheInvalidationServiceProtocol
+    
+    // MARK: - Use Cases
     let activateDeviceUseCase: ActivateDeviceUseCaseProtocol
     let logoutUseCase: LogoutUseCaseProtocol
-    let fetchDashboardUseCase: FetchDashboardUseCase // Added
-    let handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol // Added
-    let fetchRecentExercisesUseCase: FetchRecentExercisesUseCaseProtocol // New UseCase
-    let fetchAllExercisesUseCase: FetchAllExercisesUseCaseProtocol // New UseCase for all exercises
-    let createSetUseCase: CreateSetUseCaseProtocol // セット作成UseCase
-    let appInitializer: AppInitializer // AppInitializer を追加
-    
-    // let oldActivationService: ActivationServiceProtocol // Keep or remove based on its current use
+    let fetchDashboardUseCase: FetchDashboardUseCase
+    let handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol
+    let fetchRecentExercisesUseCase: FetchRecentExercisesUseCaseProtocol
+    let fetchAllExercisesUseCase: FetchAllExercisesUseCaseProtocol
+    let createSetUseCase: CreateSetUseCaseProtocol
+    let appInitializer: AppInitializer
 
     private init() {
-        print("[DIContainer] Initializing...") // Added log
-        // self.watchConnectivityHandler = WCSessionRelay() // Old initialization
+        print("[DIContainer] Initializing with cache support...")
+        
+        // 1. Initialize basic services
         self.deviceIdentifierService = DeviceIdentifierService()
         self.secureStorageService = KeychainService()
-
-        // APIService needs an accessTokenProvider. AuthManager provides this.
-        // To break potential circular dependency during init:
-        // 1. Create a placeholder/nil provider initially for APIService.
-        // 2. Create AuthManager, which needs AuthRepository (APIService).
-        // 3. Update APIService with the real provider from AuthManager.
-        // OR: Make AuthManager's getAccessToken static or accessible without full init,
-        // OR: Pass AuthManager instance to APIService later (less clean for init).
-
-        // Simpler approach for now: AuthManager is created first, then APIService uses it.
-        // This requires AuthManager not to depend on APIService *instance* in its own init,
-        // but on the AuthRepository *protocol* which APIService will conform to.
-
-        // Temporary instance of APIService for AuthManager init, if AuthManager needs it directly.
-        // This is tricky. Let's define APIService such that its accessTokenProvider can be set post-init,
-        // or make AuthManager take a factory/closure for AuthRepository.
-
-        // Option: Initialize APIService without accessTokenProvider first, then set it.
-        // This requires APIService's accessTokenProvider to be a `var`.
-        // For now, let's assume APIService can take a nil provider and AuthManager will handle it.
         
-        // APIService needs an accessTokenProvider. AuthManager provides this.
-        // AuthManager needs an AuthRepository (which is APIService).
-        // This creates a circular dependency that can be resolved by setting the provider post-init.
+        // 2. Initialize CoreData stack
+        self.persistentContainer = PersistentContainer.shared
+        
+        // 3. Initialize cache repositories
+        self.exerciseCacheRepository = ExerciseCacheRepository(persistentContainer: self.persistentContainer)
+        self.recentExerciseCacheRepository = RecentExerciseCacheRepository(persistentContainer: self.persistentContainer)
+        self.cacheInvalidationService = CacheInvalidationService(
+            exerciseCacheRepository: self.exerciseCacheRepository,
+            recentExerciseCacheRepository: self.recentExerciseCacheRepository
+        )
 
-        // 1. Create the APIService instance first, with accessTokenProvider initially nil.
+        // 4. Create the APIService instance first, with accessTokenProvider initially nil.
         let apiServiceInstance = APIService(
             secureStorageService: self.secureStorageService,
             accessTokenProvider: nil // Will be set later
         )
         self.authRepository = apiServiceInstance
-        self.exerciseRepository = apiServiceInstance
-        self.dashboardRepository = apiServiceInstance // Added: APIService conforms to DashboardRepository
+        self.dashboardRepository = apiServiceInstance
 
-        // 2. Create AuthManager, injecting the APIService instance as its AuthRepository.
+        // 5. Create CachedExerciseRepository with APIService and cache repositories
+        let cachedExerciseRepository = CachedExerciseRepository(
+            apiService: apiServiceInstance,
+            exerciseCacheRepository: self.exerciseCacheRepository,
+            recentExerciseCacheRepository: self.recentExerciseCacheRepository,
+            cacheInvalidationService: self.cacheInvalidationService
+        )
+        self.exerciseRepository = cachedExerciseRepository
+
+        // 6. Create AuthManager, injecting the APIService instance as its AuthRepository.
         let authManagerInstance = AuthManager(authRepository: apiServiceInstance, deviceIdentifierService: self.deviceIdentifierService)
         self.authManager = authManagerInstance
         
-        // 3. Now that AuthManager instance exists, set the accessTokenProvider on the APIService instance.
-        //    This closure captures the authManagerInstance.
+        // 7. Now that AuthManager instance exists, set the accessTokenProvider on the APIService instance.
         apiServiceInstance.setAccessTokenProvider { [weak authManagerInstance] in
             try await authManagerInstance?.getAccessToken()
         }
 
-        // 4. Initialize UseCases
-        self.activateDeviceUseCase = ActivateDeviceUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance) // authManagerInstance を追加
+        // 8. Initialize UseCases with cached repository
+        self.activateDeviceUseCase = ActivateDeviceUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
         self.logoutUseCase = LogoutUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
-        self.fetchDashboardUseCase = DefaultFetchDashboardUseCase(repository: apiServiceInstance) // Added
-        self.handleRecentExercisesRequestUseCase = HandleRecentExercisesRequestUseCase(exerciseRepository: apiServiceInstance) // Added
-        self.fetchRecentExercisesUseCase = FetchRecentExercisesUseCase(exerciseRepository: apiServiceInstance) // Initialize new UseCase
-        self.fetchAllExercisesUseCase = FetchAllExercisesUseCase(exerciseRepository: apiServiceInstance) // Initialize new UseCase for all exercises
-        self.createSetUseCase = CreateSetUseCase(setRepository: apiServiceInstance) // Initialize CreateSetUseCase
+        self.fetchDashboardUseCase = DefaultFetchDashboardUseCase(repository: apiServiceInstance)
+        self.handleRecentExercisesRequestUseCase = HandleRecentExercisesRequestUseCase(exerciseRepository: cachedExerciseRepository)
+        self.fetchRecentExercisesUseCase = FetchRecentExercisesUseCase(exerciseRepository: cachedExerciseRepository)
+        self.fetchAllExercisesUseCase = FetchAllExercisesUseCase(exerciseRepository: cachedExerciseRepository)
+        self.createSetUseCase = CreateSetUseCase(setRepository: apiServiceInstance)
         
-        // 5. Initialize WCSessionRelay with the correct ExerciseRepository (apiServiceInstance)
+        // 9. Initialize WCSessionRelay with the cached ExerciseRepository
         self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
 
-        // 6. Initialize AppInitializer (depends on other services like AuthManager, DeviceIdentifierService)
+        // 10. Initialize AppInitializer
         self.appInitializer = AppInitializer(
-            activateDeviceUseCase: self.activateDeviceUseCase, // activateDeviceUseCase を再度追加
+            activateDeviceUseCase: self.activateDeviceUseCase,
             deviceIdentifierService: self.deviceIdentifierService,
             authManager: self.authManager
         )
-
-        // self.oldActivationService = ActivationService() // If still needed
+        
+        print("[DIContainer] Initialization complete with cache support.")
     }
 
     // MARK: - ViewModel Factory Methods
@@ -111,7 +112,7 @@ final class DIContainer {
     func makeStartWorkoutSheetViewModel() -> StartWorkoutSheetViewModel {
         StartWorkoutSheetViewModel(
             fetchRecentExercisesUseCase: fetchRecentExercisesUseCase,
-            fetchAllExercisesUseCase: fetchAllExercisesUseCase // Pass new UseCase
+            fetchAllExercisesUseCase: fetchAllExercisesUseCase
         )
     }
     
