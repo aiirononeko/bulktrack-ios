@@ -15,8 +15,7 @@ struct MainTabView: View {
     @State private var selectedTab: Tab = .home
     @State private var previousSelectedTab: Tab = .home // 直前のタブを保持
     @State private var showingAddSheet = false // 「トレーニング開始」シートの表示状態
-    @State private var showingWorkoutLogView = false // 筋トレ記録画面の表示状態
-    @State private var selectedExerciseForLog: ExerciseEntity? // 選択されたエクササイズ
+    @State private var selectedExerciseForLog: ExerciseEntity? // 選択されたエクササイズ。これがnilでなければfullScreenCoverを表示
 
     private let diContainer = DIContainer.shared
 
@@ -41,7 +40,6 @@ struct MainTabView: View {
                         Label("", systemImage: "")
                     }
                     .tag(Tab.addPlaceholder)
-
 
                 ArticlesView()
                     .tabItem {
@@ -85,33 +83,22 @@ struct MainTabView: View {
 
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .sheet(isPresented: $showingAddSheet, onDismiss: {
-            // シートが閉じた後、もしselectedExerciseForLogがあればWorkoutLogViewを表示
-            if selectedExerciseForLog != nil {
-                showingWorkoutLogView = true
-            }
-        }) {
+        .sheet(isPresented: $showingAddSheet) {
             StartWorkoutSheetView(
                 onExerciseSelected: { exercise in
-                    self.selectedExerciseForLog = exercise
-                    // showingAddSheetは自動的にfalseになるので、ここでは何もしない
+                    print("[MainTabView] Exercise selected: \(exercise.name)")
+                    self.selectedExerciseForLog = exercise // これをセットすると fullScreenCover が item を検知する
+                    self.showingAddSheet = false // シートを閉じる
                 },
                 viewModel: diContainer.makeStartWorkoutSheetViewModel()
             )
             .presentationDetents([.medium])
         }
-        .fullScreenCover(isPresented: $showingWorkoutLogView, onDismiss: {
-            // WorkoutLogViewが閉じられたら、StartWorkoutSheetを再表示
-            selectedExerciseForLog = nil // 念のためクリア
-            showingAddSheet = true
-        }) {
-            if let exercise = selectedExerciseForLog {
-                WorkoutLogView(exerciseName: exercise.name, exerciseId: exercise.id.uuidString)
-            } else {
-                // エラーケースまたは予期せぬ状態。本来ここには来ないはず。
-                // 必要であればエラーハンドリングやデフォルトビューを表示
-                Text("エラー: 表示する種目がありません。")
-            }
+        .fullScreenCover(item: $selectedExerciseForLog, onDismiss: {
+            print("[MainTabView] WorkoutLogView dismissed (item became nil)")
+        }) { exercise in // exercise は selectedExerciseForLog の non-nil の値
+            // このクロージャは selectedExerciseForLog が nil でない場合にのみ呼び出される
+            diContainer.makeWorkoutLogView(exerciseName: exercise.name, exerciseId: exercise.id)
         }
         .onAppear {
             updateTabBarAppearance(colorScheme: colorScheme)

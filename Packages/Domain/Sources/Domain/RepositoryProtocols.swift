@@ -122,3 +122,46 @@ public protocol AuthRepository {
     /// - Throws: `SecureStorageError` if deletion fails.
     func deleteCurrentAuthToken() throws
 }
+
+// MARK: - Set Repository
+
+public protocol SetRepository {
+    /// Creates a new workout set
+    /// - Parameter request: The set creation request
+    /// - Returns: The created workout set
+    /// - Throws: APIError or other network/parsing errors
+    func createSet(_ request: CreateSetRequest) async throws -> WorkoutSetEntity
+    
+    /// Updates an existing workout set
+    /// - Parameters:
+    ///   - setId: The ID of the set to update
+    ///   - request: The update request containing the fields to modify
+    ///   - locale: Optional locale for localized exercise names
+    /// - Returns: The updated workout set
+    /// - Throws: APIError or other network/parsing errors
+    func updateSet(setId: UUID, request: UpdateSetRequest, locale: String?) async throws -> WorkoutSetEntity
+    
+    /// Deletes a workout set
+    /// - Parameter setId: The ID of the set to delete
+    /// - Throws: APIError or other network/parsing errors
+    func deleteSet(setId: UUID) async throws
+    
+    /// Fetches workout sets with optional filtering
+    /// - Parameters:
+    ///   - limit: Maximum number of sets to return
+    ///   - offset: Pagination offset
+    ///   - date: Optional date filter (YYYY-MM-DD)
+    ///   - exerciseId: Optional exercise ID filter
+    ///   - sortBy: Sort order (performedAt_asc or performedAt_desc)
+    ///   - locale: Optional locale for localized exercise names
+    /// - Returns: Array of workout sets
+    /// - Throws: APIError or other network/parsing errors
+    func fetchSets(
+        limit: Int,
+        offset: Int,
+        date: String?,
+        exerciseId: UUID?,
+        sortBy: String?,
+        locale: String?
+    ) async throws -> [WorkoutSetEntity]
+}

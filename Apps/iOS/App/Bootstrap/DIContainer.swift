@@ -5,6 +5,7 @@
 //  Created by Ryota Katada on 2025/05/21.
 //
 
+import Foundation
 import Domain
 import Data
 
@@ -26,6 +27,7 @@ final class DIContainer {
     let handleRecentExercisesRequestUseCase: HandleRecentExercisesRequestUseCaseProtocol // Added
     let fetchRecentExercisesUseCase: FetchRecentExercisesUseCaseProtocol // New UseCase
     let fetchAllExercisesUseCase: FetchAllExercisesUseCaseProtocol // New UseCase for all exercises
+    let createSetUseCase: CreateSetUseCaseProtocol // セット作成UseCase
     let appInitializer: AppInitializer // AppInitializer を追加
     
     // let oldActivationService: ActivationServiceProtocol // Keep or remove based on its current use
@@ -86,6 +88,7 @@ final class DIContainer {
         self.handleRecentExercisesRequestUseCase = HandleRecentExercisesRequestUseCase(exerciseRepository: apiServiceInstance) // Added
         self.fetchRecentExercisesUseCase = FetchRecentExercisesUseCase(exerciseRepository: apiServiceInstance) // Initialize new UseCase
         self.fetchAllExercisesUseCase = FetchAllExercisesUseCase(exerciseRepository: apiServiceInstance) // Initialize new UseCase for all exercises
+        self.createSetUseCase = CreateSetUseCase(setRepository: apiServiceInstance) // Initialize CreateSetUseCase
         
         // 5. Initialize WCSessionRelay with the correct ExerciseRepository (apiServiceInstance)
         self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
@@ -109,6 +112,14 @@ final class DIContainer {
         StartWorkoutSheetViewModel(
             fetchRecentExercisesUseCase: fetchRecentExercisesUseCase,
             fetchAllExercisesUseCase: fetchAllExercisesUseCase // Pass new UseCase
+        )
+    }
+    
+    func makeWorkoutLogView(exerciseName: String, exerciseId: UUID) -> WorkoutLogView {
+        WorkoutLogView(
+            exerciseName: exerciseName,
+            exerciseId: exerciseId,
+            createSetUseCase: createSetUseCase
         )
     }
 }

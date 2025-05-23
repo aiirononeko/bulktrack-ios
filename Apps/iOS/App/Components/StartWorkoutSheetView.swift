@@ -126,7 +126,7 @@ struct StartWorkoutSheetView: View {
                                 .onTapGesture {
                                     isSearchFieldFocused.wrappedValue = false // キーボードを閉じる
                                     onExerciseSelected(exercise) // 選択されたエクササイズを通知
-                                    dismiss() // シートを閉じる
+                                    // dismiss() // ここではシートを閉じない
                                 }
                         }
                     }

@@ -11,11 +11,12 @@ import Domain
 // However, if DTOs are directly exposed or used in signatures, it might be needed.
 // For now, let's assume DTOs are encapsulated. If ExerciseDTO is from Data package, it's fine.
 
-public final class APIService: ExerciseRepository, AuthRepository, DashboardRepository {
+public final class APIService: ExerciseRepository, AuthRepository, DashboardRepository, SetRepository {
 
     private let networkClient: NetworkClientProtocol
     private let secureStorageService: SecureStorageServiceProtocol
     private let jsonDecoder: JSONDecoder
+    private let jsonEncoder: JSONEncoder
     private var accessTokenProvider: (() async throws -> String?)? // Changed to var
 
     private let instanceUUID = UUID() // For instance identification in logs
@@ -29,8 +30,25 @@ public final class APIService: ExerciseRepository, AuthRepository, DashboardRepo
         self.networkClient = networkClient
         self.secureStorageService = secureStorageService
         self.accessTokenProvider = accessTokenProvider
+        
         self.jsonDecoder = JSONDecoder()
-        self.jsonDecoder.dateDecodingStrategy = .iso8601 // Ensure DTO dates are decoded correctly
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds] // ミリ秒対応
+        self.jsonDecoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            if let date = dateFormatter.date(from: dateString) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date string \(dateString) as ISO8601 with fractional seconds")
+        }
+
+        self.jsonEncoder = JSONEncoder()
+        // エンコーダーも同様にミリ秒を含む形式で出力するように設定
+        self.jsonEncoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            try container.encode(dateFormatter.string(from: date))
+        }
         print("[APIService-\(instanceUUID.uuidString.prefix(4))] Initialized. accessTokenProvider is \(accessTokenProvider == nil ? "nil" : "set").")
     }
 
@@ -269,4 +287,122 @@ extension APIService {
     }
 }
 
-// TODO: Add other endpoints like SearchExercisesEndpoint, etc.
+// MARK: - SetRepository Conformance
+
+extension APIService {
+    public func createSet(_ request: CreateSetRequest) async throws -> WorkoutSetEntity {
+        let headers = try await getAuthenticatedHeaders()
+        let dto = WorkoutSetMapper.toSetCreateDTO(request)
+        let endpoint = CreateSetEndpoint(createDTO: dto, customHeaders: headers, encoder: jsonEncoder)
+        let workoutSetDTO = try await networkClient.sendRequest(endpoint: endpoint, decoder: jsonDecoder) as WorkoutSetDTO
+        return WorkoutSetMapper.toEntity(workoutSetDTO)
+    }
+    
+    public func updateSet(setId: UUID, request: UpdateSetRequest, locale: String?) async throws -> WorkoutSetEntity {
+        var headers = try await getAuthenticatedHeaders()
+        if let lang = locale {
+            headers["Accept-Language"] = lang
+        }
+        let dto = WorkoutSetMapper.toSetUpdateDTO(request)
+        let endpoint = UpdateSetEndpoint(setId: setId, updateDTO: dto, customHeaders: headers, encoder: jsonEncoder)
+        let workoutSetDTO = try await networkClient.sendRequest(endpoint: endpoint, decoder: jsonDecoder) as WorkoutSetDTO
+        return WorkoutSetMapper.toEntity(workoutSetDTO)
+    }
+    
+    public func deleteSet(setId: UUID) async throws {
+        let headers = try await getAuthenticatedHeaders()
+        let endpoint = DeleteSetEndpoint(setId: setId, customHeaders: headers)
+        try await networkClient.sendRequest(endpoint: endpoint)
+    }
+    
+    public func fetchSets(
+        limit: Int,
+        offset: Int,
+        date: String?,
+        exerciseId: UUID?,
+        sortBy: String?,
+        locale: String?
+    ) async throws -> [WorkoutSetEntity] {
+        var headers = try await getAuthenticatedHeaders()
+        if let lang = locale {
+            headers["Accept-Language"] = lang
+        }
+        let endpoint = FetchSetsEndpoint(
+            limit: limit,
+            offset: offset,
+            date: date,
+            exerciseId: exerciseId,
+            sortBy: sortBy,
+            customHeaders: headers
+        )
+        let workoutSetDTOs = try await networkClient.sendRequest(endpoint: endpoint, decoder: jsonDecoder) as [WorkoutSetDTO]
+        return WorkoutSetMapper.toEntities(workoutSetDTOs)
+    }
+}
+
+// MARK: - Set Endpoints
+
+private struct CreateSetEndpoint: Endpoint {
+    let createDTO: SetCreateDTO
+    var customHeaders: [String: String]?
+    let encoder: JSONEncoder
+
+    var path: String { "/sets" }
+    var method: HTTPMethod { .post }
+    var body: Data? {
+        try? encoder.encode(createDTO)
+    }
+    var headers: [String: String]? { customHeaders }
+}
+
+private struct UpdateSetEndpoint: Endpoint {
+    let setId: UUID
+    let updateDTO: SetUpdateDTO
+    var customHeaders: [String: String]?
+    let encoder: JSONEncoder
+
+    var path: String { "/sets/\(setId.uuidString)" }
+    var method: HTTPMethod { .patch }
+    var body: Data? {
+        try? encoder.encode(updateDTO)
+    }
+    var headers: [String: String]? { customHeaders }
+}
+
+private struct DeleteSetEndpoint: Endpoint {
+    let setId: UUID
+    var customHeaders: [String: String]?
+
+    var path: String { "/sets/\(setId.uuidString)" }
+    var method: HTTPMethod { .delete }
+    var headers: [String: String]? { customHeaders }
+}
+
+private struct FetchSetsEndpoint: Endpoint {
+    let limit: Int
+    let offset: Int
+    let date: String?
+    let exerciseId: UUID?
+    let sortBy: String?
+    var customHeaders: [String: String]?
+
+    var path: String { "/sets" }
+    var method: HTTPMethod { .get }
+    var parameters: [String: Any]? {
+        var params: [String: Any] = [
+            "limit": String(limit),
+            "offset": String(offset)
+        ]
+        if let date = date {
+            params["date"] = date
+        }
+        if let exerciseId = exerciseId {
+            params["exerciseId"] = exerciseId.uuidString
+        }
+        if let sortBy = sortBy {
+            params["sortBy"] = sortBy
+        }
+        return params
+    }
+    var headers: [String: String]? { customHeaders }
+}

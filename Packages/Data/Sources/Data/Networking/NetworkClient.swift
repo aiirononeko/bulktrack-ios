@@ -44,10 +44,36 @@ public struct NetworkClient: NetworkClientProtocol {
             // including its dateDecodingStrategy.
             // APIService, for example, passes a decoder already configured with .iso8601.
 
+            // ===== ここから追加 =====
+            if let urlString = urlRequest.url?.absoluteString {
+                print("[NetworkClient] Request URL: \(urlString)")
+            }
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("[NetworkClient] Raw response data: \(responseString)")
+            } else {
+                print("[NetworkClient] Raw response data: Could not decode data as UTF-8 string. Data length: \(data.count) bytes.")
+            }
+            // ===== ここまで追加 =====
+            
             return try decoder.decode(T.self, from: data)
         } catch let error as APIError {
             throw error
         } catch let error as DecodingError {
+            print("[NetworkClient] DecodingError occurred:")
+            print("[NetworkClient] \(error.localizedDescription)")
+            // より詳細なエラー情報を得るために、エラーの各ケースを調べることもできます。
+            switch error {
+            case .typeMismatch(let type, let context):
+                print("[NetworkClient] TypeMismatch: \(type), Context: \(context.codingPath.map { $0.stringValue }.joined(separator: ".")) - \(context.debugDescription)")
+            case .valueNotFound(let type, let context):
+                print("[NetworkClient] ValueNotFound: \(type), Context: \(context.codingPath.map { $0.stringValue }.joined(separator: ".")) - \(context.debugDescription)")
+            case .keyNotFound(let key, let context):
+                print("[NetworkClient] KeyNotFound: \(key.stringValue), Context: \(context.codingPath.map { $0.stringValue }.joined(separator: ".")) - \(context.debugDescription)")
+            case .dataCorrupted(let context):
+                print("[NetworkClient] DataCorrupted: Context: \(context.codingPath.map { $0.stringValue }.joined(separator: ".")) - \(context.debugDescription)")
+            @unknown default:
+                print("[NetworkClient] Unknown DecodingError")
+            }
             throw APIError.decodingError(error)
         } catch {
             throw APIError.requestFailed(error)
