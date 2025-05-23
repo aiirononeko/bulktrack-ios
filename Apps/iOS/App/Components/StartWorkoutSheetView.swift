@@ -3,6 +3,7 @@ import Domain // ExerciseEntity を使用するため
 
 struct StartWorkoutSheetView: View {
     @Environment(\.dismiss) var dismiss
+    var onExerciseSelected: (ExerciseEntity) -> Void // 親Viewに選択されたエクササイズを通知するコールバック
     @StateObject var viewModel: StartWorkoutSheetViewModel // ViewModel を StateObject として保持
     @State private var selectedTab: Int = 0
     @State private var searchText: String = ""
@@ -123,9 +124,9 @@ struct StartWorkoutSheetView: View {
                         ForEach(exercises) { exercise in
                             ExerciseCardView(exercise: exercise)
                                 .onTapGesture {
-                                    // カードタップでキーボードを閉じる
-                                    isSearchFieldFocused.wrappedValue = false
-                                    // TODO: 種目選択時の処理をここに追加
+                                    isSearchFieldFocused.wrappedValue = false // キーボードを閉じる
+                                    onExerciseSelected(exercise) // 選択されたエクササイズを通知
+                                    dismiss() // シートを閉じる
                                 }
                         }
                     }

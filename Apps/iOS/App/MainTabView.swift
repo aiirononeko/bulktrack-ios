@@ -1,4 +1,5 @@
 import SwiftUI
+import Domain // ExerciseEntity を使用するため
 
 enum Tab: Hashable {
     case home
@@ -13,7 +14,9 @@ struct MainTabView: View {
 
     @State private var selectedTab: Tab = .home
     @State private var previousSelectedTab: Tab = .home // 直前のタブを保持
-    @State private var showingAddSheet = false // シート表示用の状態変数
+    @State private var showingAddSheet = false // 「トレーニング開始」シートの表示状態
+    @State private var showingWorkoutLogView = false // 筋トレ記録画面の表示状態
+    @State private var selectedExerciseForLog: ExerciseEntity? // 選択されたエクササイズ
 
     private let diContainer = DIContainer.shared
 
@@ -82,9 +85,33 @@ struct MainTabView: View {
 
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .sheet(isPresented: $showingAddSheet) {
-            StartWorkoutSheetView(viewModel: diContainer.makeStartWorkoutSheetViewModel())
-                .presentationDetents([.medium])
+        .sheet(isPresented: $showingAddSheet, onDismiss: {
+            // シートが閉じた後、もしselectedExerciseForLogがあればWorkoutLogViewを表示
+            if selectedExerciseForLog != nil {
+                showingWorkoutLogView = true
+            }
+        }) {
+            StartWorkoutSheetView(
+                onExerciseSelected: { exercise in
+                    self.selectedExerciseForLog = exercise
+                    // showingAddSheetは自動的にfalseになるので、ここでは何もしない
+                },
+                viewModel: diContainer.makeStartWorkoutSheetViewModel()
+            )
+            .presentationDetents([.medium])
+        }
+        .fullScreenCover(isPresented: $showingWorkoutLogView, onDismiss: {
+            // WorkoutLogViewが閉じられたら、StartWorkoutSheetを再表示
+            selectedExerciseForLog = nil // 念のためクリア
+            showingAddSheet = true
+        }) {
+            if let exercise = selectedExerciseForLog {
+                WorkoutLogView(exerciseName: exercise.name, exerciseId: exercise.id.uuidString)
+            } else {
+                // エラーケースまたは予期せぬ状態。本来ここには来ないはず。
+                // 必要であればエラーハンドリングやデフォルトビューを表示
+                Text("エラー: 表示する種目がありません。")
+            }
         }
         .onAppear {
             updateTabBarAppearance(colorScheme: colorScheme)
