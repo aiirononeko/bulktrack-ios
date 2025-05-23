@@ -4,6 +4,7 @@ import Domain
 struct WorkoutLogView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel: WorkoutLogViewModel
+    @StateObject private var timerViewModel: IntervalTimerViewModel
     @FocusState private var focusedField: Field?
     @State private var showRPEHelp = false
     
@@ -13,9 +14,10 @@ struct WorkoutLogView: View {
         case weight, reps, rpe
     }
     
-    init(exerciseName: String, exerciseId: UUID, createSetUseCase: CreateSetUseCaseProtocol) {
+    init(exerciseName: String, exerciseId: UUID, createSetUseCase: CreateSetUseCaseProtocol, timerViewModel: IntervalTimerViewModel) {
         self.exerciseName = exerciseName
         self._viewModel = StateObject(wrappedValue: WorkoutLogViewModel(exerciseId: exerciseId, createSetUseCase: createSetUseCase))
+        self._timerViewModel = StateObject(wrappedValue: timerViewModel)
     }
 
     var body: some View {
@@ -24,8 +26,8 @@ struct WorkoutLogView: View {
                 // メイン入力フォーム
                 ScrollView {
                     VStack(spacing: 24) {
-                        // 重量とレップ数の横並びフォーム
-                        HStack(spacing: 16) {
+                        // 重量・回数・RPEの横並びフォーム
+                        HStack(spacing: 12) {
                             InputField(
                                 title: "重量 (kg)",
                                 text: $viewModel.weight,
@@ -41,45 +43,30 @@ struct WorkoutLogView: View {
                                 focused: $focusedField,
                                 field: .reps
                             )
-                        }
-                        
-                        // RPE入力（ヘルプ付き）
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("RPE")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                
-                                Button(action: {
-                                    showRPEHelp = true
-                                }) {
-                                    Image(systemName: "questionmark.circle")
-                                        .foregroundColor(.blue)
+                            
+                            // RPE入力（ヘルプ付き）
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("RPE")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                    
+                                    Button(action: {
+                                        showRPEHelp = true
+                                    }) {
+                                        Image(systemName: "questionmark.circle")
+                                            .foregroundColor(.blue)
+                                    }
                                 }
                                 
-                                Spacer()
+                                TextField("1〜10", text: $viewModel.rpe)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .keyboardType(.decimalPad)
+                                    .focused($focusedField, equals: .rpe)
+                                    .multilineTextAlignment(.center)
+                                    .font(.title2)
                             }
-                            
-                            TextField("1〜10で評価", text: $viewModel.rpe)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.decimalPad)
-                                .focused($focusedField, equals: .rpe)
                         }
-                        
-//                        // メモ入力
-//                        VStack(alignment: .leading, spacing: 8) {
-//                            HStack {
-//                                Text("メモ（任意）")
-//                                    .font(.headline)
-//                                    .foregroundColor(.primary)
-//                                Spacer()
-//                            }
-//                            
-//                            TextField("メモを入力", text: $viewModel.memo, axis: .vertical)
-//                                .textFieldStyle(RoundedBorderTextFieldStyle())
-//                                .lineLimit(3...6)
-//                                .focused($focusedField, equals: .memo)
-//                        }
                         
                         // エラーメッセージ
                         if let errorMessage = viewModel.errorMessage {
@@ -152,7 +139,55 @@ struct WorkoutLogView: View {
             } message: {
                 Text("セットが正常に登録されました")
             }
+            .overlay(
+                // タイマーUI（右上にオーバーレイ）
+                timerOverlay,
+                alignment: .topTrailing
+            )
         }
+    }
+    
+    @ViewBuilder
+    private var timerOverlay: some View {
+        VStack(alignment: .trailing, spacing: 0) {
+            HStack(spacing: 0) {
+                // 展開時のタイマーパネル
+                if timerViewModel.uiState.isExpanded {
+                    IntervalTimerPanel(
+                        timerState: timerViewModel.timerState,
+                        onToggleTimer: {
+                            timerViewModel.toggleTimer()
+                        },
+                        onResetTimer: {
+                            timerViewModel.resetTimer()
+                        },
+                        onAdjustTimer: { minutes in
+                            timerViewModel.adjustTimer(minutes: minutes)
+                        },
+                        onClose: {
+                            timerViewModel.onTimerButtonTapped()
+                        }
+                    )
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .trailing).combined(with: .opacity)
+                    ))
+                }
+                
+                // タイマーボタン（常時表示）
+                IntervalTimerButton(
+                    timerState: timerViewModel.timerState,
+                    uiState: timerViewModel.uiState,
+                    onTap: {
+                        timerViewModel.onTimerButtonTapped()
+                    }
+                )
+            }
+            
+            Spacer()
+        }
+        .padding(.top, 8)
+        .padding(.trailing, 16)
     }
 }
 

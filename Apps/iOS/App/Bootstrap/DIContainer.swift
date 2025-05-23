@@ -36,6 +36,11 @@ final class DIContainer {
     let fetchRecentExercisesUseCase: FetchRecentExercisesUseCaseProtocol
     let fetchAllExercisesUseCase: FetchAllExercisesUseCaseProtocol
     let createSetUseCase: CreateSetUseCaseProtocol
+    
+    // MARK: - Timer Use Cases
+    let intervalTimerUseCase: IntervalTimerUseCaseProtocol
+    let timerNotificationUseCase: TimerNotificationUseCaseProtocol
+    
     let appInitializer: AppInitializer
 
     private init() {
@@ -91,6 +96,13 @@ final class DIContainer {
         self.fetchAllExercisesUseCase = FetchAllExercisesUseCase(exerciseRepository: cachedExerciseRepository)
         self.createSetUseCase = CreateSetUseCase(setRepository: apiServiceInstance)
         
+        // 8.1. Initialize Timer UseCases
+        self.timerNotificationUseCase = TimerNotificationUseCase()
+        self.intervalTimerUseCase = IntervalTimerUseCase(
+            initialState: .defaultTimer(),
+            notificationUseCase: self.timerNotificationUseCase
+        )
+        
         // 9. Initialize WCSessionRelay with the cached ExerciseRepository
         self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
 
@@ -117,10 +129,21 @@ final class DIContainer {
     }
     
     func makeWorkoutLogView(exerciseName: String, exerciseId: UUID) -> WorkoutLogView {
-        WorkoutLogView(
+        let timerViewModel = makeIntervalTimerViewModel(exerciseId: exerciseId)
+        
+        return WorkoutLogView(
             exerciseName: exerciseName,
             exerciseId: exerciseId,
-            createSetUseCase: createSetUseCase
+            createSetUseCase: createSetUseCase,
+            timerViewModel: timerViewModel
+        )
+    }
+    
+    func makeIntervalTimerViewModel(exerciseId: UUID? = nil) -> IntervalTimerViewModel {
+        IntervalTimerViewModel(
+            intervalTimerUseCase: intervalTimerUseCase,
+            notificationUseCase: timerNotificationUseCase,
+            exerciseId: exerciseId
         )
     }
 }
