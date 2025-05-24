@@ -7,6 +7,7 @@ struct WorkoutLogView: View {
     @StateObject private var globalTimerViewModel: GlobalTimerViewModel
     @FocusState private var focusedField: Field?
     @State private var showRPEHelp = false
+    @State private var showTimerControls = false
     
     let exercise: ExerciseEntity
     
@@ -113,69 +114,93 @@ struct WorkoutLogView: View {
                                     .multilineTextAlignment(.center)
                             }
                             
-                            Spacer(minLength: 100) // キーボード分の余白
+                            Spacer(minLength: 120) // キーボード + ボタン分の余白
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
                     }
                     
-                    // セット登録ボタン（下部固定）
+                    // 下部ボタンエリア
                     VStack(spacing: 12) {
-                        Divider()
-                        
-                        Button(action: {
-                            Task {
-                                await viewModel.saveSet()
-                                // セット登録完了後、タイマーを開始
-                                if viewModel.showSuccessAlert {
-                                    print("[WorkoutLogView] Set saved, starting timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
-                                    // セット登録時にExerciseEntityを設定
+                        // タイマー操作パネル（展開時のみ表示）
+                        if showTimerControls {
+                            TimerControlPanel(
+                                timerState: globalTimerViewModel.displayTimerState,
+                                onToggleTimer: {
+                                    print("[WorkoutLogView] Toggle timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
                                     globalTimerViewModel.setCurrentExercise(exercise)
-                                    globalTimerViewModel.startTimer(duration: 180)
+                                    globalTimerViewModel.toggleTimer()
+                                },
+                                onResetTimer: {
+                                    globalTimerViewModel.resetTimer()
+                                },
+                                onAdjustTimer: { minutes in
+                                    globalTimerViewModel.adjustTimer(minutes: minutes)
+                                },
+                                onClose: {
+                                    withAnimation {
+                                        showTimerControls = false
+                                    }
                                 }
-                            }
-                        }) {
-                            HStack {
-                                if viewModel.isLoading {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        .scaleEffect(0.8)
-                                }
-                                
-                                Text(viewModel.isLoading ? "登録中..." : "セットを登録")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.primary)
-                            .cornerRadius(12)
+                            )
+                            .transition(.asymmetric(
+                                insertion: .scale.combined(with: .opacity),
+                                removal: .scale.combined(with: .opacity)
+                            ))
+                            .padding(.horizontal, 20)
                         }
-                        .disabled(viewModel.isLoading)
+                        
+                        // セット登録ボタンとタイマーボタン（横並び）
+                        HStack(spacing: 12) {
+                            // セット登録ボタン
+                            Button(action: {
+                                Task {
+                                    await viewModel.saveSet()
+                                    // セット登録完了後、タイマーを開始
+                                    if viewModel.showSuccessAlert {
+                                        print("[WorkoutLogView] Set saved, starting timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
+                                        // セット登録時にExerciseEntityを設定
+                                        globalTimerViewModel.setCurrentExercise(exercise)
+                                        globalTimerViewModel.startTimer(duration: 180)
+                                    }
+                                }
+                            }) {
+                                HStack {
+                                    if viewModel.isLoading {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(0.8)
+                                    }
+                                    
+                                    Text(viewModel.isLoading ? "登録中..." : "セットを登録")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(Color.primary)
+                                .cornerRadius(12)
+                            }
+                            .disabled(viewModel.isLoading)
+                            
+                            // タイマーボタン
+                            TimerButton(
+                                timerState: globalTimerViewModel.displayTimerState,
+                                onTap: {
+                                    withAnimation {
+                                        showTimerControls.toggle()
+                                    }
+                                }
+                            )
+                        }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                     }
                     .background(Color(.systemBackground))
                 }
-                
-                // フローティングタイマーボタン
-                FloatingTimerButton(
-                    timerState: globalTimerViewModel.displayTimerState,
-                    onToggleTimer: {
-                        print("[WorkoutLogView] Toggle timer button pressed - Exercise: \(exercise.name) (ID: \(exercise.id))")
-                        // タイマー手動スタート時にExerciseEntityを設定
-                        globalTimerViewModel.setCurrentExercise(exercise)
-                        globalTimerViewModel.toggleTimer()
-                    },
-                    onResetTimer: {
-                        globalTimerViewModel.resetTimer()
-                    },
-                    onAdjustTimer: { minutes in
-                        globalTimerViewModel.adjustTimer(minutes: minutes)
-                    }
-                )
             }
             .navigationBarHidden(true)
+            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showTimerControls)
             .onAppear {
                 // 最初のフィールドにフォーカス
                 focusedField = .weight

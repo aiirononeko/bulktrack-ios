@@ -1,71 +1,80 @@
 import SwiftUI
 import Domain
 
-/// フローティングタイマーボタン
-/// 画面右下に固定表示され、タップで操作パネルを展開
-struct FloatingTimerButton: View {
+/// シンプルなタイマーボタン（操作パネルは外部管理）
+/// セット登録ボタンの横に配置される通常のボタン
+struct TimerButton: View {
+    let timerState: TimerState
+    let onTap: () -> Void
+    
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 4) {
+                Image(systemName: timerIconName)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            .frame(width: 56, height: 50)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(mainButtonBackgroundColor)
+            )
+        }
+    }
+}
+
+// MARK: - Computed Properties
+private extension TimerButton {
+    var mainButtonBackgroundColor: Color {
+        switch timerState.status {
+        case .running:
+            return .yellow
+        case .completed:
+            return .orange
+        case .idle, .paused:
+            return .black
+        }
+    }
+    
+    var timerIconName: String {
+        switch timerState.status {
+        case .completed:
+            return "checkmark.circle.fill"
+        default:
+            return "timer"
+        }
+    }
+}
+
+// MARK: - Timer Control Panel Component
+struct TimerControlPanel: View {
     let timerState: TimerState
     let onToggleTimer: () -> Void
     let onResetTimer: () -> Void
     let onAdjustTimer: (Int) -> Void
-    
-    @State private var isExpanded = false
-    @Environment(\.colorScheme) var colorScheme
+    let onClose: () -> Void
     
     var body: some View {
-        VStack {
-            Spacer()
-            
-            HStack {
-                Spacer()
-                
-                if isExpanded {
-                    // 展開時の操作パネル
-                    timerControlPanel
-                        .transition(.asymmetric(
-                            insertion: .scale.combined(with: .opacity),
-                            removal: .scale.combined(with: .opacity)
-                        ))
-                } else {
-                    // 縮小時のメインボタン
-                    mainTimerButton
-                        .transition(.asymmetric(
-                            insertion: .scale.combined(with: .opacity),
-                            removal: .scale.combined(with: .opacity)
-                        ))
-                }
-            }
-            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isExpanded)
-        }
-        .padding(.trailing, 20)
-        .padding(.bottom, 100) // セット登録ボタンより上に配置
-    }
-}
-
-// MARK: - Timer Control Panel
-private extension FloatingTimerButton {
-    var timerControlPanel: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             // 時間調整ボタン（-1分）
             adjustButton(minutes: -1, icon: "minus", isDisabled: shouldDisableAdjustButtons || timerState.duration <= 60)
             
             // 再生/一時停止ボタン
             Button(action: onToggleTimer) {
                 Image(systemName: playPauseIcon)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
-                    .frame(width: 56, height: 56)
+                    .frame(width: 50, height: 50)
                     .background(
                         Circle()
                             .fill(playPauseBackgroundColor)
-                            .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 2)
+                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                     )
             }
             .scaleEffect(timerState.isActive ? 1.0 : 0.95)
             .animation(.spring(response: 0.3), value: timerState.isActive)
-            
-            // 時間調整ボタン（+1分）
-            adjustButton(minutes: 1, icon: "plus", isDisabled: shouldDisableAdjustButtons)
             
             // リセットボタン
             Button(action: onResetTimer) {
@@ -81,12 +90,13 @@ private extension FloatingTimerButton {
             }
             .disabled(shouldDisableResetButton)
             
+            // 時間調整ボタン（+1分）
+            adjustButton(minutes: 1, icon: "plus", isDisabled: shouldDisableAdjustButtons)
+            
+            Spacer()
+            
             // 閉じるボタン
-            Button(action: {
-                withAnimation {
-                    isExpanded = false
-                }
-            }) {
+            Button(action: onClose) {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white)
@@ -98,8 +108,8 @@ private extension FloatingTimerButton {
                     )
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(.ultraThinMaterial)
@@ -130,41 +140,8 @@ private extension FloatingTimerButton {
     }
 }
 
-// MARK: - Main Timer Button
-private extension FloatingTimerButton {
-    var mainTimerButton: some View {
-        Button(action: {
-            withAnimation {
-                isExpanded = true
-            }
-        }) {
-            VStack(spacing: 4) {
-                Image(systemName: timerIconName)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.white)
-            }
-            .frame(width: 56, height: 56)
-            .background(
-                Circle()
-                    .fill(mainButtonBackgroundColor)
-            )
-        }
-    }
-}
-
-// MARK: - Computed Properties
-private extension FloatingTimerButton {
-    var mainButtonBackgroundColor: Color {
-        switch timerState.status {
-        case .running:
-            return .yellow
-        case .completed:
-            return .orange
-        case .idle, .paused:
-            return .black
-        }
-    }
-    
+// MARK: - Timer Control Panel Computed Properties
+private extension TimerControlPanel {
     var buttonBackgroundColor: Color {
         switch timerState.status {
         case .running:
@@ -173,28 +150,6 @@ private extension FloatingTimerButton {
             return .orange.opacity(0.8)
         case .idle, .paused:
             return .gray.opacity(0.6)
-        }
-    }
-    
-    var timerIconName: String {
-        switch timerState.status {
-        case .completed:
-            return "checkmark.circle.fill"
-        default:
-            return "timer"
-        }
-    }
-    
-    var statusColor: Color {
-        switch timerState.status {
-        case .running:
-            return .yellow
-        case .paused:
-            return .orange
-        case .completed:
-            return .white
-        case .idle:
-            return .white.opacity(0.6)
         }
     }
     
@@ -230,13 +185,20 @@ private extension FloatingTimerButton {
 }
 
 // MARK: - Preview
-struct FloatingTimerButton_Previews: PreviewProvider {
+struct TimerButton_Previews: PreviewProvider {
     static var previews: some View {
-        ZStack {
-            Color.gray.opacity(0.1)
-                .ignoresSafeArea()
+        VStack(spacing: 20) {
+            TimerButton(
+                timerState: TimerState(
+                    duration: 180,
+                    remainingTime: 120,
+                    status: .running,
+                    shouldPersistAfterCompletion: false
+                ),
+                onTap: {}
+            )
             
-            FloatingTimerButton(
+            TimerControlPanel(
                 timerState: TimerState(
                     duration: 180,
                     remainingTime: 120,
@@ -245,8 +207,13 @@ struct FloatingTimerButton_Previews: PreviewProvider {
                 ),
                 onToggleTimer: {},
                 onResetTimer: {},
-                onAdjustTimer: { _ in }
+                onAdjustTimer: { _ in },
+                onClose: {}
             )
+            
+            Spacer()
         }
+        .padding()
+        .background(Color(.systemBackground))
     }
 }
