@@ -34,9 +34,132 @@ struct WorkoutLogView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // タイマーバナー（上部固定）
-                TimerBannerView(
+            ZStack {
+                VStack(spacing: 0) {
+                    // カスタムナビゲーションバー（シンプル版）
+                    WorkoutNavigationBarView(
+                        exerciseName: exercise.name,
+                        timerState: globalTimerViewModel.displayTimerState,
+                        onDismiss: {
+                            dismiss()
+                        }
+                    )
+                    
+                    // メインコンテンツ
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // 前回・今回記録表示エリア
+                            WorkoutHistorySection(
+                                previousWorkout: viewModel.previousWorkout,
+                                todaysSets: viewModel.todaysSets,
+                                todaysVolume: viewModel.todaysVolume,
+                                previousVolume: viewModel.previousVolume,
+                                isLoadingHistory: viewModel.isLoadingHistory
+                            )
+                            
+                            // 重量・回数・RPEの横並びフォーム
+                            VStack(spacing: 16) {
+                                Text("新しいセットを記録")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                HStack(spacing: 12) {
+                                    InputField(
+                                        title: "重量 (kg)",
+                                        text: $viewModel.weight,
+                                        keyboardType: .decimalPad,
+                                        focused: $focusedField,
+                                        field: .weight
+                                    )
+                                    
+                                    InputField(
+                                        title: "回数",
+                                        text: $viewModel.reps,
+                                        keyboardType: .numberPad,
+                                        focused: $focusedField,
+                                        field: .reps
+                                    )
+                                    
+                                    // RPE入力（ヘルプ付き）
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            Text("RPE")
+                                                .font(.headline)
+                                                .foregroundColor(.primary)
+                                            
+                                            Button(action: {
+                                                showRPEHelp = true
+                                            }) {
+                                                Image(systemName: "questionmark.circle")
+                                                    .foregroundColor(.blue)
+                                            }
+                                        }
+                                        
+                                        TextField("1〜10", text: $viewModel.rpe)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .keyboardType(.decimalPad)
+                                            .focused($focusedField, equals: .rpe)
+                                            .multilineTextAlignment(.center)
+                                            .font(.title2)
+                                    }
+                                }
+                            }
+                            
+                            // エラーメッセージ
+                            if let errorMessage = viewModel.errorMessage {
+                                Text(errorMessage)
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .multilineTextAlignment(.center)
+                            }
+                            
+                            Spacer(minLength: 100) // キーボード分の余白
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                    }
+                    
+                    // セット登録ボタン（下部固定）
+                    VStack(spacing: 12) {
+                        Divider()
+                        
+                        Button(action: {
+                            Task {
+                                await viewModel.saveSet()
+                                // セット登録完了後、タイマーを開始
+                                if viewModel.showSuccessAlert {
+                                    print("[WorkoutLogView] Set saved, starting timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
+                                    // セット登録時にExerciseEntityを設定
+                                    globalTimerViewModel.setCurrentExercise(exercise)
+                                    globalTimerViewModel.startTimer(duration: 180)
+                                }
+                            }
+                        }) {
+                            HStack {
+                                if viewModel.isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(0.8)
+                                }
+                                
+                                Text(viewModel.isLoading ? "登録中..." : "セットを登録")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.primary)
+                            .cornerRadius(12)
+                        }
+                        .disabled(viewModel.isLoading)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                    }
+                    .background(Color(.systemBackground))
+                }
+                
+                // フローティングタイマーボタン
+                FloatingTimerButton(
                     timerState: globalTimerViewModel.displayTimerState,
                     onToggleTimer: {
                         print("[WorkoutLogView] Toggle timer button pressed - Exercise: \(exercise.name) (ID: \(exercise.id))")
@@ -51,131 +174,8 @@ struct WorkoutLogView: View {
                         globalTimerViewModel.adjustTimer(minutes: minutes)
                     }
                 )
-                
-                // メインコンテンツ
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // 前回・今回記録表示エリア
-                        WorkoutHistorySection(
-                            previousWorkout: viewModel.previousWorkout,
-                            todaysSets: viewModel.todaysSets,
-                            todaysVolume: viewModel.todaysVolume,
-                            previousVolume: viewModel.previousVolume,
-                            isLoadingHistory: viewModel.isLoadingHistory
-                        )
-                        
-                        // 重量・回数・RPEの横並びフォーム
-                        VStack(spacing: 16) {
-                            Text("新しいセットを記録")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            HStack(spacing: 12) {
-                                InputField(
-                                    title: "重量 (kg)",
-                                    text: $viewModel.weight,
-                                    keyboardType: .decimalPad,
-                                    focused: $focusedField,
-                                    field: .weight
-                                )
-                                
-                                InputField(
-                                    title: "回数",
-                                    text: $viewModel.reps,
-                                    keyboardType: .numberPad,
-                                    focused: $focusedField,
-                                    field: .reps
-                                )
-                                
-                                // RPE入力（ヘルプ付き）
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("RPE")
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                        
-                                        Button(action: {
-                                            showRPEHelp = true
-                                        }) {
-                                            Image(systemName: "questionmark.circle")
-                                                .foregroundColor(.blue)
-                                        }
-                                    }
-                                    
-                                    TextField("1〜10", text: $viewModel.rpe)
-                                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                                        .keyboardType(.decimalPad)
-                                        .focused($focusedField, equals: .rpe)
-                                        .multilineTextAlignment(.center)
-                                        .font(.title2)
-                                }
-                            }
-                        }
-                        
-                        // エラーメッセージ
-                        if let errorMessage = viewModel.errorMessage {
-                            Text(errorMessage)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        Spacer(minLength: 100) // キーボード分の余白
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                }
-                
-                // セット登録ボタン（下部固定）
-                VStack(spacing: 12) {
-                    Divider()
-                    
-                    Button(action: {
-                        Task {
-                            await viewModel.saveSet()
-                            // セット登録完了後、タイマーを開始
-                            if viewModel.showSuccessAlert {
-                                print("[WorkoutLogView] Set saved, starting timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
-                                // セット登録時にExerciseEntityを設定
-                                globalTimerViewModel.setCurrentExercise(exercise)
-                                globalTimerViewModel.startTimer(duration: 180)
-                            }
-                        }
-                    }) {
-                        HStack {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            }
-                            
-                            Text(viewModel.isLoading ? "登録中..." : "セットを登録")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.primary)
-                        .cornerRadius(12)
-                    }
-                    .disabled(viewModel.isLoading)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
-                }
-                .background(Color(.systemBackground))
             }
-            .navigationTitle(exercise.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark")
-                            .foregroundColor(.primary)
-                    }
-                }
-            }
+            .navigationBarHidden(true)
             .onAppear {
                 // 最初のフィールドにフォーカス
                 focusedField = .weight
