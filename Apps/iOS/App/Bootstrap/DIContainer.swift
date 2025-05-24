@@ -27,6 +27,7 @@ final class DIContainer {
     let exerciseCacheRepository: ExerciseCacheRepositoryProtocol
     let recentExerciseCacheRepository: RecentExerciseCacheRepositoryProtocol
     let cacheInvalidationService: CacheInvalidationServiceProtocol
+    let workoutHistoryRepository: WorkoutHistoryRepository
     
     // MARK: - Use Cases
     let activateDeviceUseCase: ActivateDeviceUseCaseProtocol
@@ -36,6 +37,10 @@ final class DIContainer {
     let fetchRecentExercisesUseCase: FetchRecentExercisesUseCaseProtocol
     let fetchAllExercisesUseCase: FetchAllExercisesUseCaseProtocol
     let createSetUseCase: CreateSetUseCaseProtocol
+    
+    // MARK: - Workout History Use Cases
+    let getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol
+    let saveWorkoutSetUseCase: SaveWorkoutSetUseCaseProtocol
     
     // MARK: - Timer Use Cases
     let intervalTimerUseCase: IntervalTimerUseCaseProtocol
@@ -67,6 +72,9 @@ final class DIContainer {
             exerciseCacheRepository: self.exerciseCacheRepository,
             recentExerciseCacheRepository: self.recentExerciseCacheRepository
         )
+        
+        // 3.1. Initialize workout history repository
+        self.workoutHistoryRepository = CoreDataWorkoutHistoryRepository(persistentContainer: self.persistentContainer)
 
         // 4. Create the APIService instance first, with accessTokenProvider initially nil.
         let apiServiceInstance = APIService(
@@ -103,14 +111,21 @@ final class DIContainer {
         self.fetchAllExercisesUseCase = FetchAllExercisesUseCase(exerciseRepository: cachedExerciseRepository)
         self.createSetUseCase = CreateSetUseCase(setRepository: apiServiceInstance)
         
-        // 8.1. Initialize Timer UseCases
+        // 8.1. Initialize Workout History UseCases
+        self.getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(workoutHistoryRepository: self.workoutHistoryRepository)
+        self.saveWorkoutSetUseCase = SaveWorkoutSetUseCase(
+            setRepository: apiServiceInstance,
+            workoutHistoryRepository: self.workoutHistoryRepository
+        )
+        
+        // 8.2. Initialize Timer UseCases
         self.timerNotificationUseCase = TimerNotificationUseCase()
         self.intervalTimerUseCase = IntervalTimerUseCase(
             initialState: .defaultTimer(),
             notificationUseCase: self.timerNotificationUseCase
         )
         
-        // 8.2. Initialize Global Timer Service
+        // 8.3. Initialize Global Timer Service
         self.globalTimerService = GlobalTimerService(
             intervalTimerUseCase: self.intervalTimerUseCase,
             notificationUseCase: self.timerNotificationUseCase
@@ -144,7 +159,8 @@ final class DIContainer {
     func makeWorkoutLogView(exercise: ExerciseEntity) -> WorkoutLogView {
         return WorkoutLogView(
             exercise: exercise,
-            createSetUseCase: createSetUseCase,
+            saveWorkoutSetUseCase: saveWorkoutSetUseCase,
+            getWorkoutHistoryUseCase: getWorkoutHistoryUseCase,
             globalTimerViewModel: _globalTimerViewModel // シングルトンインスタンスを使用
         )
     }

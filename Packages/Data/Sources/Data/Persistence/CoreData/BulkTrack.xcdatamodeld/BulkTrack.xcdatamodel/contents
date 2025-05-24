@@ -14,6 +14,17 @@
         <attribute name="name" attributeType="String"/>
         <attribute name="useCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
+    <entity name="LocalWorkoutSetEntity" representedClassName="LocalWorkoutSetEntity" syncable="YES">
+        <attribute name="exerciseId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="exerciseName" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="performedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="reps" attributeType="Integer 32" usesScalarValueType="YES"/>
+        <attribute name="rpe" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="setNumber" attributeType="Integer 32" usesScalarValueType="YES"/>
+        <attribute name="weight" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="workoutDate" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
     <entity name="RecentExerciseCacheEntity" representedClassName="RecentExerciseCacheEntity" syncable="YES">
         <attribute name="cachedAt" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>

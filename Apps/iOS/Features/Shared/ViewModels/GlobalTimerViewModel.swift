@@ -22,6 +22,10 @@ final class GlobalTimerViewModel: ObservableObject {
     // MARK: - Computed Properties
     var hasActiveTimer: Bool {
         guard let timer = timerState else { return false }
+        // 完了状態で表示継続が有効な場合も含める
+        if timer.status == .completed && timer.shouldPersistAfterCompletion {
+            return true
+        }
         return timer.status == .running || timer.status == .paused
     }
     
@@ -175,7 +179,7 @@ private extension GlobalTimerViewModel {
         }
         
         if let state = newTimerState {
-            print("[GlobalTimerViewModel-\(instanceId)] Timer state updated: \(state.status), remaining: \(state.formattedRemainingTime)")
+            print("[GlobalTimerViewModel-\(instanceId)] Timer state updated: \(state.status), remaining: \(state.formattedRemainingTime), shouldPersist: \(state.shouldPersistAfterCompletion)")
         } else {
             print("[GlobalTimerViewModel-\(instanceId)] Timer cleared")
         }

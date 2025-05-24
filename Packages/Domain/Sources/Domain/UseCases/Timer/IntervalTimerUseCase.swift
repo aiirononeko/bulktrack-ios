@@ -52,7 +52,8 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
             status: .running,
             exerciseId: currentTimerState.exerciseId,
             startedAt: Date(),
-            pausedAt: nil
+            pausedAt: nil,
+            shouldPersistAfterCompletion: false
         )
         
         updateState(newState)
@@ -68,7 +69,8 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
             status: .paused,
             exerciseId: currentTimerState.exerciseId,
             startedAt: currentTimerState.startedAt,
-            pausedAt: Date()
+            pausedAt: Date(),
+            shouldPersistAfterCompletion: currentTimerState.shouldPersistAfterCompletion
         )
         
         updateState(newState)
@@ -82,7 +84,8 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
             status: .idle,
             exerciseId: currentTimerState.exerciseId,
             startedAt: nil,
-            pausedAt: nil
+            pausedAt: nil,
+            shouldPersistAfterCompletion: false
         )
         
         updateState(newState)
@@ -108,7 +111,8 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
             status: currentTimerState.status == .completed ? .idle : currentTimerState.status,
             exerciseId: currentTimerState.exerciseId,
             startedAt: currentTimerState.startedAt,
-            pausedAt: currentTimerState.pausedAt
+            pausedAt: currentTimerState.pausedAt,
+            shouldPersistAfterCompletion: false
         )
         
         updateState(newState)
@@ -121,7 +125,8 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
             status: .idle,
             exerciseId: exerciseId,
             startedAt: nil,
-            pausedAt: nil
+            pausedAt: nil,
+            shouldPersistAfterCompletion: false
         )
         
         updateState(newState)
@@ -141,7 +146,8 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
             status: newRemainingTime <= 0 ? .completed : .running,
             exerciseId: currentTimerState.exerciseId,
             startedAt: startedAt,
-            pausedAt: nil
+            pausedAt: nil,
+            shouldPersistAfterCompletion: newRemainingTime <= 0 ? true : false
         )
         
         updateState(newState)
@@ -184,7 +190,8 @@ private extension IntervalTimerUseCase {
             status: newRemainingTime <= 0 ? .completed : .running,
             exerciseId: currentTimerState.exerciseId,
             startedAt: currentTimerState.startedAt,
-            pausedAt: nil
+            pausedAt: nil,
+            shouldPersistAfterCompletion: newRemainingTime <= 0 ? true : false
         )
         
         updateState(newState)
@@ -197,5 +204,18 @@ private extension IntervalTimerUseCase {
     func handleTimerCompletion() {
         stopTimerExecution()
         notificationUseCase.notifyTimerCompletion()
+        
+        // 完了後は表示を継続するためのフラグを設定
+        let completedState = TimerState(
+            duration: currentTimerState.duration,
+            remainingTime: 0,
+            status: .completed,
+            exerciseId: currentTimerState.exerciseId,
+            startedAt: currentTimerState.startedAt,
+            pausedAt: nil,
+            shouldPersistAfterCompletion: true
+        )
+        
+        updateState(completedState)
     }
 }

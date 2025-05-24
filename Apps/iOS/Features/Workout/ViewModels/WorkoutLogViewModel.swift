@@ -18,12 +18,43 @@ final class WorkoutLogViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var showSuccessAlert = false
     
-    private let createSetUseCase: CreateSetUseCaseProtocol
-    private let exerciseId: UUID
+    // Workout History State
+    @Published var previousWorkout: WorkoutHistoryEntity? = nil
+    @Published var todaysSets: [LocalWorkoutSetEntity] = []
+    @Published var isLoadingHistory = false
     
-    init(exerciseId: UUID, createSetUseCase: CreateSetUseCaseProtocol) {
+    private let saveWorkoutSetUseCase: SaveWorkoutSetUseCaseProtocol
+    private let getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol
+    private let exerciseId: UUID
+    private let exerciseName: String
+    
+    init(
+        exerciseId: UUID,
+        exerciseName: String,
+        saveWorkoutSetUseCase: SaveWorkoutSetUseCaseProtocol,
+        getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol
+    ) {
         self.exerciseId = exerciseId
-        self.createSetUseCase = createSetUseCase
+        self.exerciseName = exerciseName
+        self.saveWorkoutSetUseCase = saveWorkoutSetUseCase
+        self.getWorkoutHistoryUseCase = getWorkoutHistoryUseCase
+    }
+    
+    /// 履歴を読み込み
+    func loadWorkoutHistory() async {
+        isLoadingHistory = true
+        
+        let result = await getWorkoutHistoryUseCase.execute(exerciseId: exerciseId)
+        
+        switch result {
+        case .success(let data):
+            previousWorkout = data.previousWorkout
+            todaysSets = data.todaysSets
+        case .failure(let error):
+            print("[WorkoutLogViewModel] Failed to load history: \(error)")
+        }
+        
+        isLoadingHistory = false
     }
     
     /// セット登録処理
@@ -41,12 +72,14 @@ final class WorkoutLogViewModel: ObservableObject {
             performedAt: Date()
         )
         
-        let result = await createSetUseCase.execute(request: request)
+        let result = await saveWorkoutSetUseCase.execute(request: request, exerciseName: exerciseName)
         
         switch result {
         case .success:
             clearForm()
             showSuccessAlert = true
+            // 履歴を再読み込み
+            await loadWorkoutHistory()
         case .failure(let error):
             errorMessage = error.localizedDescription
         }
@@ -93,5 +126,40 @@ final class WorkoutLogViewModel: ObservableObject {
 
         *: RPEを入力していただくことで、トレーニングの強度をより正確に記録できます。
         """
+    }
+    
+    // MARK: - Computed Properties
+    
+    /// 今日のセット数
+    var todaysSetCount: Int {
+        todaysSets.count
+    }
+    
+    /// 前回ワークアウトの表示テキスト
+    var previousWorkoutText: String {
+        guard let previous = previousWorkout else {
+            return "前回の記録はありません"
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        let dateString = formatter.string(from: previous.performedAt)
+        
+        return "\(dateString) - \(previous.sets.count)セット"
+    }
+    
+    /// 今日のボリューム（重量×回数の合計）
+    var todaysVolume: Double {
+        todaysSets.reduce(0) { total, set in
+            total + (set.weight * Double(set.reps))
+        }
+    }
+    
+    /// 前回のボリューム
+    var previousVolume: Double {
+        guard let previous = previousWorkout else { return 0 }
+        return previous.sets.reduce(0) { total, set in
+            total + (set.weight * Double(set.reps))
+        }
     }
 }

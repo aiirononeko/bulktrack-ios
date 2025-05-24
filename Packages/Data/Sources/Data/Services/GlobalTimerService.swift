@@ -47,6 +47,12 @@ public final class GlobalTimerService: GlobalTimerServiceProtocol {
 // MARK: - Public Methods
 public extension GlobalTimerService {
     func startGlobalTimer(duration: TimeInterval, exerciseId: UUID) {
+        // 前のタイマーが完了状態で表示中の場合はクリア
+        if let currentTimer = currentTimerState,
+           currentTimer.status == .completed && currentTimer.shouldPersistAfterCompletion {
+            clearGlobalTimer()
+        }
+        
         // 新しいタイマーを設定
         intervalTimerUseCase.setTimer(duration: duration, exerciseId: exerciseId)
         
@@ -65,8 +71,15 @@ public extension GlobalTimerService {
     }
     
     func resumeGlobalTimer() {
-        guard currentTimerState?.status == .paused else { return }
-        intervalTimerUseCase.startTimer()
+        guard let currentTimer = currentTimerState else { return }
+        
+        // 完了状態から再開する場合は新しいタイマーとして扱う
+        if currentTimer.status == .completed {
+            intervalTimerUseCase.startTimer()
+        } else if currentTimer.status == .paused {
+            intervalTimerUseCase.startTimer()
+        }
+        
         scheduleBackgroundNotification()
         
         print("[GlobalTimerService] Timer resumed")
@@ -101,7 +114,11 @@ public extension GlobalTimerService {
     
     func syncWithCurrentTime() {
         intervalTimerUseCase.syncWithCurrentTime()
-        cancelBackgroundNotification()
+        
+        // 完了状態でない場合のみ通知をキャンセル
+        if let timer = currentTimerState, !timer.shouldPersistAfterCompletion {
+            cancelBackgroundNotification()
+        }
         
         print("[GlobalTimerService] Timer synced with current time")
     }
@@ -148,16 +165,16 @@ private extension GlobalTimerService {
             scheduleBackgroundNotification()
         }
         
-        print("[GlobalTimerService] Timer state updated: \(newTimerState.status), remaining: \(newTimerState.formattedRemainingTime)")
+        print("[GlobalTimerService] Timer state updated: \(newTimerState.status), remaining: \(newTimerState.formattedRemainingTime), shouldPersist: \(newTimerState.shouldPersistAfterCompletion)")
     }
     
     func handleTimerCompletion() {
         cancelBackgroundNotification()
         
-        // 完了後もタイマー状態は保持し、ユーザーが操作できるようにする
-        // 自動的にクリアはしない
+        // 完了後は表示を継続する
+        // shouldPersistAfterCompletionがtrueの場合、ユーザーが明示的にリセットするまで表示し続ける
         
-        print("[GlobalTimerService] Timer completed")
+        print("[GlobalTimerService] Timer completed - will persist display until manual reset")
     }
     
     func setupAppLifecycleObservation() {

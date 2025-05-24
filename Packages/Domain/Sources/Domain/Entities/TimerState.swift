@@ -28,13 +28,17 @@ public struct TimerState: Equatable {
     /// 一時停止時刻（バックグラウンド復帰計算用）
     public let pausedAt: Date?
     
+    /// 完了後も表示を継続するかどうか
+    public let shouldPersistAfterCompletion: Bool
+    
     public init(
         duration: TimeInterval,
         remainingTime: TimeInterval,
         status: TimerStatus,
         exerciseId: UUID? = nil,
         startedAt: Date? = nil,
-        pausedAt: Date? = nil
+        pausedAt: Date? = nil,
+        shouldPersistAfterCompletion: Bool = false
     ) {
         self.duration = duration
         self.remainingTime = remainingTime
@@ -42,6 +46,7 @@ public struct TimerState: Equatable {
         self.exerciseId = exerciseId
         self.startedAt = startedAt
         self.pausedAt = pausedAt
+        self.shouldPersistAfterCompletion = shouldPersistAfterCompletion
     }
 }
 

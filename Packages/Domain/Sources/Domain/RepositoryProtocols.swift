@@ -165,3 +165,24 @@ public protocol SetRepository {
         locale: String?
     ) async throws -> [WorkoutSetEntity]
 }
+
+// MARK: - Workout History Repository
+
+public protocol WorkoutHistoryRepository {
+    /// ローカル保存（同時にクリーンアップ実行）
+    /// - Parameter set: The local workout set to save
+    /// - Throws: Storage error if saving fails
+    func saveWorkoutSet(_ set: LocalWorkoutSetEntity) async throws
+    
+    /// 前回のワークアウト取得（指定種目の最新日付のセット群）
+    /// - Parameter exerciseId: The exercise ID to get previous workout for
+    /// - Returns: The previous workout history, or nil if no previous data exists
+    /// - Throws: Storage error if fetching fails
+    func getPreviousWorkout(exerciseId: UUID) async throws -> WorkoutHistoryEntity?
+    
+    /// 今日のセット取得
+    /// - Parameter exerciseId: The exercise ID to get today's sets for
+    /// - Returns: Array of today's workout sets
+    /// - Throws: Storage error if fetching fails
+    func getTodaysSets(exerciseId: UUID) async throws -> [LocalWorkoutSetEntity]
+}

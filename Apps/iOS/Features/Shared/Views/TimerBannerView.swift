@@ -23,7 +23,7 @@ struct TimerBannerView: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(.black.opacity(0.85))
+                .fill(backgroundFillColor)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(.white.opacity(0.1), lineWidth: 1)
@@ -39,7 +39,7 @@ private extension TimerBannerView {
     var timerDisplaySection: some View {
         HStack(spacing: 12) {
             // タイマーアイコン
-            Image(systemName: "timer")
+            Image(systemName: timerIconName)
                 .font(.system(size: 20, weight: .medium))
                 .foregroundColor(.white.opacity(0.9))
                 .frame(width: 24, height: 24)
@@ -60,20 +60,25 @@ private extension TimerBannerView {
         HStack(spacing: 6) {
             // 状態インジケータドット
             Circle()
-                .fill(.yellow)
+                .fill(statusColor)
                 .frame(width: 8, height: 8)
                 .scaleEffect(timerState.isActive ? 1.2 : 1.0)
-                .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: timerState.isActive)
+                .animation(
+                    timerState.isActive 
+                        ? .easeInOut(duration: 0.5).repeatForever(autoreverses: true) 
+                        : .easeInOut(duration: 0.3), 
+                    value: timerState.isActive
+                )
         }
     }
     
     var controlButtonsSection: some View {
         HStack(spacing: 8) {
             // +1分ボタン
-            adjustButton(minutes: 1, icon: "plus")
+            adjustButton(minutes: 1, icon: "plus", isDisabled: shouldDisableAdjustButtons)
             
             // -1分ボタン
-            adjustButton(minutes: -1, icon: "minus", isDisabled: timerState.duration <= 60)
+            adjustButton(minutes: -1, icon: "minus", isDisabled: shouldDisableAdjustButtons || timerState.duration <= 60)
 
             // 再生/一時停止ボタン
             Button(action: onToggleTimer) {
@@ -83,7 +88,7 @@ private extension TimerBannerView {
                     .frame(width: 36, height: 36)
                     .background(
                         Circle()
-                            .fill(.yellow)
+                            .fill(playPauseBackgroundColor)
                             .overlay(
                                 Circle()
                                     .stroke(.white.opacity(0.2), lineWidth: 1)
@@ -108,7 +113,7 @@ private extension TimerBannerView {
                             )
                     )
             }
-            .disabled(timerState.status == .idle && timerState.remainingTime == timerState.duration)
+            .disabled(shouldDisableResetButton)
         }
     }
     
@@ -139,14 +144,31 @@ private extension TimerBannerView {
 }
 
 private extension TimerBannerView {
+    var backgroundFillColor: Color {
+        if timerState.status == .completed && timerState.shouldPersistAfterCompletion {
+            return .black.opacity(0.90) // 完了時は少し濃く
+        } else {
+            return .black.opacity(0.85)
+        }
+    }
+    
+    var timerIconName: String {
+        switch timerState.status {
+        case .completed:
+            return "checkmark.circle.fill"
+        default:
+            return "timer"
+        }
+    }
+    
     var statusColor: Color {
         switch timerState.status {
         case .running:
-            return .green
+            return .yellow
         case .paused:
             return .orange
         case .completed:
-            return .blue
+            return .white
         case .idle:
             return .white.opacity(0.6)
         }
@@ -167,8 +189,10 @@ private extension TimerBannerView {
     
     var playPauseIcon: String {
         switch timerState.status {
-        case .idle, .paused, .completed:
+        case .idle, .paused:
             return "play.fill"
+        case .completed:
+            return "play.fill" // 完了状態からも再開可能
         case .running:
             return "pause.fill"
         }
@@ -176,11 +200,23 @@ private extension TimerBannerView {
     
     var playPauseBackgroundColor: Color {
         switch timerState.status {
-        case .idle, .paused, .completed:
+        case .idle, .paused:
             return .green.opacity(0.8)
+        case .completed:
+            return .blue.opacity(0.8) // 完了状態は青色
         case .running:
             return .orange.opacity(0.8)
         }
+    }
+    
+    var shouldDisableResetButton: Bool {
+        // アイドル状態で元の時間と同じ場合のみ無効
+        timerState.status == .idle && timerState.remainingTime == timerState.duration
+    }
+    
+    var shouldDisableAdjustButtons: Bool {
+        // 実行中は時間調整を無効にする
+        timerState.status == .running
     }
 }
 
@@ -201,7 +237,8 @@ struct TimerBannerView_Previews: PreviewProvider {
                 timerState: TimerState(
                     duration: 180,
                     remainingTime: 120,
-                    status: .running
+                    status: .running,
+                    shouldPersistAfterCompletion: false
                 ),
                 onToggleTimer: {},
                 onResetTimer: {},
@@ -213,19 +250,21 @@ struct TimerBannerView_Previews: PreviewProvider {
                 timerState: TimerState(
                     duration: 180,
                     remainingTime: 90,
-                    status: .paused
+                    status: .paused,
+                    shouldPersistAfterCompletion: false
                 ),
                 onToggleTimer: {},
                 onResetTimer: {},
                 onAdjustTimer: { _ in }
             )
             
-            // 完了状態
+            // 完了状態（表示継続中）
             TimerBannerView(
                 timerState: TimerState(
                     duration: 180,
                     remainingTime: 0,
-                    status: .completed
+                    status: .completed,
+                    shouldPersistAfterCompletion: true
                 ),
                 onToggleTimer: {},
                 onResetTimer: {},
