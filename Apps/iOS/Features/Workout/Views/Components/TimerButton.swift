@@ -14,7 +14,7 @@ struct TimerButton: View {
             VStack(spacing: 4) {
                 Image(systemName: timerIconName)
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(iconColor)
             }
             .frame(width: 56, height: 50)
             .background(
@@ -32,9 +32,20 @@ private extension TimerButton {
         case .running:
             return .yellow
         case .completed:
-            return .orange
+            return Color(.label)
         case .idle, .paused:
+            return Color(.label)
+        }
+    }
+    
+    var iconColor: Color {
+        switch timerState.status {
+        case .running:
+            // イエロー背景時は黒文字で視認性確保
             return .black
+        case .completed, .idle, .paused:
+            // ラベル色の背景に対して白文字
+            return Color(.systemBackground)
         }
     }
     
@@ -56,6 +67,8 @@ struct TimerControlPanel: View {
     let onAdjustTimer: (Int) -> Void
     let onClose: () -> Void
     
+    @Environment(\.colorScheme) var colorScheme
+    
     var body: some View {
         HStack(spacing: 16) {
             // 時間調整ボタン（-1分）
@@ -70,7 +83,7 @@ struct TimerControlPanel: View {
                     .background(
                         Circle()
                             .fill(playPauseBackgroundColor)
-                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                            .shadow(color: shadowColor, radius: 4, x: 0, y: 2)
                     )
             }
             .scaleEffect(timerState.isActive ? 1.0 : 0.95)
@@ -84,8 +97,8 @@ struct TimerControlPanel: View {
                     .frame(width: 44, height: 44)
                     .background(
                         Circle()
-                            .fill(.gray.opacity(0.8))
-                            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            .fill(Color(.systemGray2).opacity(0.8))
+                            .shadow(color: shadowColor, radius: 4, x: 0, y: 2)
                     )
             }
             .disabled(shouldDisableResetButton)
@@ -103,8 +116,8 @@ struct TimerControlPanel: View {
                     .frame(width: 36, height: 36)
                     .background(
                         Circle()
-                            .fill(.black.opacity(0.6))
-                            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            .fill(Color(.systemGray).opacity(0.6))
+                            .shadow(color: shadowColor, radius: 4, x: 0, y: 2)
                     )
             }
         }
@@ -113,7 +126,7 @@ struct TimerControlPanel: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
+                .shadow(color: shadowColor, radius: 12, x: 0, y: 4)
         )
     }
     
@@ -132,8 +145,8 @@ struct TimerControlPanel: View {
             .frame(width: 44, height: 44)
             .background(
                 Circle()
-                    .fill(isDisabled ? .gray.opacity(0.3) : buttonBackgroundColor)
-                    .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    .fill(isDisabled ? Color(.systemGray3).opacity(0.3) : buttonBackgroundColor)
+                    .shadow(color: shadowColor, radius: 4, x: 0, y: 2)
             )
         }
         .disabled(isDisabled)
@@ -149,7 +162,7 @@ private extension TimerControlPanel {
         case .completed:
             return .orange.opacity(0.8)
         case .idle, .paused:
-            return .gray.opacity(0.6)
+            return Color(.systemGray2).opacity(0.6)
         }
     }
     
@@ -173,6 +186,11 @@ private extension TimerControlPanel {
         case .running:
             return .orange.opacity(0.8)
         }
+    }
+    
+    var shadowColor: Color {
+        // ダークモードでは影を薄く
+        colorScheme == .dark ? .black.opacity(0.15) : .black.opacity(0.3)
     }
     
     var shouldDisableResetButton: Bool {
@@ -215,5 +233,6 @@ struct TimerButton_Previews: PreviewProvider {
         }
         .padding()
         .background(Color(.systemBackground))
+        .preferredColorScheme(.dark) // ダークモードプレビュー追加
     }
 }

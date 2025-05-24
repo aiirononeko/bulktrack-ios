@@ -74,7 +74,7 @@ struct MainTabView: View {
                         previousSelectedTab = newTab
                     }
                 }
-                .tint(colorScheme == .dark ? .white : .black)
+                .tint(.accentColor)
 
                 // フローティングボタン
                 Button(action: {
@@ -83,9 +83,10 @@ struct MainTabView: View {
                     Image(systemName: "plus.circle.fill")
                         .resizable()
                         .frame(width: 44, height: 44)
-                        .foregroundColor(colorScheme == .dark ? .white : .black) // アイコンの色
-                        .background(colorScheme == .dark ? Color.black : Color.white) // ボタンの背景色
+                        .foregroundColor(floatingButtonIconColor)
+                        .background(floatingButtonBackgroundColor)
                         .clipShape(Circle())
+                        .shadow(color: .black.opacity(colorScheme == .dark ? 0.4 : 0.2), radius: 4, x: 0, y: 2)
                         .padding(.bottom, 1)
                 }
             }
@@ -127,30 +128,89 @@ struct MainTabView: View {
             }
         }
     }
+    
+    // MARK: - Computed Properties
+    private var floatingButtonIconColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+    
+    private var floatingButtonBackgroundColor: Color {
+        colorScheme == .dark ? .black : .white
+    }
 
     private func updateTabBarAppearance(colorScheme: ColorScheme) {
-        let tabBarAppearance = UITabBarAppearance()
-        tabBarAppearance.configureWithOpaqueBackground()
+        DispatchQueue.main.async {
+            let tabBarAppearance = UITabBarAppearance()
+            tabBarAppearance.configureWithOpaqueBackground()
 
-        if colorScheme == .dark {
-            tabBarAppearance.backgroundColor = UIColor(white: 0.06, alpha: 1.0) // Even darker gray, very near black
-            // You might want to adjust item colors for dark mode if needed
-            // tabBarAppearance.stackedLayoutAppearance.normal.iconColor = .lightGray
-            // tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.lightGray]
-            // tabBarAppearance.stackedLayoutAppearance.selected.iconColor = .white
-            // tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.white]
-        } else {
-            // For light mode, use default or specify colors
-            tabBarAppearance.backgroundColor = .white // Reverted to system default for light mode
-            // tabBarAppearance.stackedLayoutAppearance.normal.iconColor = .darkGray
-            // tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.darkGray]
-            // tabBarAppearance.stackedLayoutAppearance.selected.iconColor = .black
-            // tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.black]
+            if colorScheme == .dark {
+                tabBarAppearance.backgroundColor = UIColor(white: 0.06, alpha: 1.0)
+                
+                // ダークモード時のタブアイテム色設定
+                tabBarAppearance.stackedLayoutAppearance.normal.iconColor = UIColor.lightGray
+                tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.lightGray]
+                tabBarAppearance.stackedLayoutAppearance.selected.iconColor = UIColor.white
+                tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.white]
+                
+                // インラインレイアウト（横向き時）の色設定
+                tabBarAppearance.inlineLayoutAppearance.normal.iconColor = UIColor.lightGray
+                tabBarAppearance.inlineLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.lightGray]
+                tabBarAppearance.inlineLayoutAppearance.selected.iconColor = UIColor.white
+                tabBarAppearance.inlineLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.white]
+                
+                // コンパクトレイアウトの色設定
+                tabBarAppearance.compactInlineLayoutAppearance.normal.iconColor = UIColor.lightGray
+                tabBarAppearance.compactInlineLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.lightGray]
+                tabBarAppearance.compactInlineLayoutAppearance.selected.iconColor = UIColor.white
+                tabBarAppearance.compactInlineLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.white]
+                
+            } else {
+                tabBarAppearance.backgroundColor = UIColor.white
+                
+                // ライトモード時のタブアイテム色設定
+                tabBarAppearance.stackedLayoutAppearance.normal.iconColor = UIColor.darkGray
+                tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.darkGray]
+                tabBarAppearance.stackedLayoutAppearance.selected.iconColor = UIColor.black
+                tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.black]
+                
+                // インラインレイアウトの色設定
+                tabBarAppearance.inlineLayoutAppearance.normal.iconColor = UIColor.darkGray
+                tabBarAppearance.inlineLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.darkGray]
+                tabBarAppearance.inlineLayoutAppearance.selected.iconColor = UIColor.black
+                tabBarAppearance.inlineLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.black]
+                
+                // コンパクトレイアウトの色設定
+                tabBarAppearance.compactInlineLayoutAppearance.normal.iconColor = UIColor.darkGray
+                tabBarAppearance.compactInlineLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.darkGray]
+                tabBarAppearance.compactInlineLayoutAppearance.selected.iconColor = UIColor.black
+                tabBarAppearance.compactInlineLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.black]
+            }
+
+            // 現在表示されているすべてのタブバーに適用
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first {
+                applyTabBarAppearanceToHierarchy(view: window, appearance: tabBarAppearance)
+            }
+            
+            // 新しいタブバーのデフォルト設定
+            UITabBar.appearance().standardAppearance = tabBarAppearance
+            if #available(iOS 15.0, *) {
+                UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+            }
         }
-
-        UITabBar.appearance().standardAppearance = tabBarAppearance
-        if #available(iOS 15.0, *) {
-            UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+    }
+    
+    // タブバーの階層を辿って既存のタブバーに設定を適用
+    private func applyTabBarAppearanceToHierarchy(view: UIView, appearance: UITabBarAppearance) {
+        if let tabBar = view as? UITabBar {
+            tabBar.standardAppearance = appearance
+            if #available(iOS 15.0, *) {
+                tabBar.scrollEdgeAppearance = appearance
+            }
+        }
+        
+        for subview in view.subviews {
+            applyTabBarAppearanceToHierarchy(view: subview, appearance: appearance)
         }
     }
 }

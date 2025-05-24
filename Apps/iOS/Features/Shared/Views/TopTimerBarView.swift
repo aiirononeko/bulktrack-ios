@@ -5,6 +5,7 @@ import Domain
 /// 黄色背景で中央にタイマー時間、右側に「トレーニングに戻る」テキストを表示
 struct TopTimerBarView: View {
     @ObservedObject var globalTimerViewModel: GlobalTimerViewModel
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         if globalTimerViewModel.hasActiveTimer {
@@ -16,11 +17,11 @@ struct TopTimerBarView: View {
                 HStack(spacing: 8) {
                     Image(systemName: timerIcon)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.black)
+                        .foregroundColor(textColor)
                     
                     Text(globalTimerViewModel.displayTimerState.formattedRemainingTime)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(textColor)
                 }
                 
                 // 右側のスペーサー
@@ -30,16 +31,16 @@ struct TopTimerBarView: View {
                 HStack(spacing: 4) {
                     Text("トレーニングに戻る")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.black)
+                        .foregroundColor(textColor)
                     
                     Image(systemName: "arrow.up.right")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.black)
+                        .foregroundColor(textColor)
                 }
                 .padding(.trailing, 16)
             }
             .frame(height: 44)
-            .background(Color.yellow)
+            .background(backgroundColor)
             .contentShape(Rectangle()) // タップ領域を全体に拡張
             .onTapGesture {
                 globalTimerViewModel.navigateToExercise()
@@ -64,44 +65,14 @@ struct TopTimerBarView: View {
             return "checkmark.circle"
         }
     }
-}
-
-#Preview {
-    VStack {
-        // プレビュー用の黄色バー（静的表示）
-        HStack {
-            Spacer()
-            
-            HStack(spacing: 8) {
-                Image(systemName: "timer.circle")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.black)
-                
-                Text("02:30")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.black)
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 4) {
-                Text("トレーニングに戻る")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.black)
-                
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.black)
-            }
-            .padding(.trailing, 16)
-        }
-        .frame(height: 44)
-        .background(Color.yellow)
-        
-        Spacer()
-        
-        Text("メインコンテンツエリア")
-            .font(.title)
-            .foregroundColor(.secondary)
+    
+    private var backgroundColor: Color {
+        // タイマーバーは視認性を保つため、モードに関係なく黄色を維持
+        return .yellow
+    }
+    
+    private var textColor: Color {
+        // 黄色背景に対して最適なコントラストを保つため、常に黒文字
+        return .black
     }
 }

@@ -48,7 +48,7 @@ struct WorkoutLogView: View {
                     
                     // メインコンテンツ
                     ScrollView {
-                        VStack(spacing: 20) {
+                        VStack(spacing: 30) {
                             // 前回・今回記録表示エリア
                             WorkoutHistorySection(
                                 previousWorkout: viewModel.previousWorkout,
@@ -62,6 +62,7 @@ struct WorkoutLogView: View {
                             VStack(spacing: 16) {
                                 Text("新しいセットを記録")
                                     .font(.headline)
+                                    .foregroundColor(Color(.label))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 
                                 HStack(spacing: 12) {
@@ -86,13 +87,13 @@ struct WorkoutLogView: View {
                                         HStack {
                                             Text("RPE")
                                                 .font(.headline)
-                                                .foregroundColor(.primary)
+                                                .foregroundColor(Color(.label))
                                             
                                             Button(action: {
                                                 showRPEHelp = true
                                             }) {
                                                 Image(systemName: "questionmark.circle")
-                                                    .foregroundColor(.blue)
+                                                    .foregroundColor(.accentColor)
                                             }
                                         }
                                         
@@ -178,7 +179,7 @@ struct WorkoutLogView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
-                                .background(Color.primary)
+                                .background(Color.accentColor)
                                 .cornerRadius(12)
                             }
                             .disabled(viewModel.isLoading)
@@ -234,23 +235,12 @@ struct WorkoutHistorySection: View {
     let isLoadingHistory: Bool
     
     var body: some View {
-        VStack(spacing: 16) {
-            // セクションタイトル
-            HStack {
-                Text("ワークアウト履歴")
-                    .font(.headline)
-                Spacer()
-                if isLoadingHistory {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                }
-            }
-            
+        VStack {
             // 横並び固定高さエリア
             HStack(spacing: 12) {
                 // 前回記録
                 VStack(spacing: 0) {
-                    Text("前回")
+                    Text("前回のトレーニング")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
@@ -287,7 +277,7 @@ struct WorkoutHistorySection: View {
                 
                 // 今日記録
                 VStack(spacing: 0) {
-                    Text("今日")
+                    Text("今日のトレーニング")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
@@ -367,6 +357,7 @@ struct SetRow: View {
                 Text("\(String(format: "%.1f", weight))kg × \(reps)回")
                     .font(.caption)
                     .fontWeight(.medium)
+                    .foregroundColor(Color(.label))
                 
                 if let rpe = rpe {
                     Text("RPE \(String(format: "%.1f", rpe))")
@@ -378,7 +369,7 @@ struct SetRow: View {
             Spacer()
             
             if isImproved {
-                Image(systemName: "checkmark.circle.fill")
+                Image(systemName: "arrow.up.right")
                     .font(.caption)
                     .foregroundColor(.green)
             }
@@ -402,7 +393,7 @@ struct InputField: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
-                .foregroundColor(.primary)
+                .foregroundColor(Color(.label))
             
             TextField("0", text: $text)
                 .textFieldStyle(RoundedBorderTextFieldStyle())

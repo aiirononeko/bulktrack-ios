@@ -56,22 +56,22 @@ private extension WorkoutNavigationBarView {
     var navigationBackgroundColor: Color {
         switch timerState.status {
         case .running:
-            return .yellow.opacity(0.15)
+            return .yellow
         case .completed:
-            return .orange.opacity(0.15)
+            return Color(.systemBackground)
         case .idle, .paused:
-            return Color(.systemGray6)
+            return Color(.systemBackground)
         }
     }
     
     var textColor: Color {
         switch timerState.status {
         case .running:
-            return colorScheme == .dark ? .white : .black
-        case .completed:
-            return colorScheme == .dark ? .white : .black
-        case .idle, .paused:
-            return colorScheme == .dark ? .white : .black
+            // イエロー背景時は常に黒文字で視認性を確保
+            return .black
+        case .completed, .idle, .paused:
+            // システム背景色に応じて動的に変更
+            return Color(.label)
         }
     }
     
@@ -82,7 +82,7 @@ private extension WorkoutNavigationBarView {
         case .completed:
             return .orange.opacity(0.3)
         case .idle, .paused:
-            return Color(.systemGray4)
+            return Color(.separator)
         }
     }
 }
