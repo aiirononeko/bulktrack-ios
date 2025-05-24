@@ -23,6 +23,25 @@ struct WorkoutLogView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // タイマーヘッダー（上部固定）
+                IntervalTimerHeader(
+                    timerState: timerViewModel.timerState,
+                    uiState: timerViewModel.uiState,
+                    onTap: {
+                        timerViewModel.onTimerButtonTapped()
+                    },
+                    onToggleTimer: {
+                        timerViewModel.toggleTimer()
+                    },
+                    onResetTimer: {
+                        timerViewModel.resetTimer()
+                    },
+                    onAdjustTimer: { minutes in
+                        timerViewModel.adjustTimer(minutes: minutes)
+                    }
+                )
+                .animation(.easeInOut(duration: 0.3), value: timerViewModel.uiState)
+                
                 // メイン入力フォーム
                 ScrollView {
                     VStack(spacing: 24) {
@@ -139,55 +158,7 @@ struct WorkoutLogView: View {
             } message: {
                 Text("セットが正常に登録されました")
             }
-            .overlay(
-                // タイマーUI（右上にオーバーレイ）
-                timerOverlay,
-                alignment: .topTrailing
-            )
         }
-    }
-    
-    @ViewBuilder
-    private var timerOverlay: some View {
-        VStack(alignment: .trailing, spacing: 0) {
-            HStack(spacing: 0) {
-                // 展開時のタイマーパネル
-                if timerViewModel.uiState.isExpanded {
-                    IntervalTimerPanel(
-                        timerState: timerViewModel.timerState,
-                        onToggleTimer: {
-                            timerViewModel.toggleTimer()
-                        },
-                        onResetTimer: {
-                            timerViewModel.resetTimer()
-                        },
-                        onAdjustTimer: { minutes in
-                            timerViewModel.adjustTimer(minutes: minutes)
-                        },
-                        onClose: {
-                            timerViewModel.onTimerButtonTapped()
-                        }
-                    )
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .trailing).combined(with: .opacity)
-                    ))
-                }
-                
-                // タイマーボタン（常時表示）
-                IntervalTimerButton(
-                    timerState: timerViewModel.timerState,
-                    uiState: timerViewModel.uiState,
-                    onTap: {
-                        timerViewModel.onTimerButtonTapped()
-                    }
-                )
-            }
-            
-            Spacer()
-        }
-        .padding(.top, 8)
-        .padding(.trailing, 16)
     }
 }
 

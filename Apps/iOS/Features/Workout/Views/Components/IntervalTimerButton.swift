@@ -22,7 +22,7 @@ struct IntervalTimerButton: View {
                     } else {
                         // 停止中はタイマーアイコンを表示
                         Image(systemName: "timer")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 30, weight: .medium))
                             .foregroundColor(.white)
                     }
                 }
