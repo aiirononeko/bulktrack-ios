@@ -4,43 +4,43 @@ import Domain
 struct WorkoutLogView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel: WorkoutLogViewModel
-    @StateObject private var timerViewModel: IntervalTimerViewModel
+    @StateObject private var globalTimerViewModel: GlobalTimerViewModel
     @FocusState private var focusedField: Field?
     @State private var showRPEHelp = false
     
-    let exerciseName: String
+    let exercise: ExerciseEntity
     
     enum Field: CaseIterable {
         case weight, reps, rpe
     }
     
-    init(exerciseName: String, exerciseId: UUID, createSetUseCase: CreateSetUseCaseProtocol, timerViewModel: IntervalTimerViewModel) {
-        self.exerciseName = exerciseName
-        self._viewModel = StateObject(wrappedValue: WorkoutLogViewModel(exerciseId: exerciseId, createSetUseCase: createSetUseCase))
-        self._timerViewModel = StateObject(wrappedValue: timerViewModel)
+    init(exercise: ExerciseEntity, createSetUseCase: CreateSetUseCaseProtocol, globalTimerViewModel: GlobalTimerViewModel) {
+        self.exercise = exercise
+        self._viewModel = StateObject(wrappedValue: WorkoutLogViewModel(exerciseId: exercise.id, createSetUseCase: createSetUseCase))
+        self._globalTimerViewModel = StateObject(wrappedValue: globalTimerViewModel)
+        
+        print("[WorkoutLogView] Init with exercise: \(exercise.name) (ID: \(exercise.id))")
     }
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // タイマーヘッダー（上部固定）
-                IntervalTimerHeader(
-                    timerState: timerViewModel.timerState,
-                    uiState: timerViewModel.uiState,
-                    onTap: {
-                        timerViewModel.onTimerButtonTapped()
-                    },
+                // タイマーバナー（上部固定）
+                TimerBannerView(
+                    timerState: globalTimerViewModel.displayTimerState,
                     onToggleTimer: {
-                        timerViewModel.toggleTimer()
+                        print("[WorkoutLogView] Toggle timer button pressed - Exercise: \(exercise.name) (ID: \(exercise.id))")
+                        // タイマー手動スタート時にExerciseEntityを設定
+                        globalTimerViewModel.setCurrentExercise(exercise)
+                        globalTimerViewModel.toggleTimer()
                     },
                     onResetTimer: {
-                        timerViewModel.resetTimer()
+                        globalTimerViewModel.resetTimer()
                     },
                     onAdjustTimer: { minutes in
-                        timerViewModel.adjustTimer(minutes: minutes)
+                        globalTimerViewModel.adjustTimer(minutes: minutes)
                     }
                 )
-                .animation(.easeInOut(duration: 0.3), value: timerViewModel.uiState)
                 
                 // メイン入力フォーム
                 ScrollView {
@@ -108,6 +108,13 @@ struct WorkoutLogView: View {
                     Button(action: {
                         Task {
                             await viewModel.saveSet()
+                            // セット登録完了後、タイマーを開始
+                            if viewModel.showSuccessAlert {
+                                print("[WorkoutLogView] Set saved, starting timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
+                                // セット登録時にExerciseEntityを設定
+                                globalTimerViewModel.setCurrentExercise(exercise)
+                                globalTimerViewModel.startTimer(duration: 180)
+                            }
                         }
                     }) {
                         HStack {
@@ -132,7 +139,7 @@ struct WorkoutLogView: View {
                 }
                 .background(Color(.systemBackground))
             }
-            .navigationTitle(exerciseName)
+            .navigationTitle(exercise.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -145,8 +152,9 @@ struct WorkoutLogView: View {
                 }
             }
             .onAppear {
-                // 画面表示時に最初のフィールドにフォーカス
+                // 最初のフィールドにフォーカス
                 focusedField = .weight
+                print("[WorkoutLogView] View appeared - Exercise: \(exercise.name) (ID: \(exercise.id))")
             }
             .alert("RPE (主観的運動強度)", isPresented: $showRPEHelp) {
                 Button("OK") { }

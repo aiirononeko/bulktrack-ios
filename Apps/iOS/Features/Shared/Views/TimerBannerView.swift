@@ -1,97 +1,89 @@
 import SwiftUI
 import Domain
 
-/// 展開時のタイマーコントロールパネル
-struct IntervalTimerPanel: View {
+/// シンプルなバナー形式のタイマーUI
+/// 左側にアイコンとタイマー表示、右側にコントロールボタン群を配置
+struct TimerBannerView: View {
     let timerState: TimerState
     let onToggleTimer: () -> Void
     let onResetTimer: () -> Void
     let onAdjustTimer: (Int) -> Void
-    let onClose: () -> Void
     
     var body: some View {
-        HStack(spacing: 0) {
-            // メインタイマーコントロール部分
-            timerControlsSection
+        HStack(spacing: 16) {
+            // 左側：タイマーアイコンと時間表示
+            timerDisplaySection
             
-            // 閉じるボタン
-            closeButton
+            Spacer()
+            
+            // 右側：コントロールボタン群
+            controlButtonsSection
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 12)
                 .fill(.black.opacity(0.85))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 12)
                         .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
         )
         .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
 }
 
-private extension IntervalTimerPanel {
-    var timerControlsSection: some View {
-        HStack(spacing: 20) {
-            // 時間調整ボタン（-1分）
-            adjustButton(minutes: -1, icon: "minus", isDisabled: timerState.duration <= 60)
-            
-            // メインタイマー表示とコントロール
-            timerDisplaySection
-            
-            // 時間調整ボタン（+1分）
-            adjustButton(minutes: 1, icon: "plus")
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
-    
+private extension TimerBannerView {
     var timerDisplaySection: some View {
-        VStack(spacing: 12) {
+        HStack(spacing: 12) {
+            // タイマーアイコン
+            Image(systemName: "timer")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white.opacity(0.9))
+                .frame(width: 24, height: 24)
+            
             // 残り時間表示
             Text(timerState.formattedRemainingTime)
-                .font(.system(.title, design: .monospaced))
+                .font(.system(.headline, design: .monospaced))
                 .fontWeight(.medium)
                 .foregroundColor(.white)
                 .animation(.none, value: timerState.formattedRemainingTime)
             
-            // プログレスバー
-            progressBar
+            // 状態インジケータ
+            statusIndicator
+        }
+    }
+    
+    var statusIndicator: some View {
+        HStack(spacing: 6) {
+            // 状態インジケータドット
+            Circle()
+                .fill(.yellow)
+                .frame(width: 8, height: 8)
+                .scaleEffect(timerState.isActive ? 1.2 : 1.0)
+                .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: timerState.isActive)
+        }
+    }
+    
+    var controlButtonsSection: some View {
+        HStack(spacing: 8) {
+            // +1分ボタン
+            adjustButton(minutes: 1, icon: "plus")
             
-            // 制御ボタン
-            controlButtons
-        }
-        .frame(minWidth: 120)
-    }
-    
-    var progressBar: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // 背景
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(.white.opacity(0.2))
-                    .frame(height: 4)
-                
-                // プログレス
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(progressColor)
-                    .frame(width: geometry.size.width * timerState.progress, height: 4)
-                    .animation(.linear(duration: 1), value: timerState.progress)
-            }
-        }
-        .frame(height: 4)
-    }
-    
-    var controlButtons: some View {
-        HStack(spacing: 16) {
+            // -1分ボタン
+            adjustButton(minutes: -1, icon: "minus", isDisabled: timerState.duration <= 60)
+
             // 再生/一時停止ボタン
             Button(action: onToggleTimer) {
                 Image(systemName: playPauseIcon)
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 36, height: 36)
                     .background(
                         Circle()
-                            .fill(playPauseBackgroundColor)
+                            .fill(.yellow)
                             .overlay(
                                 Circle()
                                     .stroke(.white.opacity(0.2), lineWidth: 1)
@@ -104,7 +96,7 @@ private extension IntervalTimerPanel {
             // リセットボタン
             Button(action: onResetTimer) {
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.8))
                     .frame(width: 36, height: 36)
                     .background(
@@ -122,16 +114,17 @@ private extension IntervalTimerPanel {
     
     func adjustButton(minutes: Int, icon: String, isDisabled: Bool = false) -> some View {
         Button(action: { onAdjustTimer(minutes) }) {
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundColor(isDisabled ? .white.opacity(0.3) : .white.opacity(0.8))
+                    .frame(minHeight: 10)
                 
-                Text("\(abs(minutes))分")
-                    .font(.caption2)
+                Text("\(abs(minutes))m")
+                    .font(.system(size: 8, weight: .medium))
                     .foregroundColor(isDisabled ? .white.opacity(0.3) : .white.opacity(0.6))
             }
-            .frame(width: 44, height: 52)
+            .frame(width: 36, height: 36)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(isDisabled ? .clear : .white.opacity(0.08))
@@ -143,23 +136,35 @@ private extension IntervalTimerPanel {
         }
         .disabled(isDisabled)
     }
-    
-    var closeButton: some View {
-        Button(action: onClose) {
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white.opacity(0.8))
-                .frame(width: 32, height: 32)
-                .background(
-                    Circle()
-                        .fill(.white.opacity(0.1))
-                )
-        }
-        .padding(.trailing, 12)
-    }
 }
 
-private extension IntervalTimerPanel {
+private extension TimerBannerView {
+    var statusColor: Color {
+        switch timerState.status {
+        case .running:
+            return .green
+        case .paused:
+            return .orange
+        case .completed:
+            return .blue
+        case .idle:
+            return .white.opacity(0.6)
+        }
+    }
+    
+    var statusText: String {
+        switch timerState.status {
+        case .running:
+            return "実行中"
+        case .paused:
+            return "一時停止"
+        case .completed:
+            return "完了"
+        case .idle:
+            return "待機中"
+        }
+    }
+    
     var playPauseIcon: String {
         switch timerState.status {
         case .idle, .paused, .completed:
@@ -177,36 +182,22 @@ private extension IntervalTimerPanel {
             return .orange.opacity(0.8)
         }
     }
-    
-    var progressColor: Color {
-        switch timerState.status {
-        case .running:
-            return .green
-        case .paused:
-            return .orange
-        case .completed:
-            return .blue
-        case .idle:
-            return .white.opacity(0.6)
-        }
-    }
 }
 
 // MARK: - Preview
-struct IntervalTimerPanel_Previews: PreviewProvider {
+struct TimerBannerView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 20) {
             // アイドル状態
-            IntervalTimerPanel(
+            TimerBannerView(
                 timerState: .defaultTimer(),
                 onToggleTimer: {},
                 onResetTimer: {},
-                onAdjustTimer: { _ in },
-                onClose: {}
+                onAdjustTimer: { _ in }
             )
             
             // 実行中
-            IntervalTimerPanel(
+            TimerBannerView(
                 timerState: TimerState(
                     duration: 180,
                     remainingTime: 120,
@@ -214,12 +205,11 @@ struct IntervalTimerPanel_Previews: PreviewProvider {
                 ),
                 onToggleTimer: {},
                 onResetTimer: {},
-                onAdjustTimer: { _ in },
-                onClose: {}
+                onAdjustTimer: { _ in }
             )
             
             // 一時停止中
-            IntervalTimerPanel(
+            TimerBannerView(
                 timerState: TimerState(
                     duration: 180,
                     remainingTime: 90,
@@ -227,11 +217,23 @@ struct IntervalTimerPanel_Previews: PreviewProvider {
                 ),
                 onToggleTimer: {},
                 onResetTimer: {},
-                onAdjustTimer: { _ in },
-                onClose: {}
+                onAdjustTimer: { _ in }
             )
+            
+            // 完了状態
+            TimerBannerView(
+                timerState: TimerState(
+                    duration: 180,
+                    remainingTime: 0,
+                    status: .completed
+                ),
+                onToggleTimer: {},
+                onResetTimer: {},
+                onAdjustTimer: { _ in }
+            )
+            
+            Spacer()
         }
-        .padding()
         .background(Color.gray.opacity(0.1))
     }
 }

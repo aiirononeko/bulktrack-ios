@@ -40,6 +40,13 @@ final class DIContainer {
     // MARK: - Timer Use Cases
     let intervalTimerUseCase: IntervalTimerUseCaseProtocol
     let timerNotificationUseCase: TimerNotificationUseCaseProtocol
+    let globalTimerService: GlobalTimerServiceProtocol
+    
+    // MARK: - Singleton ViewModels
+    private lazy var _globalTimerViewModel = GlobalTimerViewModel(
+        globalTimerService: globalTimerService,
+        exerciseRepository: exerciseRepository
+    )
     
     let appInitializer: AppInitializer
 
@@ -103,6 +110,12 @@ final class DIContainer {
             notificationUseCase: self.timerNotificationUseCase
         )
         
+        // 8.2. Initialize Global Timer Service
+        self.globalTimerService = GlobalTimerService(
+            intervalTimerUseCase: self.intervalTimerUseCase,
+            notificationUseCase: self.timerNotificationUseCase
+        )
+        
         // 9. Initialize WCSessionRelay with the cached ExerciseRepository
         self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
 
@@ -128,14 +141,11 @@ final class DIContainer {
         )
     }
     
-    func makeWorkoutLogView(exerciseName: String, exerciseId: UUID) -> WorkoutLogView {
-        let timerViewModel = makeIntervalTimerViewModel(exerciseId: exerciseId)
-        
+    func makeWorkoutLogView(exercise: ExerciseEntity) -> WorkoutLogView {
         return WorkoutLogView(
-            exerciseName: exerciseName,
-            exerciseId: exerciseId,
+            exercise: exercise,
             createSetUseCase: createSetUseCase,
-            timerViewModel: timerViewModel
+            globalTimerViewModel: _globalTimerViewModel // シングルトンインスタンスを使用
         )
     }
     
@@ -145,5 +155,9 @@ final class DIContainer {
             notificationUseCase: timerNotificationUseCase,
             exerciseId: exerciseId
         )
+    }
+    
+    func makeGlobalTimerViewModel() -> GlobalTimerViewModel {
+        return _globalTimerViewModel // 常に同じインスタンスを返す
     }
 }

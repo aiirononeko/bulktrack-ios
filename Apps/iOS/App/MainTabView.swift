@@ -18,69 +18,77 @@ struct MainTabView: View {
     @State private var selectedExerciseForLog: ExerciseEntity? // 選択されたエクササイズ。これがnilでなければfullScreenCoverを表示
 
     private let diContainer = DIContainer.shared
+    @StateObject private var globalTimerViewModel = DIContainer.shared.makeGlobalTimerViewModel()
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            TabView(selection: $selectedTab) {
-                HomeView(viewModel: diContainer.makeHomeViewModel())
-                    .tabItem {
-                        Label("ホーム", systemImage: "house.fill")
-                    }
-                    .tag(Tab.home)
-
-                HistoryView()
-                    .tabItem {
-                        Label("履歴", systemImage: "list.bullet.rectangle.fill")
-                    }
-                    .tag(Tab.history)
-
-                // 中央のダミータブ
-                Text("") // 空のビュー
-                    .tabItem {
-                        Label("", systemImage: "")
-                    }
-                    .tag(Tab.addPlaceholder)
-
-                ArticlesView()
-                    .tabItem {
-                        Label("コラム", systemImage: "newspaper.fill")
-                    }
-                    .tag(Tab.articles)
-
-                SettingsView()
-                    .tabItem {
-                        Label("アプリ設定", systemImage: "gearshape.fill")
-                    }
-                    .tag(Tab.settings)
+        VStack(spacing: 0) {
+            // 上部のグローバルタイマーバー（WorkoutLogView表示時以外）
+            if selectedExerciseForLog == nil {
+                TopTimerBarView(globalTimerViewModel: globalTimerViewModel)
+                    .animation(.easeInOut(duration: 0.3), value: globalTimerViewModel.hasActiveTimer)
             }
-            .onChange(of: selectedTab) { newTab in
-                if newTab == .addPlaceholder {
-                    // ダミータブが選択されたらシートを表示し、タブ選択を元に戻す
-                    showingAddSheet = true
-                    // DispatchQueue.main.async を使って、現在の更新サイクルが完了した後に selectedTab を変更
-                    DispatchQueue.main.async {
-                        selectedTab = previousSelectedTab
+            
+            ZStack(alignment: .bottom) {
+                TabView(selection: $selectedTab) {
+                    HomeView(viewModel: diContainer.makeHomeViewModel())
+                        .tabItem {
+                            Label("ホーム", systemImage: "house.fill")
+                        }
+                        .tag(Tab.home)
+
+                    HistoryView()
+                        .tabItem {
+                            Label("履歴", systemImage: "list.bullet.rectangle.fill")
+                        }
+                        .tag(Tab.history)
+
+                    // 中央のダミータブ
+                    Text("") // 空のビュー
+                        .tabItem {
+                            Label("", systemImage: "")
+                        }
+                        .tag(Tab.addPlaceholder)
+
+                    ArticlesView()
+                        .tabItem {
+                            Label("コラム", systemImage: "newspaper.fill")
+                        }
+                        .tag(Tab.articles)
+
+                    SettingsView()
+                        .tabItem {
+                            Label("アプリ設定", systemImage: "gearshape.fill")
+                        }
+                        .tag(Tab.settings)
+                }
+                .onChange(of: selectedTab) { newTab in
+                    if newTab == .addPlaceholder {
+                        // ダミータブが選択されたらシートを表示し、タブ選択を元に戻す
+                        showingAddSheet = true
+                        // DispatchQueue.main.async を使って、現在の更新サイクルが完了した後に selectedTab を変更
+                        DispatchQueue.main.async {
+                            selectedTab = previousSelectedTab
+                        }
+                    } else {
+                        // 有効なタブが選択されたら previousSelectedTab を更新
+                        previousSelectedTab = newTab
                     }
-                } else {
-                    // 有効なタブが選択されたら previousSelectedTab を更新
-                    previousSelectedTab = newTab
+                }
+                .tint(colorScheme == .dark ? .white : .black)
+
+                // フローティングボタン
+                Button(action: {
+                    showingAddSheet = true
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .resizable()
+                        .frame(width: 44, height: 44)
+                        .foregroundColor(colorScheme == .dark ? .white : .black) // アイコンの色
+                        .background(colorScheme == .dark ? Color.black : Color.white) // ボタンの背景色
+                        .clipShape(Circle())
+                        .padding(.bottom, 1)
                 }
             }
-            .tint(colorScheme == .dark ? .white : .black)
-
-            // フローティングボタン
-            Button(action: {
-                showingAddSheet = true
-            }) {
-                Image(systemName: "plus.circle.fill")
-                    .resizable()
-                    .frame(width: 44, height: 44)
-                    .foregroundColor(colorScheme == .dark ? .white : .black) // アイコンの色
-                    .background(colorScheme == .dark ? Color.black : Color.white) // ボタンの背景色
-                    .clipShape(Circle())
-                    .padding(.bottom, 1)
-            }
-
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showingAddSheet) {
@@ -98,13 +106,25 @@ struct MainTabView: View {
             print("[MainTabView] WorkoutLogView dismissed (item became nil)")
         }) { exercise in // exercise は selectedExerciseForLog の non-nil の値
             // このクロージャは selectedExerciseForLog が nil でない場合にのみ呼び出される
-            diContainer.makeWorkoutLogView(exerciseName: exercise.name, exerciseId: exercise.id)
+            diContainer.makeWorkoutLogView(exercise: exercise)
         }
         .onAppear {
             updateTabBarAppearance(colorScheme: colorScheme)
         }
         .onChange(of: colorScheme) { newColorScheme in
             updateTabBarAppearance(colorScheme: newColorScheme)
+        }
+        .onChange(of: globalTimerViewModel.shouldNavigateToExercise) { exercise in
+            // タイマーからエクササイズ画面への遷移要求
+            if let exercise = exercise {
+                print("[MainTabView] Navigating to exercise from timer: \(exercise.name)")
+                selectedExerciseForLog = exercise
+                
+                // ナビゲーション後にフラグをクリア
+                DispatchQueue.main.async {
+                    globalTimerViewModel.shouldNavigateToExercise = nil
+                }
+            }
         }
     }
 

@@ -3,6 +3,10 @@ import Foundation
 import Combine
 import Domain
 
+#if os(iOS)
+import UIKit
+#endif
+
 /// タイマーのUI状態
 enum TimerUIState: Equatable {
     case collapsed(isRunning: Bool)  // アイコンのみ表示
@@ -153,6 +157,7 @@ private extension IntervalTimerViewModel {
     }
     
     func setupBackgroundHandling() {
+        #if os(iOS)
         // アプリのライフサイクル監視
         NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)
             .sink { [weak self] _ in
@@ -165,6 +170,11 @@ private extension IntervalTimerViewModel {
                 self?.handleAppDidBecomeActive()
             }
             .store(in: &cancellables)
+        #else
+        // watchOSでは現在のところアプリライフサイクル監視は不要
+        // 必要に応じてwatchOS固有の実装を追加
+        print("[IntervalTimerViewModel] watchOS: App lifecycle observation not implemented")
+        #endif
     }
     
     func handleAppWillResignActive() {
