@@ -47,110 +47,73 @@ struct WorkoutLogView: View {
                     )
                     
                     // メインコンテンツ
-                    ScrollView {
-                        VStack(spacing: 30) {
-                            // 前回・今回記録表示エリア
-                            WorkoutHistorySection(
-                                previousWorkout: viewModel.previousWorkout,
-                                todaysSets: viewModel.todaysSets,
-                                todaysVolume: viewModel.todaysVolume,
-                                previousVolume: viewModel.previousVolume,
-                                isLoadingHistory: viewModel.isLoadingHistory
+                    VStack(spacing: 30) {
+                        // 前回・今回記録表示エリア
+                        WorkoutHistorySection(
+                            previousWorkout: viewModel.previousWorkout,
+                            todaysSets: viewModel.todaysSets,
+                            todaysVolume: viewModel.todaysVolume,
+                            previousVolume: viewModel.previousVolume,
+                            isLoadingHistory: viewModel.isLoadingHistory
+                        )
+                        
+                        // 重量・回数・RPEの横並びフォーム                   
+                        HStack(spacing: 12) {
+                            InputField(
+                                title: "重量 (kg)",
+                                text: $viewModel.weight,
+                                keyboardType: .decimalPad,
+                                focused: $focusedField,
+                                field: .weight
                             )
                             
-                            // 重量・回数・RPEの横並びフォーム
-                            VStack(spacing: 16) {
-                                Text("新しいセットを記録")
-                                    .font(.headline)
-                                    .foregroundColor(Color(.label))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            InputField(
+                                title: "回数",
+                                text: $viewModel.reps,
+                                keyboardType: .numberPad,
+                                focused: $focusedField,
+                                field: .reps
+                            )
+                            
+                            // RPE入力（ヘルプ付き）
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("RPE")
+                                        .font(.headline)
+                                        .foregroundColor(Color(.label))
+                                    
+                                    Button(action: {
+                                        showRPEHelp = true
+                                    }) {
+                                        Image(systemName: "questionmark.circle")
+                                            .foregroundColor(.primary)
+                                    }
+                                }
                                 
-                                HStack(spacing: 12) {
-                                    InputField(
-                                        title: "重量 (kg)",
-                                        text: $viewModel.weight,
-                                        keyboardType: .decimalPad,
-                                        focused: $focusedField,
-                                        field: .weight
-                                    )
-                                    
-                                    InputField(
-                                        title: "回数",
-                                        text: $viewModel.reps,
-                                        keyboardType: .numberPad,
-                                        focused: $focusedField,
-                                        field: .reps
-                                    )
-                                    
-                                    // RPE入力（ヘルプ付き）
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack {
-                                            Text("RPE")
-                                                .font(.headline)
-                                                .foregroundColor(Color(.label))
-                                            
-                                            Button(action: {
-                                                showRPEHelp = true
-                                            }) {
-                                                Image(systemName: "questionmark.circle")
-                                                    .foregroundColor(.accentColor)
-                                            }
-                                        }
-                                        
-                                        TextField("1〜10", text: $viewModel.rpe)
-                                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                                            .keyboardType(.decimalPad)
-                                            .focused($focusedField, equals: .rpe)
-                                            .multilineTextAlignment(.center)
-                                            .font(.title2)
-                                    }
-                                }
-                            }
-                            
-                            // エラーメッセージ
-                            if let errorMessage = viewModel.errorMessage {
-                                Text(errorMessage)
-                                    .foregroundColor(.red)
-                                    .font(.caption)
+                                TextField("1〜10", text: $viewModel.rpe)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .keyboardType(.decimalPad)
+                                    .focused($focusedField, equals: .rpe)
                                     .multilineTextAlignment(.center)
+                                    .font(.title2)
                             }
-                            
-                            Spacer(minLength: 120) // キーボード + ボタン分の余白
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                    }
-                    
-                    // 下部ボタンエリア
-                    VStack(spacing: 12) {
-                        // タイマー操作パネル（展開時のみ表示）
-                        if showTimerControls {
-                            TimerControlPanel(
-                                timerState: globalTimerViewModel.displayTimerState,
-                                onToggleTimer: {
-                                    print("[WorkoutLogView] Toggle timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
-                                    globalTimerViewModel.setCurrentExercise(exercise)
-                                    globalTimerViewModel.toggleTimer()
-                                },
-                                onResetTimer: {
-                                    globalTimerViewModel.resetTimer()
-                                },
-                                onAdjustTimer: { minutes in
-                                    globalTimerViewModel.adjustTimer(minutes: minutes)
-                                },
-                                onClose: {
-                                    withAnimation {
-                                        showTimerControls = false
-                                    }
-                                }
-                            )
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .scale.combined(with: .opacity)
-                            ))
-                            .padding(.horizontal, 20)
                         }
                         
+                        // エラーメッセージ
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                        }
+                        
+                        Spacer() // 残り空間を埋める
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    
+                    // 下部ボタンエリア（固定）
+                    VStack(spacing: 12) {
                         // セット登録ボタンとタイマーボタン（横並び）
                         HStack(spacing: 12) {
                             // セット登録ボタン
@@ -169,17 +132,17 @@ struct WorkoutLogView: View {
                                 HStack {
                                     if viewModel.isLoading {
                                         ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .progressViewStyle(CircularProgressViewStyle(tint: Color(.systemBackground)))
                                             .scaleEffect(0.8)
                                     }
                                     
                                     Text(viewModel.isLoading ? "登録中..." : "セットを登録")
                                         .font(.headline)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(Color(.systemBackground))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
-                                .background(Color.accentColor)
+                                .background(Color.primary)
                                 .cornerRadius(12)
                             }
                             .disabled(viewModel.isLoading)
@@ -188,7 +151,7 @@ struct WorkoutLogView: View {
                             TimerButton(
                                 timerState: globalTimerViewModel.displayTimerState,
                                 onTap: {
-                                    withAnimation {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                         showTimerControls.toggle()
                                     }
                                 }
@@ -199,9 +162,47 @@ struct WorkoutLogView: View {
                     }
                     .background(Color(.systemBackground))
                 }
+                
+                // タイマー操作パネル（オーバーレイとして独立配置）
+                if showTimerControls {
+                    VStack {
+                        Spacer()
+                        
+                        // ボタンエリアの上にパネルを配置
+                        HStack {
+                            Spacer()
+                            
+                            TimerControlPanel(
+                                timerState: globalTimerViewModel.displayTimerState,
+                                onToggleTimer: {
+                                    print("[WorkoutLogView] Toggle timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
+                                    globalTimerViewModel.setCurrentExercise(exercise)
+                                    globalTimerViewModel.toggleTimer()
+                                },
+                                onResetTimer: {
+                                    globalTimerViewModel.resetTimer()
+                                },
+                                onAdjustTimer: { minutes in
+                                    globalTimerViewModel.adjustTimer(minutes: minutes)
+                                },
+                                onClose: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                        showTimerControls = false
+                                    }
+                                }
+                            )
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .bottom).combined(with: .opacity)
+                            ))
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 80) // ボタンエリアの高さ分上にオフセット
+                    }
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showTimerControls)
+                }
             }
             .navigationBarHidden(true)
-            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showTimerControls)
             .onAppear {
                 // 最初のフィールドにフォーカス
                 focusedField = .weight

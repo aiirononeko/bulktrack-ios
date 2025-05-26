@@ -79,11 +79,10 @@ struct TimerControlPanel: View {
                 Image(systemName: playPauseIcon)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
-                    .frame(width: 50, height: 50)
+                    .frame(width: 40, height: 40)
                     .background(
                         Circle()
                             .fill(playPauseBackgroundColor)
-                            .shadow(color: shadowColor, radius: 4, x: 0, y: 2)
                     )
             }
             .scaleEffect(timerState.isActive ? 1.0 : 0.95)
@@ -94,7 +93,7 @@ struct TimerControlPanel: View {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 34, height: 34)
                     .background(
                         Circle()
                             .fill(Color(.systemGray2).opacity(0.8))
@@ -105,28 +104,11 @@ struct TimerControlPanel: View {
             
             // 時間調整ボタン（+1分）
             adjustButton(minutes: 1, icon: "plus", isDisabled: shouldDisableAdjustButtons)
-            
-            Spacer()
-            
-            // 閉じるボタン
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Circle()
-                            .fill(Color(.systemGray).opacity(0.6))
-                            .shadow(color: shadowColor, radius: 4, x: 0, y: 2)
-                    )
-            }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .shadow(color: shadowColor, radius: 12, x: 0, y: 4)
         )
     }
     
@@ -142,11 +124,10 @@ struct TimerControlPanel: View {
                     .font(.system(size: 8, weight: .medium))
                     .foregroundColor(isDisabled ? .white.opacity(0.3) : .white.opacity(0.7))
             }
-            .frame(width: 44, height: 44)
+            .frame(width: 34, height: 34)
             .background(
                 Circle()
                     .fill(isDisabled ? Color(.systemGray3).opacity(0.3) : buttonBackgroundColor)
-                    .shadow(color: shadowColor, radius: 4, x: 0, y: 2)
             )
         }
         .disabled(isDisabled)
@@ -158,7 +139,7 @@ private extension TimerControlPanel {
     var buttonBackgroundColor: Color {
         switch timerState.status {
         case .running:
-            return .yellow.opacity(0.8)
+            return .yellow
         case .completed:
             return .orange.opacity(0.8)
         case .idle, .paused:
@@ -180,9 +161,9 @@ private extension TimerControlPanel {
     var playPauseBackgroundColor: Color {
         switch timerState.status {
         case .idle, .paused:
-            return .green.opacity(0.8)
+            return .yellow.opacity(0.8)
         case .completed:
-            return .blue.opacity(0.8)
+            return .white
         case .running:
             return .orange.opacity(0.8)
         }

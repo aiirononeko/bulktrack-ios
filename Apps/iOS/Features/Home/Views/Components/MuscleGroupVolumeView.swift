@@ -11,7 +11,7 @@ struct MuscleGroupVolumeView: View {
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundColor(colorScheme == .dark ? .white : .primary)
-            Text("\(totalVolume, specifier: "%.1f") kg") // 小数点以下1桁まで表示
+            Text("\(totalVolume, specifier: "%.0f") kg")
                 .font(.headline)
                 .foregroundColor(colorScheme == .dark ? .white : .secondary)
         }
