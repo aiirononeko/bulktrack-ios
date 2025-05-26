@@ -18,8 +18,10 @@ public final class GlobalTimerService: GlobalTimerServiceProtocol {
     private let notificationUseCase: TimerNotificationUseCaseProtocol
     private let backgroundTimerService: BackgroundTimerServiceProtocol
     private let persistenceService: TimerPersistenceServiceProtocol
+    private let liveActivityService: LiveActivityServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     private var backgroundTaskId: String?
+    private var currentExerciseName: String?
     
     // MARK: - Public Properties
     public var currentTimer: AnyPublisher<TimerState?, Never> {
@@ -35,12 +37,14 @@ public final class GlobalTimerService: GlobalTimerServiceProtocol {
         intervalTimerUseCase: IntervalTimerUseCaseProtocol,
         notificationUseCase: TimerNotificationUseCaseProtocol,
         backgroundTimerService: BackgroundTimerServiceProtocol,
-        persistenceService: TimerPersistenceServiceProtocol
+        persistenceService: TimerPersistenceServiceProtocol,
+        liveActivityService: LiveActivityServiceProtocol
     ) {
         self.intervalTimerUseCase = intervalTimerUseCase
         self.notificationUseCase = notificationUseCase
         self.backgroundTimerService = backgroundTimerService
         self.persistenceService = persistenceService
+        self.liveActivityService = liveActivityService
         
         setupTimerObservation()
         setupAppLifecycleObservation()
@@ -73,6 +77,14 @@ public extension GlobalTimerService {
         print("[GlobalTimerService] Timer started - Duration: \(duration)s, ExerciseID: \(exerciseId)")
     }
     
+    func startGlobalTimer(duration: TimeInterval, exerciseId: UUID, exerciseName: String?) {
+        // 種目名を保存
+        currentExerciseName = exerciseName
+        
+        // 通常のタイマー開始処理
+        startGlobalTimer(duration: duration, exerciseId: exerciseId)
+    }
+    
     func pauseGlobalTimer() {
         guard currentTimerState?.status == .running else { return }
         intervalTimerUseCase.pauseTimer()
@@ -103,6 +115,11 @@ public extension GlobalTimerService {
         cancelBackgroundNotification()
         endBackgroundTaskIfNeeded()
         
+        // Live Activityを終了
+        Task {
+            try? await liveActivityService.endTimerActivity()
+        }
+        
         print("[GlobalTimerService] Timer reset")
     }
     
@@ -112,6 +129,12 @@ public extension GlobalTimerService {
         endBackgroundTaskIfNeeded()
         persistenceService.clearTimerState()
         currentTimerState = nil
+        currentExerciseName = nil
+        
+        // Live Activityを終了
+        Task {
+            try? await liveActivityService.endTimerActivity()
+        }
         
         print("[GlobalTimerService] Timer cleared completely")
     }
@@ -169,6 +192,9 @@ private extension GlobalTimerService {
         // タイマー状態を永続化
         persistenceService.saveTimerState(newTimerState)
         
+        // Live Activity更新処理
+        handleLiveActivityUpdate(newTimerState: newTimerState, previousState: previousState)
+        
         // タイマー完了時の処理
         if newTimerState.isCompleted && previousState?.status == .running {
             handleTimerCompletion()
@@ -186,6 +212,43 @@ private extension GlobalTimerService {
         }
         
         print("[GlobalTimerService] Timer state updated: \(newTimerState.status), remaining: \(newTimerState.formattedRemainingTime)")
+    }
+    
+    func handleLiveActivityUpdate(newTimerState: TimerState, previousState: TimerState?) {
+        Task { [weak self] in
+            guard let self = self else { return }
+            
+            do {
+                // タイマー開始時: Live Activityを開始
+                if newTimerState.status == .running && previousState?.status != .running {
+                    try await self.liveActivityService.startTimerActivity(
+                        timerState: newTimerState,
+                        exerciseName: self.currentExerciseName
+                    )
+                    print("[GlobalTimerService] Live Activity started")
+                }
+                // タイマー実行中: Live Activityを更新
+                else if self.liveActivityService.isActivityActive {
+                    try await self.liveActivityService.updateTimerActivity(timerState: newTimerState)
+                    print("[GlobalTimerService] Live Activity updated")
+                }
+                // タイマー完了時: Live Activityを終了（遅延あり）
+                else if newTimerState.status == .completed && previousState?.status == .running {
+                    // 完了状態を一度更新してから終了
+                    try await self.liveActivityService.updateTimerActivity(timerState: newTimerState)
+                    
+                    // 5秒後に自動終了
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        Task {
+                            try? await self.liveActivityService.endTimerActivity()
+                            print("[GlobalTimerService] Live Activity ended after completion")
+                        }
+                    }
+                }
+            } catch {
+                print("[GlobalTimerService] Live Activity error: \(error.localizedDescription)")
+            }
+        }
     }
     
     func handleTimerCompletion() {

@@ -32,6 +32,7 @@ final class DIContainer {
     // MARK: - Background & Persistence Services
     let backgroundTimerService: BackgroundTimerServiceProtocol
     let timerPersistenceService: TimerPersistenceServiceProtocol
+    let liveActivityService: LiveActivityServiceProtocol
     
     // MARK: - Use Cases
     let deviceIdentificationUseCase: DeviceIdentificationUseCase
@@ -61,7 +62,7 @@ final class DIContainer {
     let appInitializer: AppInitializer
 
     private init() {
-        print("[DIContainer] Initializing with background timer support...")
+        print("[DIContainer] Initializing with background timer and Live Activity support...")
         
         // 1. Initialize basic services
         self.deviceIdentifierService = EnhancedDeviceIdentifierService()
@@ -70,6 +71,7 @@ final class DIContainer {
         // 2. Initialize background & persistence services
         self.backgroundTimerService = BackgroundTimerService()
         self.timerPersistenceService = TimerPersistenceService()
+        self.liveActivityService = LiveActivityService()
         
         // 3. Initialize CoreData stack
         self.persistentContainer = PersistentContainer.shared
@@ -135,12 +137,13 @@ final class DIContainer {
             notificationUseCase: self.timerNotificationUseCase
         )
         
-        // 9.3. Initialize Global Timer Service with background & persistence support
+        // 9.3. Initialize Global Timer Service with background, persistence & Live Activity support
         self.globalTimerService = GlobalTimerService(
             intervalTimerUseCase: self.intervalTimerUseCase,
             notificationUseCase: self.timerNotificationUseCase,
             backgroundTimerService: self.backgroundTimerService,
-            persistenceService: self.timerPersistenceService
+            persistenceService: self.timerPersistenceService,
+            liveActivityService: self.liveActivityService
         )
         
         // 10. Initialize WCSessionRelay with the cached ExerciseRepository
@@ -155,7 +158,7 @@ final class DIContainer {
             timerNotificationUseCase: self.timerNotificationUseCase
         )
         
-        print("[DIContainer] Initialization complete with background timer support.")
+        print("[DIContainer] Initialization complete with background timer and Live Activity support.")
     }
 
     // MARK: - ViewModel Factory Methods
