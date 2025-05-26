@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		4F3185292DCFAD17005D398A /* Prod.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4F3185282DCFAD17005D398A /* Prod.xcconfig */; };
-		4FA481F92DCDAB6100EDCCB3 /* BulkTrackWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */; };
 		4FAF0FED2DDD9FDD001554C9 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF0FEC2DDD9FDD001554C9 /* Domain */; };
 		4FAF0FEF2DDD9FE8001554C9 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF0FEE2DDD9FE8001554C9 /* Domain */; };
@@ -61,7 +60,6 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				4FA481F92DCDAB6100EDCCB3 /* BulkTrackWatch.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -69,13 +67,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4F202B272DE458B20076CE70 /* BulkTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = BulkTrack.app; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-iphoneos/BulkTrack.app"; sourceTree = "<absolute>"; };
+		4F202B282DE458B20076CE70 /* BulkTrackWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = BulkTrackWatch.app; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-watchos/BulkTrackWatch.app"; sourceTree = "<absolute>"; };
+		4F202B292DE458B20076CE70 /* BulkTrackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = BulkTrackTests.xctest; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-iphoneos/BulkTrack.app/PlugIns/BulkTrackTests.xctest"; sourceTree = "<absolute>"; };
+		4F202B2A2DE458B20076CE70 /* BulkTrackUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = BulkTrackUITests.xctest; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-iphoneos/BulkTrackUITests-Runner.app/PlugIns/BulkTrackUITests.xctest"; sourceTree = "<absolute>"; };
+		4F202B2B2DE458B20076CE70 /* BulkTrack Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = "BulkTrack Watch AppTests.xctest"; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-watchos/BulkTrack Watch App.app/PlugIns/BulkTrack Watch AppTests.xctest"; sourceTree = "<absolute>"; };
+		4F202B2C2DE458B20076CE70 /* BulkTrack Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = "BulkTrack Watch AppUITests.xctest"; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-watchos/BulkTrack Watch AppUITests-Runner.app/PlugIns/BulkTrack Watch AppUITests.xctest"; sourceTree = "<absolute>"; };
 		4F3185282DCFAD17005D398A /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
-		4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BulkTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BulkTrackWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -128,36 +126,6 @@
 				4F32FC9D2DDD85B40058F521 /* Exceptions for "Apps" folder in "BulkTrackWatch" target */,
 			);
 			path = Apps;
-			sourceTree = "<group>";
-		};
-		4FA481D72DCDAB6000EDCCB3 /* BulkTrack */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BulkTrack;
-			sourceTree = "<group>";
-		};
-		4FA481E52DCDAB6100EDCCB3 /* BulkTrackTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BulkTrackTests;
-			sourceTree = "<group>";
-		};
-		4FA481EF2DCDAB6100EDCCB3 /* BulkTrackUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BulkTrackUITests;
-			sourceTree = "<group>";
-		};
-		4FA481FC2DCDAB6100EDCCB3 /* BulkTrack Watch App */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "BulkTrack Watch App";
-			sourceTree = "<group>";
-		};
-		4FA4820A2DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "BulkTrack Watch AppTests";
-			sourceTree = "<group>";
-		};
-		4FA482142DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "BulkTrack Watch AppUITests";
 			sourceTree = "<group>";
 		};
 		4FAF0FE72DDD9EC5001554C9 /* Packages */ = {
@@ -223,31 +191,11 @@
 		4FA481CC2DCDAB6000EDCCB3 = {
 			isa = PBXGroup;
 			children = (
-				4FA481D72DCDAB6000EDCCB3 /* BulkTrack */,
-				4FA481E52DCDAB6100EDCCB3 /* BulkTrackTests */,
-				4FA481EF2DCDAB6100EDCCB3 /* BulkTrackUITests */,
-				4FA481FC2DCDAB6100EDCCB3 /* BulkTrack Watch App */,
-				4FA4820A2DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */,
-				4FA482142DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
-				4FA481D62DCDAB6000EDCCB3 /* Products */,
-				4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */,
-				4F3185282DCFAD17005D398A /* Prod.xcconfig */,
 				4F32FC992DDD85930058F521 /* Apps */,
 				4FAF0FE72DDD9EC5001554C9 /* Packages */,
+				4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */,
+				4F3185282DCFAD17005D398A /* Prod.xcconfig */,
 			);
-			sourceTree = "<group>";
-		};
-		4FA481D62DCDAB6000EDCCB3 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */,
-				4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */,
-				4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */,
-				4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */,
-				4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */,
-				4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -277,7 +225,7 @@
 				4FAF10022DDDB2D6001554C9 /* Data */,
 			);
 			productName = BulkTrack;
-			productReference = 4FA481D52DCDAB6000EDCCB3 /* BulkTrack.app */;
+			productReference = 4F202B272DE458B20076CE70 /* BulkTrack.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4FA481E12DCDAB6100EDCCB3 /* BulkTrackTests */ = {
@@ -293,14 +241,11 @@
 			dependencies = (
 				4FA481E42DCDAB6100EDCCB3 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				4FA481E52DCDAB6100EDCCB3 /* BulkTrackTests */,
-			);
 			name = BulkTrackTests;
 			packageProductDependencies = (
 			);
 			productName = BulkTrackTests;
-			productReference = 4FA481E22DCDAB6100EDCCB3 /* BulkTrackTests.xctest */;
+			productReference = 4F202B292DE458B20076CE70 /* BulkTrackTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		4FA481EB2DCDAB6100EDCCB3 /* BulkTrackUITests */ = {
@@ -316,14 +261,11 @@
 			dependencies = (
 				4FA481EE2DCDAB6100EDCCB3 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				4FA481EF2DCDAB6100EDCCB3 /* BulkTrackUITests */,
-			);
 			name = BulkTrackUITests;
 			packageProductDependencies = (
 			);
 			productName = BulkTrackUITests;
-			productReference = 4FA481EC2DCDAB6100EDCCB3 /* BulkTrackUITests.xctest */;
+			productReference = 4F202B2A2DE458B20076CE70 /* BulkTrackUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */ = {
@@ -347,7 +289,7 @@
 				4FAF10042DDDB2DC001554C9 /* Data */,
 			);
 			productName = "BulkTrack Watch App";
-			productReference = 4FA481F82DCDAB6100EDCCB3 /* BulkTrackWatch.app */;
+			productReference = 4F202B282DE458B20076CE70 /* BulkTrackWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4FA482062DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */ = {
@@ -363,14 +305,11 @@
 			dependencies = (
 				4FA482092DCDAB6200EDCCB3 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				4FA4820A2DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */,
-			);
 			name = "BulkTrack Watch AppTests";
 			packageProductDependencies = (
 			);
 			productName = "BulkTrack Watch AppTests";
-			productReference = 4FA482072DCDAB6200EDCCB3 /* BulkTrack Watch AppTests.xctest */;
+			productReference = 4F202B2B2DE458B20076CE70 /* BulkTrack Watch AppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		4FA482102DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */ = {
@@ -386,14 +325,11 @@
 			dependencies = (
 				4FA482132DCDAB6200EDCCB3 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				4FA482142DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
-			);
 			name = "BulkTrack Watch AppUITests";
 			packageProductDependencies = (
 			);
 			productName = "BulkTrack Watch AppUITests";
-			productReference = 4FA482112DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests.xctest */;
+			productReference = 4F202B2C2DE458B20076CE70 /* BulkTrack Watch AppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -443,7 +379,7 @@
 				4F32FCED2DDD9A720058F521 /* XCLocalSwiftPackageReference "Domain" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 4FA481D62DCDAB6000EDCCB3 /* Products */;
+			productRefGroup = 4FA481CC2DCDAB6000EDCCB3;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
