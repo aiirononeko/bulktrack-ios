@@ -20,7 +20,11 @@ struct BulkTrackApp: App {
 
     var body: some Scene {
         WindowGroup {
-            switch appInitializer.initializationState {
+            ZStack {
+                // ステータスバーエリアの背景色を設定
+                StatusBarBackgroundView()
+                
+                switch appInitializer.initializationState {
             case .idle, .loading:
                 ProgressView("アプリケーションを準備中...")
                     .task { // ProgressView が表示されたときに一度だけ実行
@@ -44,6 +48,7 @@ struct BulkTrackApp: App {
                         }
                     }
                     .padding()
+                }
                 }
             }
         }

@@ -38,11 +38,17 @@ class CustomHostingController<Content: View>: UIHostingController<Content>, UISc
         let darkAppearance = UINavigationBarAppearance()
         darkAppearance.configureWithOpaqueBackground()
         darkAppearance.backgroundColor = UIColor(white: 0.06, alpha: 1.0)
+        // ボーダーライン（shadow）を削除
+        darkAppearance.shadowImage = UIImage()
+        darkAppearance.shadowColor = .clear
         
         // ライトモード用の外観設定
         let lightAppearance = UINavigationBarAppearance()
         lightAppearance.configureWithDefaultBackground()
         lightAppearance.backgroundColor = .white
+        // ボーダーライン（shadow）を削除
+        lightAppearance.shadowImage = UIImage()
+        lightAppearance.shadowColor = .clear
         
         // 現在のカラースキームに応じて外観を適用
         let appearance = traitCollection.userInterfaceStyle == .dark ? darkAppearance : lightAppearance
