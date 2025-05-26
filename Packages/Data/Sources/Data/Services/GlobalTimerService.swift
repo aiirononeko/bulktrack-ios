@@ -7,7 +7,7 @@ import UIKit
 #endif
 
 /// グローバルタイマー管理サービスの実装
-/// アプリ全体で単一のタイマーを管理し、画面遷移やアプリ切り替えでも状態を保持
+/// アプリ全体で単一のタイマーを管理し、バックグラウンド動作と永続化に対応
 @MainActor
 public final class GlobalTimerService: GlobalTimerServiceProtocol {
     // MARK: - Published Properties
@@ -16,7 +16,10 @@ public final class GlobalTimerService: GlobalTimerServiceProtocol {
     // MARK: - Private Properties
     private let intervalTimerUseCase: IntervalTimerUseCaseProtocol
     private let notificationUseCase: TimerNotificationUseCaseProtocol
+    private let backgroundTimerService: BackgroundTimerServiceProtocol
+    private let persistenceService: TimerPersistenceServiceProtocol
     private var cancellables = Set<AnyCancellable>()
+    private var backgroundTaskId: String?
     
     // MARK: - Public Properties
     public var currentTimer: AnyPublisher<TimerState?, Never> {
@@ -30,13 +33,18 @@ public final class GlobalTimerService: GlobalTimerServiceProtocol {
     // MARK: - Initialization
     public init(
         intervalTimerUseCase: IntervalTimerUseCaseProtocol,
-        notificationUseCase: TimerNotificationUseCaseProtocol
+        notificationUseCase: TimerNotificationUseCaseProtocol,
+        backgroundTimerService: BackgroundTimerServiceProtocol,
+        persistenceService: TimerPersistenceServiceProtocol
     ) {
         self.intervalTimerUseCase = intervalTimerUseCase
         self.notificationUseCase = notificationUseCase
+        self.backgroundTimerService = backgroundTimerService
+        self.persistenceService = persistenceService
         
         setupTimerObservation()
         setupAppLifecycleObservation()
+        restoreTimerStateIfNeeded()
     }
     
     deinit {
@@ -59,6 +67,9 @@ public extension GlobalTimerService {
         // タイマーを開始
         intervalTimerUseCase.startTimer()
         
+        // バックグラウンドタスクを開始
+        startBackgroundTaskIfNeeded()
+        
         print("[GlobalTimerService] Timer started - Duration: \(duration)s, ExerciseID: \(exerciseId)")
     }
     
@@ -66,6 +77,7 @@ public extension GlobalTimerService {
         guard currentTimerState?.status == .running else { return }
         intervalTimerUseCase.pauseTimer()
         cancelBackgroundNotification()
+        endBackgroundTaskIfNeeded()
         
         print("[GlobalTimerService] Timer paused")
     }
@@ -80,6 +92,7 @@ public extension GlobalTimerService {
             intervalTimerUseCase.startTimer()
         }
         
+        startBackgroundTaskIfNeeded()
         scheduleBackgroundNotification()
         
         print("[GlobalTimerService] Timer resumed")
@@ -88,6 +101,7 @@ public extension GlobalTimerService {
     func resetGlobalTimer() {
         intervalTimerUseCase.resetTimer()
         cancelBackgroundNotification()
+        endBackgroundTaskIfNeeded()
         
         print("[GlobalTimerService] Timer reset")
     }
@@ -95,6 +109,8 @@ public extension GlobalTimerService {
     func clearGlobalTimer() {
         intervalTimerUseCase.resetTimer()
         cancelBackgroundNotification()
+        endBackgroundTaskIfNeeded()
+        persistenceService.clearTimerState()
         currentTimerState = nil
         
         print("[GlobalTimerService] Timer cleared completely")
@@ -114,11 +130,6 @@ public extension GlobalTimerService {
     
     func syncWithCurrentTime() {
         intervalTimerUseCase.syncWithCurrentTime()
-        
-        // 完了状態でない場合のみ通知をキャンセル
-        if let timer = currentTimerState, !timer.shouldPersistAfterCompletion {
-            cancelBackgroundNotification()
-        }
         
         print("[GlobalTimerService] Timer synced with current time")
     }
@@ -155,6 +166,9 @@ private extension GlobalTimerService {
         let previousState = currentTimerState
         currentTimerState = newTimerState
         
+        // タイマー状態を永続化
+        persistenceService.saveTimerState(newTimerState)
+        
         // タイマー完了時の処理
         if newTimerState.isCompleted && previousState?.status == .running {
             handleTimerCompletion()
@@ -162,41 +176,44 @@ private extension GlobalTimerService {
         
         // タイマー開始時の処理
         if newTimerState.status == .running && previousState?.status != .running {
+            startBackgroundTaskIfNeeded()
             scheduleBackgroundNotification()
         }
         
-        print("[GlobalTimerService] Timer state updated: \(newTimerState.status), remaining: \(newTimerState.formattedRemainingTime), shouldPersist: \(newTimerState.shouldPersistAfterCompletion)")
+        // タイマー停止時の処理
+        if newTimerState.status != .running && previousState?.status == .running {
+            endBackgroundTaskIfNeeded()
+        }
+        
+        print("[GlobalTimerService] Timer state updated: \(newTimerState.status), remaining: \(newTimerState.formattedRemainingTime)")
     }
     
     func handleTimerCompletion() {
         cancelBackgroundNotification()
-        
-        // 完了後は表示を継続する
-        // shouldPersistAfterCompletionがtrueの場合、ユーザーが明示的にリセットするまで表示し続ける
+        endBackgroundTaskIfNeeded()
         
         print("[GlobalTimerService] Timer completed - will persist display until manual reset")
     }
     
     func setupAppLifecycleObservation() {
-        #if os(iOS)
-        // アプリがバックグラウンドに移行する時
-        NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)
-            .sink { [weak self] _ in
-                self?.handleAppWillResignActive()
+        backgroundTimerService.appLifecycleEvents
+            .sink { [weak self] event in
+                self?.handleAppLifecycleEvent(event)
             }
             .store(in: &cancellables)
-        
-        // アプリがフォアグラウンドに復帰する時
-        NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
-            .sink { [weak self] _ in
-                self?.handleAppDidBecomeActive()
-            }
-            .store(in: &cancellables)
-        #else
-        // watchOSでは現在のところアプリライフサイクル監視は不要
-        // 必要に応じてwatchOS固有の実装を追加
-        print("[GlobalTimerService] watchOS: App lifecycle observation not implemented")
-        #endif
+    }
+    
+    func handleAppLifecycleEvent(_ event: AppLifecycleEvent) {
+        switch event {
+        case .willResignActive:
+            handleAppWillResignActive()
+        case .didBecomeActive:
+            handleAppDidBecomeActive()
+        case .didEnterBackground:
+            handleAppDidEnterBackground()
+        case .willEnterForeground:
+            handleAppWillEnterForeground()
+        }
     }
     
     func handleAppWillResignActive() {
@@ -211,5 +228,84 @@ private extension GlobalTimerService {
         syncWithCurrentTime()
         
         print("[GlobalTimerService] App did become active - timer synced")
+    }
+    
+    func handleAppDidEnterBackground() {
+        guard isTimerActive else { return }
+        
+        // バックグラウンド移行時刻を保存
+        persistenceService.saveBackgroundTransitionTime(Date())
+        
+        print("[GlobalTimerService] App entered background")
+    }
+    
+    func handleAppWillEnterForeground() {
+        guard currentTimerState != nil else { return }
+        
+        // バックグラウンド移行時刻をクリア
+        persistenceService.clearBackgroundTransitionTime()
+        
+        // タイマー状態を同期
+        syncWithCurrentTime()
+        
+        print("[GlobalTimerService] App will enter foreground")
+    }
+    
+    func restoreTimerStateIfNeeded() {
+        guard let persistedTimer = persistenceService.loadTimerState() else { return }
+        
+        print("[GlobalTimerService] Restoring persisted timer state")
+        
+        // UseCaseにタイマー状態を復元
+        intervalTimerUseCase.restoreTimerState(persistedTimer)
+        
+        // バックグラウンド移行時刻が保存されている場合は時間を同期
+        if persistedTimer.status == .running {
+            syncWithCurrentTime()
+        }
+    }
+    
+    func startBackgroundTaskIfNeeded() {
+        guard backgroundTaskId == nil,
+              backgroundTimerService.isBackgroundProcessingAvailable else { return }
+        
+        backgroundTaskId = backgroundTimerService.startBackgroundTask(
+            identifier: "timer-background-task"
+        ) { [weak self] in
+            // バックグラウンドタスクの期限切れ時
+            self?.handleBackgroundTaskExpiration()
+        }
+        
+        print("[GlobalTimerService] Background task started: \(backgroundTaskId ?? "failed")")
+    }
+    
+    func endBackgroundTaskIfNeeded() {
+        guard let taskId = backgroundTaskId else { return }
+        
+        backgroundTimerService.endBackgroundTask(taskId: taskId)
+        backgroundTaskId = nil
+        
+        print("[GlobalTimerService] Background task ended")
+    }
+    
+    func handleBackgroundTaskExpiration() {
+        print("[GlobalTimerService] Background task expired - ending task")
+        endBackgroundTaskIfNeeded()
+        
+        // タイマーが実行中の場合は通知をスケジュール
+        if isTimerActive {
+            scheduleBackgroundNotification()
+        }
+    }
+}
+
+// MARK: - Background App Refresh Status
+public extension GlobalTimerService {
+    var backgroundAppRefreshStatus: BackgroundAppRefreshStatus {
+        backgroundTimerService.checkBackgroundAppRefreshStatus()
+    }
+    
+    func requestBackgroundProcessingPermission() {
+        backgroundTimerService.requestBackgroundProcessingPermission()
     }
 }

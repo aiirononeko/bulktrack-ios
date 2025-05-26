@@ -23,12 +23,16 @@ public protocol IntervalTimerUseCaseProtocol {
     
     /// バックグラウンドから復帰時の時間同期
     func syncWithCurrentTime()
+    
+    /// 永続化されたタイマー状態を復元
+    func restoreTimerState(_ timerState: TimerState)
 }
 
 /// インターバルタイマー管理UseCase
+/// Date-basedアプローチでバックグラウンド動作に対応
 public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
     @Published private var currentTimerState: TimerState
-    private var timer: Timer?
+    private var displayUpdateTimer: Timer?
     private let notificationUseCase: TimerNotificationUseCaseProtocol
     
     public var timerState: AnyPublisher<TimerState, Never> {
@@ -57,15 +61,18 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
         )
         
         updateState(newState)
-        startTimerExecution()
+        startDisplayUpdates()
     }
     
     public func pauseTimer() {
         guard currentTimerState.status == .running else { return }
         
+        // 現在の残り時間を正確に計算
+        let calculatedRemainingTime = calculateCurrentRemainingTime()
+        
         let newState = TimerState(
             duration: currentTimerState.duration,
-            remainingTime: currentTimerState.remainingTime,
+            remainingTime: calculatedRemainingTime,
             status: .paused,
             exerciseId: currentTimerState.exerciseId,
             startedAt: currentTimerState.startedAt,
@@ -74,7 +81,7 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
         )
         
         updateState(newState)
-        stopTimerExecution()
+        stopDisplayUpdates()
     }
     
     public func resetTimer() {
@@ -89,18 +96,23 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
         )
         
         updateState(newState)
-        stopTimerExecution()
+        stopDisplayUpdates()
     }
     
     public func adjustTimer(minutes: Int) {
-        let newDuration = max(60, currentTimerState.duration + TimeInterval(minutes * 60))
-        let newRemainingTime: TimeInterval
+        let adjustment = TimeInterval(minutes * 60)
+        let newDuration = max(60, currentTimerState.duration + adjustment)
         
+        let newRemainingTime: TimeInterval
         switch currentTimerState.status {
         case .idle:
             newRemainingTime = newDuration
-        case .running, .paused:
-            newRemainingTime = max(0, currentTimerState.remainingTime + TimeInterval(minutes * 60))
+        case .running:
+            // 実行中は現在の残り時間に調整を加える
+            let currentRemaining = calculateCurrentRemainingTime()
+            newRemainingTime = max(0, currentRemaining + adjustment)
+        case .paused:
+            newRemainingTime = max(0, currentTimerState.remainingTime + adjustment)
         case .completed:
             newRemainingTime = newDuration
         }
@@ -110,7 +122,7 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
             remainingTime: newRemainingTime,
             status: currentTimerState.status == .completed ? .idle : currentTimerState.status,
             exerciseId: currentTimerState.exerciseId,
-            startedAt: currentTimerState.startedAt,
+            startedAt: currentTimerState.status == .running ? Date() : currentTimerState.startedAt,
             pausedAt: currentTimerState.pausedAt,
             shouldPersistAfterCompletion: false
         )
@@ -130,12 +142,18 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
         )
         
         updateState(newState)
-        stopTimerExecution()
+        stopDisplayUpdates()
     }
     
     public func syncWithCurrentTime() {
-        guard let startedAt = currentTimerState.startedAt,
-              currentTimerState.status == .running else { return }
+        guard currentTimerState.status == .running,
+              let startedAt = currentTimerState.startedAt else {
+            // running状態でない場合はタイマーの再開始のみ行う
+            if currentTimerState.status == .running {
+                startDisplayUpdates()
+            }
+            return
+        }
         
         let elapsed = Date().timeIntervalSince(startedAt)
         let newRemainingTime = max(0, currentTimerState.duration - elapsed)
@@ -155,8 +173,19 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
         if newState.isCompleted {
             handleTimerCompletion()
         } else {
-            startTimerExecution()
+            startDisplayUpdates()
         }
+    }
+    
+    public func restoreTimerState(_ timerState: TimerState) {
+        updateState(timerState)
+        
+        // 復元されたタイマーが実行中の場合は時間同期を行う
+        if timerState.status == .running {
+            syncWithCurrentTime()
+        }
+        
+        print("[IntervalTimerUseCase] Timer state restored: \(timerState.status), remaining: \(timerState.formattedRemainingTime)")
     }
 }
 
@@ -166,23 +195,24 @@ private extension IntervalTimerUseCase {
         currentTimerState = newState
     }
     
-    func startTimerExecution() {
-        stopTimerExecution()
+    func startDisplayUpdates() {
+        stopDisplayUpdates()
         
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.updateTimerTick()
+        // UIの更新のためのタイマー（1秒間隔）
+        displayUpdateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateDisplay()
         }
     }
     
-    func stopTimerExecution() {
-        timer?.invalidate()
-        timer = nil
+    func stopDisplayUpdates() {
+        displayUpdateTimer?.invalidate()
+        displayUpdateTimer = nil
     }
     
-    func updateTimerTick() {
+    func updateDisplay() {
         guard currentTimerState.status == .running else { return }
         
-        let newRemainingTime = max(0, currentTimerState.remainingTime - 1)
+        let newRemainingTime = calculateCurrentRemainingTime()
         
         let newState = TimerState(
             duration: currentTimerState.duration,
@@ -201,8 +231,18 @@ private extension IntervalTimerUseCase {
         }
     }
     
+    func calculateCurrentRemainingTime() -> TimeInterval {
+        guard let startedAt = currentTimerState.startedAt,
+              currentTimerState.status == .running else {
+            return currentTimerState.remainingTime
+        }
+        
+        let elapsed = Date().timeIntervalSince(startedAt)
+        return max(0, currentTimerState.duration - elapsed)
+    }
+    
     func handleTimerCompletion() {
-        stopTimerExecution()
+        stopDisplayUpdates()
         notificationUseCase.notifyTimerCompletion()
         
         // 完了後は表示を継続するためのフラグを設定
@@ -217,5 +257,7 @@ private extension IntervalTimerUseCase {
         )
         
         updateState(completedState)
+        
+        print("[IntervalTimerUseCase] Timer completed")
     }
 }

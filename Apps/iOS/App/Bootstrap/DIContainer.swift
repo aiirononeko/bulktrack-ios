@@ -29,6 +29,10 @@ final class DIContainer {
     let cacheInvalidationService: CacheInvalidationServiceProtocol
     let workoutHistoryRepository: WorkoutHistoryRepository
     
+    // MARK: - Background & Persistence Services
+    let backgroundTimerService: BackgroundTimerServiceProtocol
+    let timerPersistenceService: TimerPersistenceServiceProtocol
+    
     // MARK: - Use Cases
     let deviceIdentificationUseCase: DeviceIdentificationUseCase
     let activateDeviceUseCase: ActivateDeviceUseCaseProtocol
@@ -57,16 +61,20 @@ final class DIContainer {
     let appInitializer: AppInitializer
 
     private init() {
-        print("[DIContainer] Initializing with cache support...")
+        print("[DIContainer] Initializing with background timer support...")
         
         // 1. Initialize basic services
         self.deviceIdentifierService = EnhancedDeviceIdentifierService()
         self.secureStorageService = KeychainService()
         
-        // 2. Initialize CoreData stack
+        // 2. Initialize background & persistence services
+        self.backgroundTimerService = BackgroundTimerService()
+        self.timerPersistenceService = TimerPersistenceService()
+        
+        // 3. Initialize CoreData stack
         self.persistentContainer = PersistentContainer.shared
         
-        // 3. Initialize cache repositories
+        // 4. Initialize cache repositories
         self.exerciseCacheRepository = ExerciseCacheRepository(persistentContainer: self.persistentContainer)
         self.recentExerciseCacheRepository = RecentExerciseCacheRepository(persistentContainer: self.persistentContainer)
         self.cacheInvalidationService = CacheInvalidationService(
@@ -74,10 +82,10 @@ final class DIContainer {
             recentExerciseCacheRepository: self.recentExerciseCacheRepository
         )
         
-        // 3.1. Initialize workout history repository
+        // 4.1. Initialize workout history repository
         self.workoutHistoryRepository = CoreDataWorkoutHistoryRepository(persistentContainer: self.persistentContainer)
 
-        // 4. Create the APIService instance first, with accessTokenProvider initially nil.
+        // 5. Create the APIService instance first, with accessTokenProvider initially nil.
         let apiServiceInstance = APIService(
             secureStorageService: self.secureStorageService,
             accessTokenProvider: nil // Will be set later
@@ -85,7 +93,7 @@ final class DIContainer {
         self.authRepository = apiServiceInstance
         self.dashboardRepository = apiServiceInstance
 
-        // 5. Create CachedExerciseRepository with APIService and cache repositories
+        // 6. Create CachedExerciseRepository with APIService and cache repositories
         let cachedExerciseRepository = CachedExerciseRepository(
             apiService: apiServiceInstance,
             exerciseCacheRepository: self.exerciseCacheRepository,
@@ -94,16 +102,16 @@ final class DIContainer {
         )
         self.exerciseRepository = cachedExerciseRepository
 
-        // 6. Create AuthManager, injecting the APIService instance as its AuthRepository.
+        // 7. Create AuthManager, injecting the APIService instance as its AuthRepository.
         let authManagerInstance = AuthManager(authRepository: apiServiceInstance, deviceIdentifierService: self.deviceIdentifierService)
         self.authManager = authManagerInstance
         
-        // 7. Now that AuthManager instance exists, set the accessTokenProvider on the APIService instance.
+        // 8. Now that AuthManager instance exists, set the accessTokenProvider on the APIService instance.
         apiServiceInstance.setAccessTokenProvider { [weak authManagerInstance] in
             try await authManagerInstance?.getAccessToken()
         }
 
-        // 8. Initialize UseCases with cached repository
+        // 9. Initialize UseCases with cached repository
         self.deviceIdentificationUseCase = DeviceIdentificationUseCase(deviceIdentifierService: self.deviceIdentifierService)
         self.activateDeviceUseCase = ActivateDeviceUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
         self.logoutUseCase = LogoutUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
@@ -113,37 +121,41 @@ final class DIContainer {
         self.fetchAllExercisesUseCase = FetchAllExercisesUseCase(exerciseRepository: cachedExerciseRepository)
         self.createSetUseCase = CreateSetUseCase(setRepository: apiServiceInstance)
         
-        // 8.1. Initialize Workout History UseCases
+        // 9.1. Initialize Workout History UseCases
         self.getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(workoutHistoryRepository: self.workoutHistoryRepository)
         self.saveWorkoutSetUseCase = SaveWorkoutSetUseCase(
             setRepository: apiServiceInstance,
             workoutHistoryRepository: self.workoutHistoryRepository
         )
         
-        // 8.2. Initialize Timer UseCases
+        // 9.2. Initialize Timer UseCases with background support
         self.timerNotificationUseCase = TimerNotificationUseCase()
         self.intervalTimerUseCase = IntervalTimerUseCase(
             initialState: .defaultTimer(),
             notificationUseCase: self.timerNotificationUseCase
         )
         
-        // 8.3. Initialize Global Timer Service
+        // 9.3. Initialize Global Timer Service with background & persistence support
         self.globalTimerService = GlobalTimerService(
             intervalTimerUseCase: self.intervalTimerUseCase,
-            notificationUseCase: self.timerNotificationUseCase
+            notificationUseCase: self.timerNotificationUseCase,
+            backgroundTimerService: self.backgroundTimerService,
+            persistenceService: self.timerPersistenceService
         )
         
-        // 9. Initialize WCSessionRelay with the cached ExerciseRepository
+        // 10. Initialize WCSessionRelay with the cached ExerciseRepository
         self.watchConnectivityHandler = WCSessionRelay(handleRecentExercisesRequestUseCase: self.handleRecentExercisesRequestUseCase)
 
-        // 10. Initialize AppInitializer
+        // 11. Initialize AppInitializer
         self.appInitializer = AppInitializer(
             activateDeviceUseCase: self.activateDeviceUseCase,
             deviceIdentifierService: self.deviceIdentifierService,
-            authManager: self.authManager
+            authManager: self.authManager,
+            globalTimerService: self.globalTimerService,
+            timerNotificationUseCase: self.timerNotificationUseCase
         )
         
-        print("[DIContainer] Initialization complete with cache support.")
+        print("[DIContainer] Initialization complete with background timer support.")
     }
 
     // MARK: - ViewModel Factory Methods
@@ -177,5 +189,14 @@ final class DIContainer {
     
     func makeGlobalTimerViewModel() -> GlobalTimerViewModel {
         return _globalTimerViewModel // 常に同じインスタンスを返す
+    }
+    
+    // MARK: - Background Timer Status
+    var backgroundAppRefreshStatus: BackgroundAppRefreshStatus {
+        backgroundTimerService.checkBackgroundAppRefreshStatus()
+    }
+    
+    func requestBackgroundProcessingPermission() {
+        backgroundTimerService.requestBackgroundProcessingPermission()
     }
 }

@@ -11,6 +11,9 @@ public protocol GlobalTimerServiceProtocol {
     /// タイマーがアクティブかどうか
     var isTimerActive: Bool { get }
     
+    /// バックグラウンドアプリ更新の状態
+    var backgroundAppRefreshStatus: BackgroundAppRefreshStatus { get }
+    
     /// グローバルタイマーを開始
     /// - Parameters:
     ///   - duration: タイマー時間（秒）
@@ -41,4 +44,7 @@ public protocol GlobalTimerServiceProtocol {
     
     /// スケジュールされた通知をキャンセル
     func cancelBackgroundNotification()
+    
+    /// バックグラウンド処理の権限を要求（設定画面を開く）
+    func requestBackgroundProcessingPermission()
 }
