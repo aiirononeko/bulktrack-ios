@@ -30,6 +30,7 @@ final class DIContainer {
     let workoutHistoryRepository: WorkoutHistoryRepository
     
     // MARK: - Use Cases
+    let deviceIdentificationUseCase: DeviceIdentificationUseCase
     let activateDeviceUseCase: ActivateDeviceUseCaseProtocol
     let logoutUseCase: LogoutUseCaseProtocol
     let fetchDashboardUseCase: FetchDashboardUseCase
@@ -59,7 +60,7 @@ final class DIContainer {
         print("[DIContainer] Initializing with cache support...")
         
         // 1. Initialize basic services
-        self.deviceIdentifierService = DeviceIdentifierService()
+        self.deviceIdentifierService = EnhancedDeviceIdentifierService()
         self.secureStorageService = KeychainService()
         
         // 2. Initialize CoreData stack
@@ -103,6 +104,7 @@ final class DIContainer {
         }
 
         // 8. Initialize UseCases with cached repository
+        self.deviceIdentificationUseCase = DeviceIdentificationUseCase(deviceIdentifierService: self.deviceIdentifierService)
         self.activateDeviceUseCase = ActivateDeviceUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
         self.logoutUseCase = LogoutUseCase(authRepository: apiServiceInstance, authManager: authManagerInstance)
         self.fetchDashboardUseCase = DefaultFetchDashboardUseCase(repository: apiServiceInstance)

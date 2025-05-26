@@ -265,7 +265,7 @@ public final class AuthManager: ObservableObject, AuthManagerProtocol {
         }
 
         do {
-            let deviceId = try deviceIdentifierService.getDeviceIdentifier()
+            let deviceId = deviceIdentifierService.getDeviceIdentifier()
             
             // Temporarily clear token state to allow activateDeviceIfNeeded to run.
             // This assumes activateDeviceIfNeeded will create a new token state.
