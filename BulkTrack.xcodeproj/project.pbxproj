@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		4F3185292DCFAD17005D398A /* Prod.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4F3185282DCFAD17005D398A /* Prod.xcconfig */; };
-		4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */; };
 		4FAF0FED2DDD9FDD001554C9 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF0FEC2DDD9FDD001554C9 /* Domain */; };
 		4FAF0FEF2DDD9FE8001554C9 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF0FEE2DDD9FE8001554C9 /* Domain */; };
 		4FAF10032DDDB2D6001554C9 /* Data in Frameworks */ = {isa = PBXBuildFile; productRef = 4FAF10022DDDB2D6001554C9 /* Data */; };
@@ -67,20 +66,21 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		4F202B272DE458B20076CE70 /* BulkTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = BulkTrack.app; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-iphoneos/BulkTrack.app"; sourceTree = "<absolute>"; };
-		4F202B282DE458B20076CE70 /* BulkTrackWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = BulkTrackWatch.app; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-watchos/BulkTrackWatch.app"; sourceTree = "<absolute>"; };
-		4F202B292DE458B20076CE70 /* BulkTrackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = BulkTrackTests.xctest; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-iphoneos/BulkTrack.app/PlugIns/BulkTrackTests.xctest"; sourceTree = "<absolute>"; };
-		4F202B2A2DE458B20076CE70 /* BulkTrackUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = BulkTrackUITests.xctest; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-iphoneos/BulkTrackUITests-Runner.app/PlugIns/BulkTrackUITests.xctest"; sourceTree = "<absolute>"; };
-		4F202B2B2DE458B20076CE70 /* BulkTrack Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = "BulkTrack Watch AppTests.xctest"; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-watchos/BulkTrack Watch App.app/PlugIns/BulkTrack Watch AppTests.xctest"; sourceTree = "<absolute>"; };
-		4F202B2C2DE458B20076CE70 /* BulkTrack Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = "BulkTrack Watch AppUITests.xctest"; path = "/Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios/build/Debug-watchos/BulkTrack Watch AppUITests-Runner.app/PlugIns/BulkTrack Watch AppUITests.xctest"; sourceTree = "<absolute>"; };
+		4F1D10062DE459240006D312 /* BulkTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BulkTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F1D10072DE459240006D312 /* BulkTrackWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BulkTrackWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F1D10082DE459240006D312 /* BulkTrackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F1D10092DE459240006D312 /* BulkTrackUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BulkTrackUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F1D100A2DE459240006D312 /* BulkTrack Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F1D100B2DE459240006D312 /* BulkTrack Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "BulkTrack Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F1D109B2DE45AA20006D312 /* Dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Dev.xcconfig; sourceTree = "<group>"; };
 		4F3185282DCFAD17005D398A /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
-		4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		4F32FC9C2DDD85B40058F521 /* Exceptions for "Apps" folder in "BulkTrack" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				iOS/Resources/info.plist,
 				watchOS/App/Bootstrap/DIContainer.swift,
 				watchOS/App/Bootstrap/WatchAppInitializer.swift,
 				watchOS/App/BulkTrackApp.swift,
@@ -193,8 +193,14 @@
 			children = (
 				4F32FC992DDD85930058F521 /* Apps */,
 				4FAF0FE72DDD9EC5001554C9 /* Packages */,
-				4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */,
+				4F1D109B2DE45AA20006D312 /* Dev.xcconfig */,
 				4F3185282DCFAD17005D398A /* Prod.xcconfig */,
+				4F1D10062DE459240006D312 /* BulkTrack.app */,
+				4F1D10072DE459240006D312 /* BulkTrackWatch.app */,
+				4F1D10082DE459240006D312 /* BulkTrackTests.xctest */,
+				4F1D10092DE459240006D312 /* BulkTrackUITests.xctest */,
+				4F1D100A2DE459240006D312 /* BulkTrack Watch AppTests.xctest */,
+				4F1D100B2DE459240006D312 /* BulkTrack Watch AppUITests.xctest */,
 			);
 			sourceTree = "<group>";
 		};
@@ -225,7 +231,7 @@
 				4FAF10022DDDB2D6001554C9 /* Data */,
 			);
 			productName = BulkTrack;
-			productReference = 4F202B272DE458B20076CE70 /* BulkTrack.app */;
+			productReference = 4F1D10062DE459240006D312 /* BulkTrack.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4FA481E12DCDAB6100EDCCB3 /* BulkTrackTests */ = {
@@ -245,7 +251,7 @@
 			packageProductDependencies = (
 			);
 			productName = BulkTrackTests;
-			productReference = 4F202B292DE458B20076CE70 /* BulkTrackTests.xctest */;
+			productReference = 4F1D10082DE459240006D312 /* BulkTrackTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		4FA481EB2DCDAB6100EDCCB3 /* BulkTrackUITests */ = {
@@ -265,7 +271,7 @@
 			packageProductDependencies = (
 			);
 			productName = BulkTrackUITests;
-			productReference = 4F202B2A2DE458B20076CE70 /* BulkTrackUITests.xctest */;
+			productReference = 4F1D10092DE459240006D312 /* BulkTrackUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */ = {
@@ -289,7 +295,7 @@
 				4FAF10042DDDB2DC001554C9 /* Data */,
 			);
 			productName = "BulkTrack Watch App";
-			productReference = 4F202B282DE458B20076CE70 /* BulkTrackWatch.app */;
+			productReference = 4F1D10072DE459240006D312 /* BulkTrackWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4FA482062DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */ = {
@@ -309,7 +315,7 @@
 			packageProductDependencies = (
 			);
 			productName = "BulkTrack Watch AppTests";
-			productReference = 4F202B2B2DE458B20076CE70 /* BulkTrack Watch AppTests.xctest */;
+			productReference = 4F1D100A2DE459240006D312 /* BulkTrack Watch AppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		4FA482102DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */ = {
@@ -329,7 +335,7 @@
 			packageProductDependencies = (
 			);
 			productName = "BulkTrack Watch AppUITests";
-			productReference = 4F202B2C2DE458B20076CE70 /* BulkTrack Watch AppUITests.xctest */;
+			productReference = 4F1D100B2DE459240006D312 /* BulkTrack Watch AppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -376,7 +382,6 @@
 			mainGroup = 4FA481CC2DCDAB6000EDCCB3;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4F32FCED2DDD9A720058F521 /* XCLocalSwiftPackageReference "Domain" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4FA481CC2DCDAB6000EDCCB3;
@@ -399,7 +404,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				4F3185292DCFAD17005D398A /* Prod.xcconfig in Resources */,
-				4FA482952DCDBB0700EDCCB3 /* Secrets.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -633,6 +637,7 @@
 		};
 		4FA4821C2DCDAB6200EDCCB3 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4F1D109B2DE45AA20006D312 /* Dev.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -662,6 +667,7 @@
 		};
 		4FA4821D2DCDAB6200EDCCB3 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4F3185282DCFAD17005D398A /* Prod.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -692,7 +698,7 @@
 		};
 		4FA482202DCDAB6200EDCCB3 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4FA482942DCDBB0700EDCCB3 /* Secrets.xcconfig */;
+			baseConfigurationReference = 4F1D109B2DE45AA20006D312 /* Dev.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -701,7 +707,7 @@
 				DEVELOPMENT_TEAM = 573P995VR5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BulkTrack/Info.plist;
+				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -735,7 +741,7 @@
 				DEVELOPMENT_TEAM = 573P995VR5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BulkTrack/Info.plist;
+				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -986,13 +992,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		4F32FCED2DDD9A720058F521 /* XCLocalSwiftPackageReference "Domain" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = Domain;
-		};
-/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		4FAF0FEC2DDD9FDD001554C9 /* Domain */ = {

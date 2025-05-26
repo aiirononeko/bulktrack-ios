@@ -1,5 +1,4 @@
 .DS_Store
 
 # Xcode configuration files
-Secrets.xcconfig
-Prod.xcconfig
+*.xcconfig
