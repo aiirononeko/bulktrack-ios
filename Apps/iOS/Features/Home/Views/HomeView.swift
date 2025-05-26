@@ -15,7 +15,7 @@ struct HomeView: View {
     var body: some View {
         CustomNavigationViewRepresentable(title: "ホーム") {
             ZStack {
-                (colorScheme == .dark ? Color(UIColor(white: 0.12, alpha: 1.0)) : Color(UIColor.systemGray6))
+                (colorScheme == .dark ? .black : Color(UIColor.systemGray6))
                 
                 ScrollView {
                     VStack(spacing: 0) {
@@ -36,7 +36,7 @@ struct HomeView: View {
                                 .padding(.vertical, 18)
                         }
                         .frame(maxWidth: .infinity)
-                        .background(colorScheme == .dark ? Color(UIColor(white: 0.12, alpha: 1.0)) : Color(UIColor.systemGray6))
+                        .background(colorScheme == .dark ? .black : Color(UIColor.systemGray6))
                         
                         VStack(spacing: 0) {
                             if viewModel.isLoading {
@@ -54,15 +54,19 @@ struct HomeView: View {
                                     .fontWeight(.bold)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.horizontal)
-                                    .padding(.bottom, 10)
+                                    .padding(.bottom, 18)
                                 
                                 let currentWeekMuscleVolumes = dashboardData.currentWeekMuscleGroupVolumes
-                                VStack(spacing: 16) {
+                                LazyVGrid(columns: [
+                                    GridItem(.flexible(), spacing: 12),
+                                    GridItem(.flexible(), spacing: 12)
+                                ], spacing: 16) {
                                     ForEach(currentWeekMuscleVolumes) { volumeData in
                                         MuscleGroupVolumeView(muscleGroupName: volumeData.muscleGroupName, totalVolume: volumeData.totalVolume)
                                     }
                                 }
                                 .padding(.horizontal)
+                                .padding(.bottom, 40)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)

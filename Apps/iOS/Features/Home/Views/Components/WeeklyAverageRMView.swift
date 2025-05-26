@@ -6,36 +6,6 @@ struct WeeklyAverageRMView: View {
     @ObservedObject var viewModel: HomeViewModel
     @Environment(\.colorScheme) var colorScheme
 
-    // 過去N週間の週開始日（月曜日）の文字列リストを生成する
-    private func generatePastWeekDates(count: Int) -> [String] {
-        var dates: [String] = []
-        let calendar = Calendar.current
-        let today = Date()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-
-        let weekday = calendar.component(.weekday, from: today)
-        let daysToSubtractToGetMonday = (weekday == calendar.firstWeekday ? 6 : weekday - (calendar.firstWeekday + 1) % 7)
-
-        guard let currentWeekMonday = calendar.date(byAdding: .day, value: -daysToSubtractToGetMonday, to: today) else {
-            return []
-        }
-
-        for i in 0..<count {
-            if let date = calendar.date(byAdding: .weekOfYear, value: -(count - 1 - i), to: currentWeekMonday) {
-                dates.append(dateFormatter.string(from: date))
-            }
-        }
-        return dates
-    }
-
-    // "yyyy-MM-dd" 形式の文字列をDateに変換するヘルパー関数
-    private func dateFromString(_ dateString: String) -> Date? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.date(from: dateString)
-    }
-    
     // Dateを "M/d" 形式の文字列にフォーマットするヘルパー関数
     private func formatDateToLabel(_ date: Date) -> String {
         let formatter = DateFormatter()
@@ -45,21 +15,12 @@ struct WeeklyAverageRMView: View {
     }
 
     private var displayData: [WeekPointEntity] {
-        let pastFourWeekDatesAsStrings = generatePastWeekDates(count: 4)
-        
-        var placeholderData: [WeekPointEntity] = pastFourWeekDatesAsStrings.compactMap { dateString in
-            guard let date = dateFromString(dateString) else { return nil }
-            return WeekPointEntity(weekStart: date, totalVolume: 0, avgSetVolume: 0, e1rmAvg: nil)
+        guard let trendData = viewModel.dashboardData?.trend else {
+            return []
         }
         
-        if let actualTrendData = viewModel.dashboardData?.trend {
-            for actualPoint in actualTrendData {
-                if let index = placeholderData.firstIndex(where: { $0.weekStart == actualPoint.weekStart }) {
-                    placeholderData[index] = actualPoint
-                }
-            }
-        }
-        return placeholderData.sorted(by: { $0.weekStart < $1.weekStart })
+        // APIから取得したデータをそのまま使用し、日付順にソート
+        return trendData.sorted(by: { $0.weekStart < $1.weekStart })
     }
 
     private var allRMAreZeroOrNil: Bool {
