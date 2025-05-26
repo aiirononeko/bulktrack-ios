@@ -19,6 +19,35 @@ class CustomHostingController<Content: View>: UIHostingController<Content>, UISc
         super.viewDidLoad()
         self.navigationItem.title = self.navigationTitle
         self.navigationItem.largeTitleDisplayMode = .automatic
+        configureNavigationBarAppearance()
+    }
+    
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        
+        // ダークモード/ライトモードの切り替えを検出
+        if previousTraitCollection?.userInterfaceStyle != traitCollection.userInterfaceStyle {
+            configureNavigationBarAppearance()
+        }
+    }
+    
+    private func configureNavigationBarAppearance() {
+        guard let navController = navigationController else { return }
+        
+        // ダークモード用の外観設定
+        let darkAppearance = UINavigationBarAppearance()
+        darkAppearance.configureWithOpaqueBackground()
+        darkAppearance.backgroundColor = UIColor(white: 0.06, alpha: 1.0)
+        
+        // ライトモード用の外観設定
+        let lightAppearance = UINavigationBarAppearance()
+        lightAppearance.configureWithDefaultBackground()
+        lightAppearance.backgroundColor = .white
+        
+        // 現在のカラースキームに応じて外観を適用
+        let appearance = traitCollection.userInterfaceStyle == .dark ? darkAppearance : lightAppearance
+        navController.navigationBar.standardAppearance = appearance
+        navController.navigationBar.scrollEdgeAppearance = appearance
     }
 
     override func viewDidLayoutSubviews() {
