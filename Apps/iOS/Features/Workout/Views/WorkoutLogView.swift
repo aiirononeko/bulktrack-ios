@@ -3,6 +3,7 @@ import Domain
 
 struct WorkoutLogView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     @StateObject private var viewModel: WorkoutLogViewModel
     @StateObject private var globalTimerViewModel: GlobalTimerViewModel
     @FocusState private var focusedField: Field?
@@ -114,11 +115,17 @@ struct WorkoutLogView: View {
                                 }
                                 
                                 TextField("1〜10", text: $viewModel.rpe)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .keyboardType(.decimalPad)
                                     .focused($focusedField, equals: .rpe)
                                     .multilineTextAlignment(.center)
                                     .font(.title2)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 10)
+                                    .background(Color(.systemBackground))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(colorScheme == .dark ? .white : .black, lineWidth: 1)
+                                    )
                             }
                         }
                         
@@ -425,6 +432,7 @@ struct InputField: View {
     let keyboardType: UIKeyboardType
     @FocusState.Binding var focused: WorkoutLogView.Field?
     let field: WorkoutLogView.Field
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -433,11 +441,21 @@ struct InputField: View {
                 .foregroundColor(Color(.label))
             
             TextField("0", text: $text)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(keyboardType)
                 .focused($focused, equals: field)
                 .multilineTextAlignment(.center)
                 .font(.title2)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.systemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(borderColor, lineWidth: 1)
+                )
         }
+    }
+    
+    private var borderColor: Color {
+        colorScheme == .dark ? .white : .black
     }
 }

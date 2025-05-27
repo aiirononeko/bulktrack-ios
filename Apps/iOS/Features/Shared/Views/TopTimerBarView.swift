@@ -10,9 +10,6 @@ struct TopTimerBarView: View {
     var body: some View {
         if globalTimerViewModel.hasActiveTimer {
             HStack {
-                // 左側のスペーサー
-                Spacer()
-                
                 // 中央のタイマー表示
                 HStack(spacing: 8) {
                     Image(systemName: timerIcon)
@@ -23,9 +20,7 @@ struct TopTimerBarView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(textColor)
                 }
-                
-                // 右側のスペーサー
-                Spacer()
+                .frame(maxWidth: .infinity)
                 
                 // 右側の「トレーニングに戻る」テキスト
                 HStack(spacing: 4) {
@@ -67,12 +62,12 @@ struct TopTimerBarView: View {
     }
     
     private var backgroundColor: Color {
-        // タイマーバーは視認性を保つため、モードに関係なく黄色を維持
-        return .yellow
+        // ライトモード: 黒、ダークモード: 白
+        return colorScheme == .dark ? .white : .black
     }
     
     private var textColor: Color {
-        // 黄色背景に対して最適なコントラストを保つため、常に黒文字
-        return .black
+        // 背景色に対するコントラスト色
+        return colorScheme == .dark ? .black : .white
     }
 }
