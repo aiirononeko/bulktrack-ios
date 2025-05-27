@@ -31,6 +31,20 @@ public enum TimerActivityStatus: String, Codable, CaseIterable {
     case paused = "paused"
     case completed = "completed"
     
+    /// TimerStatus から変換
+    public init(from timerStatus: TimerStatus) {
+        switch timerStatus {
+        case .idle:
+            self = .idle
+        case .running:
+            self = .running
+        case .paused:
+            self = .paused
+        case .completed:
+            self = .completed
+        }
+    }
+    
     public var displayName: String {
         switch self {
         case .idle:
@@ -148,12 +162,18 @@ public struct TimerActivityContentState: Codable, Hashable {
     public let status: TimerActivityStatus
     /// 種目名（オプション）
     public let exerciseName: String?
+    /// タイマー開始時刻（running状態の場合のみ）
+    public let startedAt: Date?
+    /// 更新時刻
+    public let updatedAt: Date
     
-    public init(remainingTime: TimeInterval, duration: TimeInterval, status: TimerActivityStatus, exerciseName: String? = nil) {
+    public init(remainingTime: TimeInterval, duration: TimeInterval, status: TimerActivityStatus, exerciseName: String? = nil, startedAt: Date? = nil) {
         self.remainingTime = remainingTime
         self.duration = duration
         self.status = status
         self.exerciseName = exerciseName
+        self.startedAt = startedAt
+        self.updatedAt = Date()
     }
     
     /// DomainのTimerActivityDataから変換
@@ -162,28 +182,57 @@ public struct TimerActivityContentState: Codable, Hashable {
         self.duration = activityData.duration
         self.status = activityData.status
         self.exerciseName = activityData.exerciseName
+        self.startedAt = nil // この情報はTimerActivityDataに含まれていない
+        self.updatedAt = Date()
+    }
+    
+    /// TimerStateから直接変換（より正確な情報を含む）
+    public init(from timerState: TimerState, exerciseName: String? = nil) {
+        self.remainingTime = timerState.remainingTime
+        self.duration = timerState.duration
+        self.status = TimerActivityStatus(from: timerState.status)
+        self.exerciseName = exerciseName
+        self.startedAt = timerState.startedAt
+        self.updatedAt = Date()
     }
 }
 
 // MARK: - Helper Extensions for Widget Views
 public extension TimerActivityContentState {
-    /// 残り時間をフォーマットされた文字列で取得
+    /// 現在の実際の残り時間を計算
+    var currentRemainingTime: TimeInterval {
+        guard status == .running, let startedAt = startedAt else {
+            return remainingTime
+        }
+        
+        let elapsed = Date().timeIntervalSince(startedAt)
+        return max(0, duration - elapsed)
+    }
+    
+    /// 残り時間をフォーマットされた文字列で取得（現在時刻ベース）
     var formattedRemainingTime: String {
-        let minutes = Int(remainingTime) / 60
-        let seconds = Int(remainingTime) % 60
+        let remaining = currentRemainingTime
+        let minutes = Int(remaining) / 60
+        let seconds = Int(remaining) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
     
-    /// 進捗率を取得（0.0〜1.0）
+    /// 進捗率を取得（0.0〜1.0）（現在時刻ベース）
     var progress: Double {
         guard duration > 0 else { return 0.0 }
-        let elapsed = duration - remainingTime
+        let remaining = currentRemainingTime
+        let elapsed = duration - remaining
         return min(max(elapsed / duration, 0.0), 1.0)
     }
     
     /// 表示用の種目名を取得
     var displayExerciseName: String {
         return exerciseName ?? "ワークアウト"
+    }
+    
+    /// タイマーが完了しているかどうか
+    var isCompleted: Bool {
+        return status == .completed || (status == .running && currentRemainingTime <= 0)
     }
 }
 

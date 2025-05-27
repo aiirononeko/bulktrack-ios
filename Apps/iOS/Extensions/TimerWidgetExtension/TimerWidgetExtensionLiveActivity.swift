@@ -56,20 +56,22 @@ struct TimerLockScreenView: View {
                     .foregroundColor(Color(context.state.status.color))
                     .font(.title2)
                 
+                Text(context.state.status.displayName)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
                 VStack(alignment: .leading, spacing: 2) {
                     Text(context.state.displayExerciseName)
                         .font(.headline)
                         .lineLimit(1)
                     
-                    Text(context.state.status.displayName)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    
                 }
                 
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(context.state.formattedRemainingTime)
+                    AnimatedTimerText(context: context)
                         .font(.title2)
                         .fontWeight(.semibold)
                         .monospacedDigit()
@@ -84,9 +86,8 @@ struct TimerLockScreenView: View {
             
             // Progress bar
             if context.state.duration > 0 {
-                ProgressView(value: context.state.progress)
-                    .progressViewStyle(LinearProgressViewStyle(tint: Color(context.state.status.color)))
-                    .scaleEffect(y: 2)
+                RealTimeProgressView(context: context)
+                    .scaleEffect(y: 1.33) // Adjust for lock screen
             }
         }
         .padding(.horizontal, 16)
@@ -100,15 +101,10 @@ struct TimerExpandedLeadingView: View {
     let context: ActivityViewContext<TimerActivityAttributes>
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: context.state.status.systemImageName)
-                .font(.title3)
-                .foregroundColor(Color(context.state.status.color))
-            
-            Text(context.state.status.displayName)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
+        AnimatedTimerText(context: context)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .monospacedDigit()
     }
 }
 
@@ -117,7 +113,7 @@ struct TimerExpandedTrailingView: View {
     
     var body: some View {
         VStack(alignment: .trailing, spacing: 4) {
-            Text(context.state.formattedRemainingTime)
+            AnimatedTimerText(context: context)
                 .font(.title3)
                 .fontWeight(.semibold)
                 .monospacedDigit()
@@ -135,26 +131,16 @@ struct TimerExpandedBottomView: View {
     let context: ActivityViewContext<TimerActivityAttributes>
     
     var body: some View {
-        VStack(spacing: 8) {
-            Text(context.state.displayExerciseName)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .lineLimit(1)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                ScrollingTextView(text: context.state.displayExerciseName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+            }
             
             if context.state.duration > 0 {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color(context.state.status.color))
-                        .frame(width: 6, height: 6)
-                    
-                    ProgressView(value: context.state.progress)
-                        .progressViewStyle(LinearProgressViewStyle(tint: Color(context.state.status.color)))
-                    
-                    Circle()
-                        .fill(Color.secondary.opacity(0.3))
-                        .frame(width: 6, height: 6)
-                }
-                .scaleEffect(y: 1.5)
+                RealTimeProgressView(context: context)
             }
         }
     }
@@ -174,7 +160,7 @@ struct TimerCompactTrailingView: View {
     let context: ActivityViewContext<TimerActivityAttributes>
     
     var body: some View {
-        Text(context.state.formattedRemainingTime)
+        AnimatedTimerText(context: context)
             .font(.caption)
             .fontWeight(.semibold)
             .monospacedDigit()
@@ -188,6 +174,136 @@ struct TimerMinimalView: View {
         Image(systemName: context.state.status.systemImageName)
             .font(.caption2)
             .foregroundColor(Color(context.state.status.color))
+    }
+}
+
+// MARK: - Animated Timer Text Component
+struct AnimatedTimerText: View {
+    let context: ActivityViewContext<TimerActivityAttributes>
+    @State private var currentTime = Date()
+    
+    private var timeString: String {
+        // Force recalculation based on current time for running timers
+        if context.state.status == .running {
+            let _ = currentTime // Force dependency on currentTime
+            return context.state.formattedRemainingTime
+        } else {
+            return context.state.formattedRemainingTime
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(timeString.enumerated()), id: \.offset) { index, character in
+                Text(String(character))
+                    .id("timer-\(index)-\(character)")
+                    .transition(.asymmetric(
+                        insertion: .push(from: .top).combined(with: .opacity),
+                        removal: .push(from: .bottom).combined(with: .opacity)
+                    ))
+                    .animation(.easeInOut(duration: 0.2), value: character)
+            }
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if context.state.status == .running {
+                currentTime = Date()
+            }
+        }
+    }
+}
+
+// MARK: - Real-time Progress View Component
+struct RealTimeProgressView: View {
+    let context: ActivityViewContext<TimerActivityAttributes>
+    @State private var currentTime = Date()
+    
+    private var currentProgress: Double {
+        if context.state.status == .running {
+            let _ = currentTime // Force dependency on currentTime
+            return context.state.progress
+        } else {
+            return context.state.progress
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color(context.state.status.color))
+                .frame(width: 6, height: 6)
+            
+            ProgressView(value: currentProgress)
+                .progressViewStyle(LinearProgressViewStyle(tint: Color(context.state.status.color)))
+            
+            Circle()
+                .fill(Color.secondary.opacity(0.3))
+                .frame(width: 6, height: 6)
+        }
+        .scaleEffect(y: 1.5)
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if context.state.status == .running {
+                currentTime = Date()
+            }
+        }
+    }
+}
+
+// MARK: - Scrolling Text Component
+struct ScrollingTextView: View {
+    let text: String
+    @State private var offset: CGFloat = 0
+    @State private var textWidth: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
+    
+    var body: some View {
+        GeometryReader { geometry in
+            Text(text)
+                .fixedSize(horizontal: true, vertical: false)
+                .offset(x: offset)
+                .onAppear {
+                    containerWidth = geometry.size.width
+                    measureTextWidth()
+                    startScrollingIfNeeded()
+                }
+                .onChange(of: text) { _ in
+                    measureTextWidth()
+                    startScrollingIfNeeded()
+                }
+                .background(
+                    Text(text)
+                        .hidden()
+                        .background(GeometryReader { textGeometry in
+                            Color.clear.onAppear {
+                                textWidth = textGeometry.size.width
+                            }
+                        })
+                )
+        }
+        .clipped()
+    }
+    
+    private func measureTextWidth() {
+        DispatchQueue.main.async {
+            if textWidth > containerWidth {
+                startScrolling()
+            } else {
+                offset = 0
+            }
+        }
+    }
+    
+    private func startScrollingIfNeeded() {
+        if textWidth > containerWidth {
+            startScrolling()
+        }
+    }
+    
+    private func startScrolling() {
+        let scrollDistance = textWidth - containerWidth + 20
+        
+        withAnimation(.linear(duration: 3.0).repeatForever(autoreverses: true)) {
+            offset = -scrollDistance
+        }
     }
 }
 

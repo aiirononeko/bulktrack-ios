@@ -198,7 +198,7 @@ struct WorkoutLogView: View {
                             .disabled(viewModel.isLoading)
                         }
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 28)
                     }
                     .background(Color(.systemBackground))
                 }

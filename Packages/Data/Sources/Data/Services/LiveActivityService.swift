@@ -58,8 +58,7 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
         // アクティビティの属性とコンテンツ状態を作成
         let timerId = "timer-\(UUID().uuidString)"
         let attributes = TimerActivityAttributes(timerId: timerId)
-        let activityData = timerState.toActivityData(exerciseName: exerciseName)
-        let contentState = TimerActivityContentState(from: activityData)
+        let contentState = TimerActivityContentState(from: timerState, exerciseName: exerciseName)
         
         print("[LiveActivityService] Creating activity with ID: \(timerId)")
         print("[LiveActivityService] Content state: remaining=\(contentState.remainingTime), duration=\(contentState.duration), status=\(contentState.status)")
@@ -100,12 +99,14 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
             throw LiveActivityError.noActiveActivity
         }
         
-        let activityData = timerState.toActivityData(exerciseName: currentExerciseName)
-        let contentState = TimerActivityContentState(from: activityData)
-        let activityContent = ActivityContent(state: contentState, staleDate: nil)
+        let contentState = TimerActivityContentState(from: timerState, exerciseName: currentExerciseName)
+        
+        // Set stale date to ensure the widget requests updates
+        let staleDate = timerState.status == .running ? Date().addingTimeInterval(5) : nil
+        let activityContent = ActivityContent(state: contentState, staleDate: staleDate)
         
         await activity.update(activityContent)
-        print("[LiveActivityService] Timer activity updated - remaining: \(timerState.formattedRemainingTime)")
+        print("[LiveActivityService] Timer activity updated - remaining: \(timerState.formattedRemainingTime), staleDate: \(staleDate?.timeIntervalSinceNow ?? 0)s")
     }
     
     public func endTimerActivity() async {
