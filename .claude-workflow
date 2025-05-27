@@ -1,0 +1,31 @@
+# Claude Code Workflow Rules
+# This file defines mandatory workflow rules for AI development tasks
+
+## MANDATORY BUILD VERIFICATION
+Every code change MUST be followed by successful build verification.
+
+### Required Command
+```bash
+cd /Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios && xcodebuild -project BulkTrack.xcodeproj -scheme BulkTrack -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+```
+
+### Success Criteria
+- MUST see "** BUILD SUCCEEDED **" message
+- NO compilation errors allowed
+- NO task completion without successful build
+
+### Failure Protocol
+1. Fix all compilation errors immediately
+2. Re-run build verification
+3. Repeat until BUILD SUCCEEDED
+4. Never skip or bypass this process
+
+## TASK COMPLETION REQUIREMENTS
+✅ Code changes implemented
+✅ Build verification executed  
+✅ BUILD SUCCEEDED confirmed
+✅ No compilation errors remain
+✅ Task marked complete
+
+## NO EXCEPTIONS
+This workflow is mandatory for ALL code modifications, regardless of scope or complexity.

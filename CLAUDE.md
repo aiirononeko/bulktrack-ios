@@ -16,7 +16,48 @@ open BulkTrack.xcodeproj
 
 # Clean build folder
 # Xcode: Product → Clean Build Folder (⌘-Shift-K)
+
+# Command-line build verification (required after any code changes)
+cd /Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios && xcodebuild -project BulkTrack.xcodeproj -scheme BulkTrack -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
 ```
+
+## Development Workflow
+
+**🚨 MANDATORY: NEVER complete a task without successful build verification**
+
+### Build Verification Command (REQUIRED after ANY code change)
+```bash
+cd /Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios && xcodebuild -project BulkTrack.xcodeproj -scheme BulkTrack -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+```
+
+### Mandatory Task Completion Process
+**NO EXCEPTIONS - Follow this exact sequence:**
+
+1. 🔄 **Implement requested changes**
+2. 🔨 **ALWAYS run build verification command** 
+3. ✅ **Must see "BUILD SUCCEEDED" message**
+4. ❌ **If build fails**: Fix compilation errors immediately
+5. 🔄 **Re-run build verification until successful**
+6. ✅ **Only complete task after BUILD SUCCEEDED**
+
+### Quick Commands Reference
+```bash
+# Standard build verification (use this after every change)
+cd /Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios && xcodebuild -project BulkTrack.xcodeproj -scheme BulkTrack -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+
+# Clean build (use if standard build fails unexpectedly)
+cd /Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios && xcodebuild -project BulkTrack.xcodeproj -scheme BulkTrack -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16 Pro' clean build
+
+# Check for specific errors (use for debugging)
+cd /Users/ryotakatada/ghq/github.com/aiirononeko/bulktrack-ios && xcodebuild -project BulkTrack.xcodeproj -scheme BulkTrack -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build 2>&1 | grep -A 5 -B 5 "error:"
+```
+
+### Build Failure Response Protocol
+1. **Read error messages carefully**
+2. **Fix compilation errors immediately** 
+3. **Re-run build verification**
+4. **Repeat until BUILD SUCCEEDED**
+5. **Never skip build verification**
 
 ## Architecture Overview
 
