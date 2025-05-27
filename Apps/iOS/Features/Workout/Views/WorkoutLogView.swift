@@ -36,6 +36,17 @@ struct WorkoutLogView: View {
     var body: some View {
         NavigationView {
             ZStack {
+                // 背景タップでパネルを閉じる
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if showTimerControls {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                showTimerControls = false
+                            }
+                        }
+                    }
+                
                 VStack(spacing: 0) {
                     // カスタムナビゲーションバー（シンプル版）
                     WorkoutNavigationBarView(
@@ -46,8 +57,13 @@ struct WorkoutLogView: View {
                         }
                     )
                     
+                    // インターバルタイマープログレスバー
+                    IntervalTimerProgressView(
+                        timerState: globalTimerViewModel.displayTimerState
+                    )
+                    
                     // メインコンテンツ
-                    VStack(spacing: 30) {
+                    VStack(spacing: 28) {
                         // 前回・今回記録表示エリア
                         WorkoutHistorySection(
                             previousWorkout: viewModel.previousWorkout,
@@ -56,6 +72,13 @@ struct WorkoutLogView: View {
                             previousVolume: viewModel.previousVolume,
                             isLoadingHistory: viewModel.isLoadingHistory
                         )
+                        .onTapGesture {
+                            if showTimerControls {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                    showTimerControls = false
+                                }
+                            }
+                        }
                         
                         // 重量・回数・RPEの横並びフォーム                   
                         HStack(spacing: 12) {
@@ -110,12 +133,31 @@ struct WorkoutLogView: View {
                         Spacer() // 残り空間を埋める
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 20)
                     
                     // 下部ボタンエリア（固定）
                     VStack(spacing: 12) {
                         // セット登録ボタンとタイマーボタン（横並び）
                         HStack(spacing: 12) {
+                            // タイマーボタン
+                            TimerButton(
+                                timerState: globalTimerViewModel.displayTimerState,
+                                onToggleTimer: {
+                                    // 1タップ: タイマーの開始/停止
+                                    globalTimerViewModel.setCurrentExercise(exercise)
+                                    globalTimerViewModel.toggleTimer()
+                                },
+                                onResetTimer: {
+                                    // 2タップ: タイマーのリセット
+                                    globalTimerViewModel.resetTimer()
+                                },
+                                onShowControls: {
+                                    // 長押し: 操作パネル表示
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                        showTimerControls.toggle()
+                                    }
+                                }
+                            )
+
                             // セット登録ボタン
                             Button(action: {
                                 Task {
@@ -147,16 +189,6 @@ struct WorkoutLogView: View {
                                 .cornerRadius(12)
                             }
                             .disabled(viewModel.isLoading)
-                            
-                            // タイマーボタン
-                            TimerButton(
-                                timerState: globalTimerViewModel.displayTimerState,
-                                onTap: {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                        showTimerControls.toggle()
-                                    }
-                                }
-                            )
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
@@ -169,20 +201,10 @@ struct WorkoutLogView: View {
                     VStack {
                         Spacer()
                         
-                        // ボタンエリアの上にパネルを配置
+                        // ボタンエリアの上にパネルを左寄せで配置
                         HStack {
-                            Spacer()
-                            
                             TimerControlPanel(
                                 timerState: globalTimerViewModel.displayTimerState,
-                                onToggleTimer: {
-                                    print("[WorkoutLogView] Toggle timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
-                                    globalTimerViewModel.setCurrentExercise(exercise)
-                                    globalTimerViewModel.toggleTimer()
-                                },
-                                onResetTimer: {
-                                    globalTimerViewModel.resetTimer()
-                                },
                                 onAdjustTimer: { minutes in
                                     globalTimerViewModel.adjustTimer(minutes: minutes)
                                 },
@@ -192,6 +214,9 @@ struct WorkoutLogView: View {
                                     }
                                 }
                             )
+                            
+                            Spacer()
+                        }
                             .transition(.asymmetric(
                                 insertion: .move(edge: .bottom).combined(with: .opacity),
                                 removal: .move(edge: .bottom).combined(with: .opacity)
@@ -200,7 +225,6 @@ struct WorkoutLogView: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 80) // ボタンエリアの高さ分上にオフセット
                     }
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showTimerControls)
                 }
             }
             .navigationBarHidden(true)
@@ -238,7 +262,6 @@ struct WorkoutLogView: View {
             .toast(manager: viewModel.toastManager)
         }
     }
-}
 
 // MARK: - WorkoutHistorySection
 struct WorkoutHistorySection: View {

@@ -1,8 +1,8 @@
 import SwiftUI
 import Domain
 
-/// 筋トレ画面専用のナビゲーションバー
-/// 種目名とインターバルタイマーを統合表示
+/// 筋トレ画面専用の簡素なナビゲーションバー
+/// 種目名と戻るボタンのみ表示
 struct WorkoutNavigationBarView: View {
     let exerciseName: String
     let timerState: TimerState
@@ -18,7 +18,7 @@ struct WorkoutNavigationBarView: View {
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(textColor)
+                        .foregroundColor(Color(.label))
                 }
                 .frame(width: 44, height: 44)
                 
@@ -26,66 +26,29 @@ struct WorkoutNavigationBarView: View {
                 
                 Text(exerciseName)
                     .font(.system(.headline, weight: .semibold))
-                    .foregroundColor(textColor)
+                    .foregroundColor(Color(.label))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 
                 Spacer()
                 
-                Text(timerState.formattedRemainingTime)
-                    .font(.system(.subheadline, design: .monospaced))
-                    .fontWeight(.medium)
-                    .foregroundColor(textColor.opacity(0.9))
-                    .animation(.none, value: timerState.formattedRemainingTime)
+                // プレースホルダー（右側のバランス用）
+                Color.clear
+                    .frame(width: 44, height: 44)
             }
             .padding(.horizontal, 16)
             .frame(height: 44) // 標準のナビゲーションバーの高さ
-            .background(navigationBackgroundColor)
+            .background(Color(.systemBackground))
             
             // 下部のボーダーライン
             Rectangle()
-                .fill(borderColor)
+                .fill(Color(.separator))
                 .frame(height: 0.5)
         }
-        .background(navigationBackgroundColor)
+        .background(Color(.systemBackground))
     }
 }
 
-// MARK: - Computed Properties
-private extension WorkoutNavigationBarView {
-    var navigationBackgroundColor: Color {
-        switch timerState.status {
-        case .running:
-            return .yellow
-        case .completed:
-            return Color(.systemBackground)
-        case .idle, .paused:
-            return Color(.systemBackground)
-        }
-    }
-    
-    var textColor: Color {
-        switch timerState.status {
-        case .running:
-            // イエロー背景時は常に黒文字で視認性を確保
-            return .black
-        case .completed, .idle, .paused:
-            // システム背景色に応じて動的に変更
-            return Color(.label)
-        }
-    }
-    
-    var borderColor: Color {
-        switch timerState.status {
-        case .running:
-            return .yellow.opacity(0.3)
-        case .completed:
-            return .orange.opacity(0.3)
-        case .idle, .paused:
-            return Color(.separator)
-        }
-    }
-}
 
 // MARK: - Preview
 struct WorkoutNavigationBarView_Previews: PreviewProvider {
