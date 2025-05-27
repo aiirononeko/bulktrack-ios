@@ -222,19 +222,23 @@ private extension GlobalTimerService {
             do {
                 // タイマー開始時: Live Activityを開始
                 if newTimerState.status == .running && previousState?.status != .running {
+                    print("[GlobalTimerService] Starting Live Activity - Timer: \(newTimerState.formattedRemainingTime), Exercise: \(self.currentExerciseName ?? "Unknown")")
+                    
                     try await self.liveActivityService.startTimerActivity(
                         timerState: newTimerState,
                         exerciseName: self.currentExerciseName
                     )
-                    print("[GlobalTimerService] Live Activity started")
+                    print("[GlobalTimerService] Live Activity started successfully")
                 }
                 // タイマー実行中: Live Activityを更新
                 else if self.liveActivityService.isActivityActive {
                     try await self.liveActivityService.updateTimerActivity(timerState: newTimerState)
-                    print("[GlobalTimerService] Live Activity updated")
+                    print("[GlobalTimerService] Live Activity updated - remaining: \(newTimerState.formattedRemainingTime)")
                 }
                 // タイマー完了時: Live Activityを終了（遅延あり）
                 else if newTimerState.status == .completed && previousState?.status == .running {
+                    print("[GlobalTimerService] Timer completed - updating Live Activity and scheduling end")
+                    
                     // 完了状態を一度更新してから終了
                     try await self.liveActivityService.updateTimerActivity(timerState: newTimerState)
                     
@@ -246,8 +250,14 @@ private extension GlobalTimerService {
                         }
                     }
                 }
+                else {
+                    print("[GlobalTimerService] Live Activity not started - Status: \(newTimerState.status), PreviousStatus: \(previousState?.status ?? .idle), IsActive: \(self.liveActivityService.isActivityActive)")
+                }
             } catch {
-                print("[GlobalTimerService] Live Activity error: \(error.localizedDescription)")
+                print("[GlobalTimerService] Live Activity error: \(error)")
+                if let liveActivityError = error as? LiveActivityError {
+                    print("[GlobalTimerService] LiveActivityError details: \(liveActivityError.errorDescription ?? "Unknown error")")
+                }
             }
         }
     }

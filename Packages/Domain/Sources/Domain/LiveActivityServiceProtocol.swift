@@ -17,8 +17,32 @@ public protocol LiveActivityServiceProtocol {
     func updateTimerActivity(timerState: TimerState) async throws
     
     /// Live Activityを終了
-    func endTimerActivity() async throws
+    func endTimerActivity() async
     
     /// 全てのLive Activityを強制終了
-    func endAllActivities() async throws
+    func endAllActivities() async
+}
+
+// MARK: - Live Activity Errors
+public enum LiveActivityError: LocalizedError {
+    case notAvailable
+    case notAuthorized
+    case noActiveActivity
+    case failedToStart(Error)
+    case failedToUpdate(Error)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .notAvailable:
+            return "Live ActivitiesはiOS 16.1以降でのみ利用可能です。"
+        case .notAuthorized:
+            return "Live Activitiesが許可されていません。設定から有効にしてください。"
+        case .noActiveActivity:
+            return "アクティブなLive Activityがありません。"
+        case .failedToStart(let error):
+            return "Live Activityの開始に失敗しました: \(error.localizedDescription)"
+        case .failedToUpdate(let error):
+            return "Live Activityの更新に失敗しました: \(error.localizedDescription)"
+        }
+    }
 }

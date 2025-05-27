@@ -5,41 +5,6 @@ import Domain
 @preconcurrency import ActivityKit
 import UIKit
 
-// MARK: - Forward Declaration for Widget Extension Types
-// Widget Extensionで定義された型への前方宣言
-// 実際の実装は Apps/iOS/Extensions/TimerWidgetExtension/TimerActivityAttributes.swift にあります
-
-/// Timer Live Activity用の属性定義（前方宣言）
-struct TimerActivityAttributes: ActivityAttributes {
-    typealias ContentState = TimerActivityContentState
-    let timerId: String
-    
-    init(timerId: String) {
-        self.timerId = timerId
-    }
-}
-
-/// Timer Live Activity用のContentState（前方宣言）
-struct TimerActivityContentState: Codable, Hashable {
-    let remainingTime: TimeInterval
-    let duration: TimeInterval
-    let status: TimerActivityStatus
-    let exerciseName: String?
-    
-    init(remainingTime: TimeInterval, duration: TimeInterval, status: TimerActivityStatus, exerciseName: String? = nil) {
-        self.remainingTime = remainingTime
-        self.duration = duration
-        self.status = status
-        self.exerciseName = exerciseName
-    }
-    
-    init(from activityData: TimerActivityData) {
-        self.remainingTime = activityData.remainingTime
-        self.duration = activityData.duration
-        self.status = activityData.status
-        self.exerciseName = activityData.exerciseName
-    }
-}
 
 /// Live Activity（Dynamic Island）管理サービスの実装
 @MainActor
@@ -66,24 +31,38 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
     
     public func startTimerActivity(timerState: TimerState, exerciseName: String?) async throws {
         guard #available(iOS 16.1, *) else {
+            print("[LiveActivityService] Live Activities not available - iOS 16.1+ required")
             throw LiveActivityError.notAvailable
         }
         
+        print("[LiveActivityService] Starting timer activity...")
+        print("[LiveActivityService] Timer State: \(timerState.status), Remaining: \(timerState.formattedRemainingTime)")
+        print("[LiveActivityService] Exercise Name: \(exerciseName ?? "nil")")
+        
         // 既存のアクティビティがあれば終了
         if isActivityActive {
+            print("[LiveActivityService] Ending existing activity before starting new one")
             await endTimerActivity()
         }
         
         // Live Activitiesが利用可能かチェック
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            print("[LiveActivityService] Live Activities are not enabled")
+        let authInfo = ActivityAuthorizationInfo()
+        print("[LiveActivityService] Activities enabled: \(authInfo.areActivitiesEnabled)")
+        print("[LiveActivityService] Authorization status: \(authInfo.frequentPushesEnabled)")
+        
+        guard authInfo.areActivitiesEnabled else {
+            print("[LiveActivityService] Live Activities are not enabled by user")
             throw LiveActivityError.notAuthorized
         }
         
         // アクティビティの属性とコンテンツ状態を作成
-        let attributes = TimerActivityAttributes(timerId: "timer-\(UUID().uuidString)")
+        let timerId = "timer-\(UUID().uuidString)"
+        let attributes = TimerActivityAttributes(timerId: timerId)
         let activityData = timerState.toActivityData(exerciseName: exerciseName)
         let contentState = TimerActivityContentState(from: activityData)
+        
+        print("[LiveActivityService] Creating activity with ID: \(timerId)")
+        print("[LiveActivityService] Content state: remaining=\(contentState.remainingTime), duration=\(contentState.duration), status=\(contentState.status)")
         
         do {
             // アクティビティを開始
@@ -96,11 +75,15 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
             currentActivity = activity
             currentExerciseName = exerciseName
             
-            print("[LiveActivityService] Timer activity started successfully with ID: \(attributes.timerId)")
+            print("[LiveActivityService] Timer activity started successfully!")
+            print("[LiveActivityService] Activity ID: \(timerId)")
+            print("[LiveActivityService] Activity state: \(activity.activityState)")
             
         } catch {
             print("[LiveActivityService] Failed to start timer activity: \(error)")
+            print("[LiveActivityService] Error type: \(type(of: error))")
             print("[LiveActivityService] Error details: \(error.localizedDescription)")
+            
             throw LiveActivityError.failedToStart(error)
         }
     }
@@ -146,7 +129,8 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
         guard #available(iOS 16.1, *) else { return }
         
         // 全てのタイマーアクティビティを終了
-        for activity in Activity<TimerActivityAttributes>.activities {
+        let activities = Activity<TimerActivityAttributes>.activities
+        for activity in activities {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
         
@@ -190,27 +174,3 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
     public func endAllActivities() async {}
 }
 #endif
-
-// MARK: - Live Activity Errors
-public enum LiveActivityError: LocalizedError {
-    case notAvailable
-    case notAuthorized
-    case noActiveActivity
-    case failedToStart(Error)
-    case failedToUpdate(Error)
-    
-    public var errorDescription: String? {
-        switch self {
-        case .notAvailable:
-            return "Live ActivitiesはiOS 16.1以降でのみ利用可能です。"
-        case .notAuthorized:
-            return "Live Activitiesが許可されていません。設定から有効にしてください。"
-        case .noActiveActivity:
-            return "アクティブなLive Activityがありません。"
-        case .failedToStart(let error):
-            return "Live Activityの開始に失敗しました: \(error.localizedDescription)"
-        case .failedToUpdate(let error):
-            return "Live Activityの更新に失敗しました: \(error.localizedDescription)"
-        }
-    }
-}
