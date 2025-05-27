@@ -16,7 +16,6 @@ final class WorkoutLogViewModel: ObservableObject {
     @Published var rpe: String = ""
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
-    @Published var showSuccessAlert = false
     
     // Workout History State
     @Published var previousWorkout: WorkoutHistoryEntity? = nil
@@ -27,6 +26,9 @@ final class WorkoutLogViewModel: ObservableObject {
     private let getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol
     private let exerciseId: UUID
     private let exerciseName: String
+    
+    // Toast Manager
+    let toastManager = ToastManager()
     
     init(
         exerciseId: UUID,
@@ -77,11 +79,13 @@ final class WorkoutLogViewModel: ObservableObject {
         switch result {
         case .success:
             clearForm()
-            showSuccessAlert = true
+            // トーストメッセージを表示（アラートは無効化）
+            toastManager.showSuccessToast(message: "セットの記録が完了しました。\nインターバルタイマーを起動します。", duration: 2.5)
             // 履歴を再読み込み
             await loadWorkoutHistory()
         case .failure(let error):
             errorMessage = error.localizedDescription
+            toastManager.showErrorToast(message: "セットの登録に失敗しました")
         }
         
         isLoading = false

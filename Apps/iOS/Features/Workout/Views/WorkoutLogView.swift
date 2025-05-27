@@ -119,9 +119,10 @@ struct WorkoutLogView: View {
                             // セット登録ボタン
                             Button(action: {
                                 Task {
+                                    let previousSetCount = viewModel.todaysSetCount
                                     await viewModel.saveSet()
-                                    // セット登録完了後、タイマーを開始
-                                    if viewModel.showSuccessAlert {
+                                    // セット登録完了後、タイマーを開始（セット数が増加した場合のみ）
+                                    if viewModel.todaysSetCount > previousSetCount {
                                         print("[WorkoutLogView] Set saved, starting timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
                                         // セット登録時にExerciseEntityを設定
                                         globalTimerViewModel.setCurrentExercise(exercise)
@@ -218,11 +219,7 @@ struct WorkoutLogView: View {
             } message: {
                 Text(viewModel.rpeHelpText)
             }
-            .alert("セット登録完了", isPresented: $viewModel.showSuccessAlert) {
-                Button("OK") { }
-            } message: {
-                Text("セットが正常に登録されました")
-            }
+            .toast(manager: viewModel.toastManager)
         }
     }
 }
