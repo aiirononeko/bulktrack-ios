@@ -22,6 +22,7 @@ public final class GlobalTimerService: GlobalTimerServiceProtocol {
     private var cancellables = Set<AnyCancellable>()
     private var backgroundTaskId: String?
     private var currentExerciseName: String?
+    private var isAppInBackground = false
     
     // MARK: - Public Properties
     public var currentTimer: AnyPublisher<TimerState?, Never> {
@@ -294,6 +295,8 @@ private extension GlobalTimerService {
     }
     
     func handleAppDidEnterBackground() {
+        isAppInBackground = true
+        
         guard isTimerActive else { return }
         
         // バックグラウンド移行時刻を保存
@@ -303,6 +306,8 @@ private extension GlobalTimerService {
     }
     
     func handleAppWillEnterForeground() {
+        isAppInBackground = false
+        
         guard currentTimerState != nil else { return }
         
         // バックグラウンド移行時刻をクリア

@@ -209,10 +209,26 @@ struct WorkoutLogView: View {
                 focusedField = .weight
                 print("[WorkoutLogView] View appeared - Exercise: \(exercise.name) (ID: \(exercise.id))")
                 
+                // WorkoutLogView専用：タイマー完了時の自動リセットを有効化
+                globalTimerViewModel.setCurrentExercise(exercise, enableAutoReset: true)
+                globalTimerViewModel.enableAutoResetMode()
+                
+                // 既に完了しているタイマーがある場合は即座にリセット
+                if let currentTimer = globalTimerViewModel.timerState, 
+                   currentTimer.status == .completed {
+                    print("[WorkoutLogView] Timer already completed - resetting immediately")
+                    globalTimerViewModel.resetTimer()
+                }
+                
                 // 履歴を読み込み
                 Task {
                     await viewModel.loadWorkoutHistory()
                 }
+            }
+            .onDisappear {
+                // WorkoutLogViewを離れる時は自動リセットモードを無効化
+                globalTimerViewModel.disableAutoResetMode()
+                print("[WorkoutLogView] View disappeared - Auto-reset mode disabled")
             }
             .alert("RPE (主観的運動強度)", isPresented: $showRPEHelp) {
                 Button("OK") { }

@@ -19,6 +19,9 @@ final class GlobalTimerViewModel: ObservableObject {
     private var currentExercise: ExerciseEntity?
     private let instanceId = UUID().uuidString.prefix(8) // インスタンス識別用
     
+    // WorkoutLogView からのタイマー完了自動リセット制御
+    private var shouldAutoResetOnCompletion = false
+    
     // MARK: - Computed Properties
     var hasActiveTimer: Bool {
         guard let timer = timerState else { return false }
@@ -54,11 +57,34 @@ final class GlobalTimerViewModel: ObservableObject {
 // MARK: - Public Methods
 extension GlobalTimerViewModel {
     /// 現在のExerciseEntityを設定（画面遷移時に呼び出し）
-    /// - Parameter exercise: 現在の種目のExerciseEntity
-    func setCurrentExercise(_ exercise: ExerciseEntity) {
+    /// - Parameters:
+    ///   - exercise: 現在の種目のExerciseEntity
+    ///   - enableAutoReset: タイマー完了時の自動リセットを有効にするか（WorkoutLogViewでのみtrue）
+    func setCurrentExercise(_ exercise: ExerciseEntity, enableAutoReset: Bool = false) {
         currentExercise = exercise
         currentExerciseId = exercise.id
-        print("[GlobalTimerViewModel-\(instanceId)] Exercise context set: \(exercise.name) (ID: \(exercise.id))")
+        shouldAutoResetOnCompletion = enableAutoReset
+        print("[GlobalTimerViewModel-\(instanceId)] Exercise context set: \(exercise.name) (ID: \(exercise.id)), autoReset: \(enableAutoReset)")
+    }
+    
+    /// WorkoutLogView専用：自動リセットモードを有効化
+    func enableAutoResetMode() {
+        shouldAutoResetOnCompletion = true
+        print("[GlobalTimerViewModel-\(instanceId)] Auto-reset mode enabled for WorkoutLogView")
+        
+        // 既に完了しているタイマーがあれば即座にリセット
+        if let currentTimer = timerState, currentTimer.status == .completed {
+            print("[GlobalTimerViewModel-\(instanceId)] Found completed timer when enabling auto-reset - resetting immediately")
+            DispatchQueue.main.async { [weak self] in
+                self?.resetTimer()
+            }
+        }
+    }
+    
+    /// WorkoutLogView専用：自動リセットモードを無効化
+    func disableAutoResetMode() {
+        shouldAutoResetOnCompletion = false
+        print("[GlobalTimerViewModel-\(instanceId)] Auto-reset mode disabled")
     }
     
     /// グローバルタイマーを開始
@@ -172,6 +198,7 @@ private extension GlobalTimerViewModel {
     }
     
     func handleTimerStateUpdate(_ newTimerState: TimerState?) {
+        let previousState = timerState
         timerState = newTimerState
         isTimerActive = globalTimerService.isTimerActive
         
@@ -180,8 +207,37 @@ private extension GlobalTimerViewModel {
             currentExerciseId = exerciseId
         }
         
+        // タイマー完了時の処理
+        if let newState = newTimerState, newState.status == .completed {
+            
+            if shouldAutoResetOnCompletion {
+                // WorkoutLogViewでは自動リセット
+                // 実行中から完了になった場合は遅延リセット、既に完了している場合は即座にリセット
+                if let prevState = previousState, prevState.status == .running {
+                    print("[GlobalTimerViewModel-\(instanceId)] Timer completed in WorkoutLogView - scheduling auto-reset")
+                    
+                    // 2秒後に自動リセット（ユーザーが完了を確認できる時間を確保）
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        guard let self = self, self.shouldAutoResetOnCompletion else { return }
+                        print("[GlobalTimerViewModel-\(instanceId)] Auto-resetting timer in WorkoutLogView (delayed)")
+                        self.resetTimer()
+                    }
+                } else {
+                    // 既に完了している状態でWorkoutLogViewに入った場合は即座にリセット
+                    print("[GlobalTimerViewModel-\(instanceId)] Timer already completed in WorkoutLogView - resetting immediately")
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self, self.shouldAutoResetOnCompletion else { return }
+                        self.resetTimer()
+                    }
+                }
+            } else {
+                // 他のページではタイマー完了ステータスを維持
+                print("[GlobalTimerViewModel-\(instanceId)] Timer completed - maintaining completed status for navigation")
+            }
+        }
+        
         if let state = newTimerState {
-            print("[GlobalTimerViewModel-\(instanceId)] Timer state updated: \(state.status), remaining: \(state.formattedRemainingTime), shouldPersist: \(state.shouldPersistAfterCompletion)")
+            print("[GlobalTimerViewModel-\(instanceId)] Timer state updated: \(state.status), remaining: \(state.formattedRemainingTime), shouldPersist: \(state.shouldPersistAfterCompletion), autoReset: \(shouldAutoResetOnCompletion)")
         } else {
             print("[GlobalTimerViewModel-\(instanceId)] Timer cleared")
         }
