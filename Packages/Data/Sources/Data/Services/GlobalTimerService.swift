@@ -220,8 +220,8 @@ private extension GlobalTimerService {
             guard let self = self else { return }
             
             do {
-                // タイマー開始時: Live Activityを開始
-                if newTimerState.status == .running && previousState?.status != .running {
+                // タイマー開始時またはLiveActivityが未開始の場合: Live Activityを開始
+                if newTimerState.status == .running && (!self.liveActivityService.isActivityActive || previousState?.status != .running) {
                     print("[GlobalTimerService] Starting Live Activity - Timer: \(newTimerState.formattedRemainingTime), Exercise: \(self.currentExerciseName ?? "Unknown")")
                     
                     try await self.liveActivityService.startTimerActivity(
@@ -340,6 +340,18 @@ private extension GlobalTimerService {
         // バックグラウンド移行時刻が保存されている場合は時間を同期
         if persistedTimer.status == .running {
             syncWithCurrentTime()
+            
+            // タイマーが実行中の場合、LiveActivityも開始する
+            Task { [weak self] in
+                guard let self = self else { return }
+                if let timerState = self.currentTimerState {
+                    print("[GlobalTimerService] Restoring Live Activity for running timer")
+                    try? await self.liveActivityService.startTimerActivity(
+                        timerState: timerState,
+                        exerciseName: self.currentExerciseName
+                    )
+                }
+            }
         }
     }
     

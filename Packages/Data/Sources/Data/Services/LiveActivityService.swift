@@ -63,6 +63,8 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
         
         print("[LiveActivityService] Creating activity with ID: \(timerId)")
         print("[LiveActivityService] Content state: remaining=\(contentState.remainingTime), duration=\(contentState.duration), status=\(contentState.status)")
+        print("[LiveActivityService] Content state exerciseName: \(contentState.exerciseName ?? "nil")")
+        print("[LiveActivityService] Content state displayExerciseName: \(contentState.displayExerciseName)")
         
         do {
             // アクティビティを開始

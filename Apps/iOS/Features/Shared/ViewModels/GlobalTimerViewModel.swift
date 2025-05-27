@@ -108,7 +108,7 @@ extension GlobalTimerViewModel {
         print("[GlobalTimerViewModel-\(instanceId)] Cached exercise: \(currentExercise != nil ? "YES" : "NO")")
         
         // Live Activity対応：種目名も渡す
-        globalTimerService.startGlobalTimer(duration: duration, exerciseId: finalExerciseId)
+        globalTimerService.startGlobalTimer(duration: duration, exerciseId: finalExerciseId, exerciseName: exerciseName)
     }
     
     /// グローバルタイマーを一時停止
@@ -176,7 +176,7 @@ extension GlobalTimerViewModel {
                 // アイドル状態からは再開（Live Activity対応で種目名も渡す）
                 let exerciseId = currentExerciseId ?? UUID()
                 let exerciseName = currentExercise?.name
-                globalTimerService.startGlobalTimer(duration: currentState.duration, exerciseId: exerciseId)
+                globalTimerService.startGlobalTimer(duration: currentState.duration, exerciseId: exerciseId, exerciseName: exerciseName)
             }
         case .running:
             pauseTimer()

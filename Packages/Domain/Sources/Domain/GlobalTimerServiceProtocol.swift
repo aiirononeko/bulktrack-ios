@@ -20,6 +20,13 @@ public protocol GlobalTimerServiceProtocol {
     ///   - exerciseId: 関連する種目ID
     func startGlobalTimer(duration: TimeInterval, exerciseId: UUID)
     
+    /// グローバルタイマーを開始（種目名付き）
+    /// - Parameters:
+    ///   - duration: タイマー時間（秒）
+    ///   - exerciseId: 関連する種目ID
+    ///   - exerciseName: 種目名（LiveActivity表示用）
+    func startGlobalTimer(duration: TimeInterval, exerciseId: UUID, exerciseName: String?)
+    
     /// グローバルタイマーを一時停止
     func pauseGlobalTimer()
     

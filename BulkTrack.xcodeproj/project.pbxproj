@@ -481,11 +481,11 @@
 			targets = (
 				4FA481D42DCDAB6000EDCCB3 /* BulkTrack */,
 				4FA481F72DCDAB6100EDCCB3 /* BulkTrackWatch */,
+				4F1D10BE2DE4D3850006D312 /* TimerWidgetExtensionExtension */,
 				4FA481E12DCDAB6100EDCCB3 /* BulkTrackTests */,
 				4FA481EB2DCDAB6100EDCCB3 /* BulkTrackUITests */,
 				4FA482062DCDAB6200EDCCB3 /* BulkTrack Watch AppTests */,
 				4FA482102DCDAB6200EDCCB3 /* BulkTrack Watch AppUITests */,
-				4F1D10BE2DE4D3850006D312 /* TimerWidgetExtensionExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -876,8 +876,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 573P995VR5;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Apps/iOS/Resources/info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -910,8 +910,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 573P995VR5;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Apps/iOS/Resources/info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BulkTrack;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
