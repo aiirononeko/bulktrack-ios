@@ -20,19 +20,22 @@ final class AppInitializer: ObservableObject {
     private let authManager: AuthManagerProtocol
     private let globalTimerService: GlobalTimerServiceProtocol
     private let timerNotificationUseCase: TimerNotificationUseCaseProtocol
+    private let backgroundTimerService: BackgroundTimerServiceProtocol
 
     init(
         activateDeviceUseCase: ActivateDeviceUseCaseProtocol,
         deviceIdentifierService: DeviceIdentifierServiceProtocol,
         authManager: AuthManagerProtocol,
         globalTimerService: GlobalTimerServiceProtocol,
-        timerNotificationUseCase: TimerNotificationUseCaseProtocol
+        timerNotificationUseCase: TimerNotificationUseCaseProtocol,
+        backgroundTimerService: BackgroundTimerServiceProtocol
     ) {
         self.activateDeviceUseCase = activateDeviceUseCase
         self.deviceIdentifierService = deviceIdentifierService
         self.authManager = authManager
         self.globalTimerService = globalTimerService
         self.timerNotificationUseCase = timerNotificationUseCase
+        self.backgroundTimerService = backgroundTimerService
     }
 
     /// アプリ起動時の初期化

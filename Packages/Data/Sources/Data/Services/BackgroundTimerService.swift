@@ -34,7 +34,6 @@ public final class BackgroundTimerService: BackgroundTimerServiceProtocol {
     // MARK: - Initialization
     public init() {
         setupAppLifecycleObservation()
-        registerBackgroundTasks()
     }
     
     deinit {
@@ -115,6 +114,22 @@ public extension BackgroundTimerService {
         }
         #endif
     }
+    
+    /// BGTaskScheduler の登録（アプリ起動時に呼び出し）
+    func registerBackgroundTasks() {
+        #if os(iOS)
+        // バックグラウンドタスクの登録
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: "com.bulktrack.timer-sync",
+            using: nil
+        ) { task in
+            Task { @MainActor in
+                self.handleBackgroundTimerSync(task: task as! BGProcessingTask)
+            }
+        }
+        print("[BackgroundTimerService] Background tasks registered")
+        #endif
+    }
 }
 
 // MARK: - Private Methods
@@ -148,18 +163,6 @@ private extension BackgroundTimerService {
                 self?.appLifecycleSubject.send(.willEnterForeground)
             }
             .store(in: &cancellables)
-        #endif
-    }
-    
-    func registerBackgroundTasks() {
-        #if os(iOS)
-        // バックグラウンドタスクの登録
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: "com.bulktrack.timer-sync",
-            using: nil
-        ) { task in
-            self.handleBackgroundTimerSync(task: task as! BGProcessingTask)
-        }
         #endif
     }
     

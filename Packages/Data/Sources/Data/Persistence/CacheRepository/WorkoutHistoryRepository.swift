@@ -106,6 +106,52 @@ public final class CoreDataWorkoutHistoryRepository: Domain.WorkoutHistoryReposi
         return entities.map { $0.toDomainEntity() }
     }
     
+    public func deleteWorkoutSet(_ setId: UUID) async throws {
+        let context = persistentContainer.context
+        
+        let request: NSFetchRequest<LocalWorkoutSetEntity> = LocalWorkoutSetEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", setId as CVarArg)
+        
+        let entities = try context.fetch(request)
+        
+        guard let entity = entities.first else {
+            // セットが見つからない場合は正常終了（既に削除済みの可能性）
+            return
+        }
+        
+        let exerciseId = entity.exerciseId
+        let deletedSetNumber = entity.setNumber
+        
+        // エンティティを削除
+        context.delete(entity)
+        
+        // 削除されたセットより後のセット番号を更新
+        let updateRequest: NSFetchRequest<LocalWorkoutSetEntity> = LocalWorkoutSetEntity.fetchRequest()
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        
+        updateRequest.predicate = NSPredicate(
+            format: "exerciseId == %@ AND workoutDate >= %@ AND workoutDate < %@ AND setNumber > %d",
+            exerciseId as CVarArg,
+            today as CVarArg,
+            tomorrow as CVarArg,
+            deletedSetNumber
+        )
+        updateRequest.sortDescriptors = [
+            NSSortDescriptor(keyPath: \LocalWorkoutSetEntity.setNumber, ascending: true)
+        ]
+        
+        let remainingSets = try context.fetch(updateRequest)
+        
+        // セット番号を1つずつ減らす
+        for set in remainingSets {
+            set.setNumber = set.setNumber - 1
+        }
+        
+        try context.save()
+    }
+    
     // MARK: - Private Methods
     
     private func getExerciseName(for exerciseId: UUID, context: NSManagedObjectContext) -> String? {

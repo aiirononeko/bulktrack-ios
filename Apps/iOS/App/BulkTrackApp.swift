@@ -16,6 +16,9 @@ struct BulkTrackApp: App {
     // MARK: - Life‑cycle
     init() {
         configureAppearance()
+        
+        // BGTaskScheduler の登録をアプリ起動の最初期に実行
+        DIContainer.shared.backgroundTimerService.registerBackgroundTasks()
     }
 
     var body: some Scene {

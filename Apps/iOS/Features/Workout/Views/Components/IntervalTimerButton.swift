@@ -6,26 +6,19 @@ struct IntervalTimerButton: View {
     let timerState: TimerState
     let uiState: TimerUIState
     let onTap: () -> Void
+    let onLongPress: ((Int) -> Void)?
+    
+    @State private var showingTimerSheet = false
     
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 8) {
-                // タイマーアイコンまたは時間表示
-                Group {
-                    if case .collapsed(let isRunning) = uiState, isRunning {
-                        // 実行中は残り時間を表示
-                        Text(timerState.formattedRemainingTime)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .monospacedDigit()
-                            .foregroundColor(.white)
-                    } else {
-                        // 停止中はタイマーアイコンを表示
-                        Image(systemName: "timer")
-                            .font(.system(size: 30, weight: .medium))
-                            .foregroundColor(.white)
-                    }
-                }
+                // タイマー時間表示
+                Text(timerState.formattedRemainingTime)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .monospacedDigit()
+                    .foregroundColor(.white)
                 
                 // 展開/収縮状態を示すインジケータ
                 if uiState.isExpanded {
@@ -41,6 +34,18 @@ struct IntervalTimerButton: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture {
+            // ハプティックフィードバック
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+            showingTimerSheet = true
+        }
+        .sheet(isPresented: $showingTimerSheet) {
+            TimerSettingsSheet { duration in
+                onLongPress?(duration)
+            }
+            .presentationDetents([.fraction(0.5)])
+        }
     }
 }
 
@@ -123,7 +128,8 @@ struct IntervalTimerButton_Previews: PreviewProvider {
             IntervalTimerButton(
                 timerState: .defaultTimer(),
                 uiState: .collapsed(isRunning: false),
-                onTap: {}
+                onTap: {},
+                onLongPress: { _ in }
             )
             
             // 実行中
@@ -134,14 +140,16 @@ struct IntervalTimerButton_Previews: PreviewProvider {
                     status: .running
                 ),
                 uiState: .collapsed(isRunning: true),
-                onTap: {}
+                onTap: {},
+                onLongPress: { _ in }
             )
             
             // 展開状態
             IntervalTimerButton(
                 timerState: .defaultTimer(),
                 uiState: .expanded,
-                onTap: {}
+                onTap: {},
+                onLongPress: { _ in }
             )
             
             // 完了状態
@@ -152,7 +160,8 @@ struct IntervalTimerButton_Previews: PreviewProvider {
                     status: .completed
                 ),
                 uiState: .collapsed(isRunning: false),
-                onTap: {}
+                onTap: {},
+                onLongPress: { _ in }
             )
         }
         .padding()
