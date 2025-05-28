@@ -194,8 +194,10 @@ private extension GlobalTimerService {
         // タイマー状態を永続化
         persistenceService.saveTimerState(newTimerState)
         
-        // Live Activity更新処理
-        handleLiveActivityUpdate(newTimerState: newTimerState, previousState: previousState)
+        // Live Activity更新処理（状態変更時のみ）
+        if shouldUpdateLiveActivity(newState: newTimerState, previousState: previousState) {
+            handleLiveActivityUpdate(newTimerState: newTimerState, previousState: previousState)
+        }
         
         // タイマー完了時の処理
         if newTimerState.isCompleted && previousState?.status == .running {
@@ -231,10 +233,15 @@ private extension GlobalTimerService {
                     )
                     print("[GlobalTimerService] Live Activity started successfully")
                 }
-                // タイマー実行中: Live Activityを更新
-                else if self.liveActivityService.isActivityActive {
+                // タイマー一時停止時: Live Activityを更新
+                else if newTimerState.status == .paused && previousState?.status == .running && self.liveActivityService.isActivityActive {
                     try await self.liveActivityService.updateTimerActivity(timerState: newTimerState)
-                    print("[GlobalTimerService] Live Activity updated - remaining: \(newTimerState.formattedRemainingTime)")
+                    print("[GlobalTimerService] Live Activity updated - paused at: \(newTimerState.formattedRemainingTime)")
+                }
+                // タイマー再開時: Live Activityを更新
+                else if newTimerState.status == .running && previousState?.status == .paused && self.liveActivityService.isActivityActive {
+                    try await self.liveActivityService.updateTimerActivity(timerState: newTimerState)
+                    print("[GlobalTimerService] Live Activity updated - resumed at: \(newTimerState.formattedRemainingTime)")
                 }
                 // タイマー完了時: Live Activityを終了（遅延あり）
                 else if newTimerState.status == .completed && previousState?.status == .running {
@@ -277,22 +284,10 @@ private extension GlobalTimerService {
             }
             .store(in: &cancellables)
         
-        // バックグラウンドでのLiveActivity更新用タイマー（より頻繁に更新）
-        Timer.publish(every: 5, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.updateLiveActivityIfNeeded()
-            }
-            .store(in: &cancellables)
+        // LiveActivityの定期更新を削除
+        // iOS 18ではLiveActivityの頻繁な更新が制限されているため、
+        // タイマー開始/停止/完了時のみ更新するように変更
         
-        #if os(iOS)
-        // バックグラウンドタスクからの更新通知を受信
-        NotificationCenter.default.publisher(for: .backgroundTimerUpdate)
-            .sink { [weak self] _ in
-                self?.updateLiveActivityIfNeeded()
-            }
-            .store(in: &cancellables)
-        #endif
     }
     
     func handleAppLifecycleEvent(_ event: AppLifecycleEvent) {
@@ -399,22 +394,6 @@ private extension GlobalTimerService {
         print("[GlobalTimerService] Background task ended")
     }
     
-    func updateLiveActivityIfNeeded() {
-        guard let currentTimer = currentTimerState,
-              currentTimer.status == .running,
-              liveActivityService.isActivityActive else { return }
-        
-        Task {
-            do {
-                // LiveActivityを更新（フォアグラウンド/バックグラウンド両方で）
-                try await liveActivityService.updateTimerActivity(timerState: currentTimer)
-                let backgroundStatus = isAppInBackground ? "background" : "foreground"
-                print("[GlobalTimerService] Live Activity update (\(backgroundStatus)) - remaining: \(currentTimer.formattedRemainingTime)")
-            } catch {
-                print("[GlobalTimerService] Failed to update Live Activity: \(error)")
-            }
-        }
-    }
     
     func scheduleBackgroundProcessingTask() {
         #if os(iOS)
@@ -440,6 +419,21 @@ private extension GlobalTimerService {
         if isTimerActive {
             scheduleBackgroundNotification()
         }
+    }
+    
+    func shouldUpdateLiveActivity(newState: TimerState, previousState: TimerState?) -> Bool {
+        // ステータスが変更された場合
+        if newState.status != previousState?.status {
+            return true
+        }
+        
+        // 完了時
+        if newState.isCompleted && previousState?.status == .running {
+            return true
+        }
+        
+        // それ以外（タイマー実行中の秒更新など）は更新しない
+        return false
     }
 }
 

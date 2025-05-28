@@ -131,17 +131,8 @@ struct TimerExpandedBottomView: View {
     let context: ActivityViewContext<TimerActivityAttributes>
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                ScrollingTextView(text: context.state.displayExerciseName)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                Spacer()
-            }
-            
-            if context.state.duration > 0 {
-                RealTimeProgressView(context: context)
-            }
+        if context.state.duration > 0 {
+            RealTimeProgressView(context: context)
         }
     }
 }
@@ -180,37 +171,19 @@ struct TimerMinimalView: View {
 // MARK: - Animated Timer Text Component
 struct AnimatedTimerText: View {
     let context: ActivityViewContext<TimerActivityAttributes>
-    @State private var currentTime = Date()
-    
-    private var timeString: String {
-        // Use startedAt-based calculation for running timers
-        if context.state.status == .running, let startedAt = context.state.startedAt {
-            let elapsed = currentTime.timeIntervalSince(startedAt)
-            let remaining = max(0, context.state.duration - elapsed)
-            let minutes = Int(remaining) / 60
-            let seconds = Int(remaining) % 60
-            return String(format: "%02d:%02d", minutes, seconds)
-        } else {
-            return context.state.formattedRemainingTime
-        }
-    }
     
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(timeString.enumerated()), id: \.offset) { index, character in
-                Text(String(character))
-                    .id("timer-\(index)-\(character)")
-                    .transition(.asymmetric(
-                        insertion: .push(from: .top).combined(with: .opacity),
-                        removal: .push(from: .bottom).combined(with: .opacity)
-                    ))
-                    .animation(.easeInOut(duration: 0.2), value: character)
-            }
-        }
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-            if context.state.status == .running {
-                currentTime = Date()
-            }
+        if context.state.status == .running, 
+           let startedAt = context.state.startedAt {
+            // iOS標準のカウントダウンタイマー表示を使用
+            // これによりOSが自動的に1秒ごとに更新を行い、バックグラウンドでも正常に動作する
+            let endTime = startedAt.addingTimeInterval(context.state.duration)
+            Text(timerInterval: startedAt...endTime, countsDown: true)
+                .monospacedDigit()
+        } else {
+            // 一時停止や完了時は静的なテキストを表示
+            Text(context.state.formattedRemainingTime)
+                .monospacedDigit()
         }
     }
 }
@@ -218,18 +191,6 @@ struct AnimatedTimerText: View {
 // MARK: - Real-time Progress View Component
 struct RealTimeProgressView: View {
     let context: ActivityViewContext<TimerActivityAttributes>
-    @State private var currentTime = Date()
-    
-    private var currentProgress: Double {
-        // Use startedAt-based calculation for running timers
-        if context.state.status == .running, let startedAt = context.state.startedAt {
-            let elapsed = currentTime.timeIntervalSince(startedAt)
-            let progress = min(max(elapsed / context.state.duration, 0.0), 1.0)
-            return progress
-        } else {
-            return context.state.progress
-        }
-    }
     
     var body: some View {
         HStack(spacing: 8) {
@@ -237,19 +198,24 @@ struct RealTimeProgressView: View {
                 .fill(Color(context.state.status.color))
                 .frame(width: 6, height: 6)
             
-            ProgressView(value: currentProgress)
-                .progressViewStyle(LinearProgressViewStyle(tint: Color(context.state.status.color)))
+            if context.state.status == .running,
+               let startedAt = context.state.startedAt {
+                // iOS標準のProgressViewを使用してタイマーの進行状況を表示
+                // timerIntervalを使うことで、OSが自動的に更新を行い、バックグラウンドでも正常に動作する
+                let endTime = startedAt.addingTimeInterval(context.state.duration)
+                ProgressView(timerInterval: startedAt...endTime, countsDown: false)
+                    .progressViewStyle(LinearProgressViewStyle(tint: Color(context.state.status.color)))
+            } else {
+                // 一時停止や完了時は静的な進行状況を表示
+                ProgressView(value: context.state.progress)
+                    .progressViewStyle(LinearProgressViewStyle(tint: Color(context.state.status.color)))
+            }
             
             Circle()
                 .fill(Color.secondary.opacity(0.3))
                 .frame(width: 6, height: 6)
         }
         .scaleEffect(y: 1.5)
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-            if context.state.status == .running {
-                currentTime = Date()
-            }
-        }
     }
 }
 
