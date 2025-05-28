@@ -83,11 +83,11 @@ public extension TimerState {
 
 // MARK: - Factory Methods
 public extension TimerState {
-    /// デフォルトの3分タイマーを作成
+    /// デフォルトのタイマーを作成（システムデフォルト時間を使用）
     static func defaultTimer(exerciseId: UUID? = nil) -> TimerState {
         TimerState(
-            duration: 180, // 3分
-            remainingTime: 180,
+            duration: TimerSettingsConstants.systemDefaultDuration,
+            remainingTime: TimerSettingsConstants.systemDefaultDuration,
             status: .idle,
             exerciseId: exerciseId
         )

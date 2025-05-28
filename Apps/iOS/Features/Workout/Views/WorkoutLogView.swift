@@ -131,13 +131,6 @@ struct WorkoutLogView: View {
                             }
                         }
                         
-                        // エラーメッセージ
-                        if let errorMessage = viewModel.errorMessage {
-                            Text(errorMessage)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                                .multilineTextAlignment(.center)
-                        }
                         
                         Spacer() // 残り空間を埋める
                     }
@@ -182,7 +175,8 @@ struct WorkoutLogView: View {
                                         print("[WorkoutLogView] Set saved, starting timer - Exercise: \(exercise.name) (ID: \(exercise.id))")
                                         // セット登録時にExerciseEntityを設定
                                         globalTimerViewModel.setCurrentExercise(exercise)
-                                        globalTimerViewModel.startTimer(duration: 180)
+                                        // ユーザー設定のタイマー時間で開始
+                                        globalTimerViewModel.toggleTimer()
                                     }
                                 }
                             }) {
@@ -249,8 +243,17 @@ struct WorkoutLogView: View {
                 print("[WorkoutLogView] View appeared - Exercise: \(exercise.name) (ID: \(exercise.id))")
                 
                 // WorkoutLogView専用：タイマー完了時の自動リセットを有効化
+                print("[WorkoutLogView] Setting up auto-reset mode for exercise: \(exercise.name)")
                 globalTimerViewModel.setCurrentExercise(exercise, enableAutoReset: true)
-                globalTimerViewModel.enableAutoResetMode()
+                globalTimerViewModel.enableAutoResetMode {
+                    // タイマー完了時にトースト表示
+                    print("[WorkoutLogView] Timer completion callback executed")
+                    viewModel.toastManager.showSuccessToast(
+                        message: "インターバル終了です！次のセットもファイト！",
+                        duration: 2.0
+                    )
+                }
+                print("[WorkoutLogView] Auto-reset mode enabled")
                 
                 // 既に完了しているタイマーがある場合は即座にリセット
                 if let currentTimer = globalTimerViewModel.timerState, 

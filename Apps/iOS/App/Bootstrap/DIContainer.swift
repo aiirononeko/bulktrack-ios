@@ -33,6 +33,7 @@ final class DIContainer {
     let backgroundTimerService: BackgroundTimerServiceProtocol
     let timerPersistenceService: TimerPersistenceServiceProtocol
     let liveActivityService: LiveActivityServiceProtocol
+    let timerSettingsService: TimerSettingsServiceProtocol
     
     // MARK: - Use Cases
     let deviceIdentificationUseCase: DeviceIdentificationUseCase
@@ -57,7 +58,8 @@ final class DIContainer {
     // MARK: - Singleton ViewModels
     private lazy var _globalTimerViewModel = GlobalTimerViewModel(
         globalTimerService: globalTimerService,
-        exerciseRepository: exerciseRepository
+        exerciseRepository: exerciseRepository,
+        timerSettingsService: timerSettingsService
     )
     
     let appInitializer: AppInitializer
@@ -73,6 +75,7 @@ final class DIContainer {
         self.backgroundTimerService = BackgroundTimerService()
         self.timerPersistenceService = TimerPersistenceService()
         self.liveActivityService = LiveActivityService()
+        self.timerSettingsService = TimerSettingsService()
         
         // 3. Initialize CoreData stack
         self.persistentContainer = PersistentContainer.shared
@@ -148,7 +151,8 @@ final class DIContainer {
             notificationUseCase: self.timerNotificationUseCase,
             backgroundTimerService: self.backgroundTimerService,
             persistenceService: self.timerPersistenceService,
-            liveActivityService: self.liveActivityService
+            liveActivityService: self.liveActivityService,
+            timerSettingsService: self.timerSettingsService
         )
         
         // 10. Initialize WCSessionRelay with the cached ExerciseRepository
@@ -199,6 +203,10 @@ final class DIContainer {
     
     func makeGlobalTimerViewModel() -> GlobalTimerViewModel {
         return _globalTimerViewModel // 常に同じインスタンスを返す
+    }
+    
+    func makeSettingsView() -> SettingsView {
+        return SettingsView(timerSettingsService: timerSettingsService)
     }
     
     // MARK: - Background Timer Status

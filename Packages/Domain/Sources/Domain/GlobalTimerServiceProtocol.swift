@@ -39,6 +39,10 @@ public protocol GlobalTimerServiceProtocol {
     /// グローバルタイマーを完全にクリア（UI非表示にする）
     func clearGlobalTimer()
     
+    /// グローバルタイマーを指定時間でクリア・リセット
+    /// - Parameter duration: リセット後のタイマー時間（秒）
+    func clearGlobalTimerWithDuration(_ duration: TimeInterval)
+    
     /// タイマー時間を調整（分単位）
     /// - Parameter minutes: 調整する分数（正数で増加、負数で減少）
     func adjustGlobalTimer(minutes: Int)

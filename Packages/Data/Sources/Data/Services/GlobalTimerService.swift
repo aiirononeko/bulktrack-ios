@@ -20,6 +20,7 @@ public final class GlobalTimerService: GlobalTimerServiceProtocol {
     private let backgroundTimerService: BackgroundTimerServiceProtocol
     private let persistenceService: TimerPersistenceServiceProtocol
     private let liveActivityService: LiveActivityServiceProtocol
+    private let timerSettingsService: TimerSettingsServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     private var backgroundTaskId: String?
     private var currentExerciseName: String?
@@ -40,13 +41,15 @@ public final class GlobalTimerService: GlobalTimerServiceProtocol {
         notificationUseCase: TimerNotificationUseCaseProtocol,
         backgroundTimerService: BackgroundTimerServiceProtocol,
         persistenceService: TimerPersistenceServiceProtocol,
-        liveActivityService: LiveActivityServiceProtocol
+        liveActivityService: LiveActivityServiceProtocol,
+        timerSettingsService: TimerSettingsServiceProtocol
     ) {
         self.intervalTimerUseCase = intervalTimerUseCase
         self.notificationUseCase = notificationUseCase
         self.backgroundTimerService = backgroundTimerService
         self.persistenceService = persistenceService
         self.liveActivityService = liveActivityService
+        self.timerSettingsService = timerSettingsService
         
         setupTimerObservation()
         setupAppLifecycleObservation()
@@ -126,19 +129,31 @@ public extension GlobalTimerService {
     }
     
     func clearGlobalTimer() {
-        intervalTimerUseCase.resetTimer()
+        let defaultDuration = timerSettingsService.defaultTimerDuration
+        clearGlobalTimerWithDuration(defaultDuration)
+    }
+    
+    func clearGlobalTimerWithDuration(_ duration: TimeInterval) {
+        let previousExerciseId = currentTimerState?.exerciseId
+        
         cancelBackgroundNotification()
         endBackgroundTaskIfNeeded()
-        persistenceService.clearTimerState()
-        currentTimerState = nil
-        currentExerciseName = nil
         
         // Live Activityを終了
         Task {
             try? await liveActivityService.endTimerActivity()
         }
         
-        print("[GlobalTimerService] Timer cleared completely")
+        // exerciseNameをクリア
+        currentExerciseName = nil
+        
+        // リセット後は指定されたタイマー時間を設定
+        intervalTimerUseCase.setTimer(duration: duration, exerciseId: previousExerciseId)
+        
+        // 永続化状態をクリア（setTimerの後に実行）
+        persistenceService.clearTimerState()
+        
+        print("[GlobalTimerService] Timer cleared and reset to \(duration) seconds")
     }
     
     func adjustGlobalTimer(minutes: Int) {

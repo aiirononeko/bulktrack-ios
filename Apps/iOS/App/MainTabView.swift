@@ -55,7 +55,7 @@ struct MainTabView: View {
                         }
                         .tag(Tab.articles)
 
-                    SettingsView()
+                    diContainer.makeSettingsView()
                         .tabItem {
                             Label("アプリ設定", systemImage: "gearshape.fill")
                         }

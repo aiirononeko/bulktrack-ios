@@ -83,7 +83,7 @@ final class WorkoutLogViewModel: ObservableObject {
         case .success:
             clearForm()
             // トーストメッセージを表示（アラートは無効化）
-            toastManager.showSuccessToast(message: "セットの記録が完了しました。\nインターバルタイマーを起動します。", duration: 2.5)
+            toastManager.showSuccessToast(message: "セットの記録が完了しました。\nインターバルタイマーを起動します。", duration: 2.0)
             // 履歴を再読み込み
             await loadWorkoutHistory()
         case .failure(let error):
@@ -100,13 +100,13 @@ final class WorkoutLogViewModel: ObservableObject {
               !reps.isEmpty,
               Double(weight) != nil,
               Int(reps) != nil else {
-            errorMessage = "重量とレップ数を正しく入力してください"
+            toastManager.showErrorToast(message: "重量とレップ数を正しく入力してください")
             return false
         }
         
         if !rpe.isEmpty {
             guard let rpeValue = Double(rpe), (rpeValue >= 1 && rpeValue <= 10) else {
-                errorMessage = "RPEは1〜10の間で入力してください"
+                toastManager.showErrorToast(message: "RPEは1〜10の間で入力してください")
                 return false
             }
         }

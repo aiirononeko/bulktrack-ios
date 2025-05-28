@@ -21,8 +21,8 @@ struct TimerButton: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(timerState.formattedRemainingTime)
-                .font(.system(.caption, design: .monospaced))
-                .fontWeight(.medium)
+                .font(.system(.headline, design: .monospaced))
+                .fontWeight(.semibold)
                 .foregroundColor(iconColor)
                 .animation(.none, value: timerState.formattedRemainingTime)
         }

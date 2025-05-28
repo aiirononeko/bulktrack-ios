@@ -69,14 +69,6 @@ struct ToastView: View {
         .opacity(isPresented ? 1 : 0)
         .scaleEffect(isPresented ? 1 : 0.8)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPresented)
-        .onAppear {
-            // 自動的に消える
-            DispatchQueue.main.asyncAfter(deadline: .now() + message.duration) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    isPresented = false
-                }
-            }
-        }
     }
 }
 
@@ -123,10 +115,18 @@ class ToastManager: ObservableObject {
             isToastPresented = true
         }
         
-        // トースト表示時間 + アニメーション時間後に次のトーストを処理
-        DispatchQueue.main.asyncAfter(deadline: .now() + nextToast.duration + 0.5) {
-            self.isProcessingQueue = false
-            self.processQueueIfNeeded()
+        // トースト表示時間後に非表示にする
+        DispatchQueue.main.asyncAfter(deadline: .now() + nextToast.duration) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                self.isToastPresented = false
+            }
+            
+            // アニメーション完了後に次のトーストを処理
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.currentToast = nil
+                self.isProcessingQueue = false
+                self.processQueueIfNeeded()
+            }
         }
     }
 }
@@ -149,7 +149,7 @@ struct ToastModifier: ViewModifier {
                         
                         Spacer()
                     }
-                    .padding(.top, 60) // ステータスバー + ナビゲーションエリアを避ける
+                    .padding(.top, 20) // ステータスバー + ナビゲーションエリアを避ける
                     
                     Spacer()
                 },

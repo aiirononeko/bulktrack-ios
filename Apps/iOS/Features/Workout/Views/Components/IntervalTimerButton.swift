@@ -15,8 +15,8 @@ struct IntervalTimerButton: View {
             HStack(spacing: 8) {
                 // タイマー時間表示
                 Text(timerState.formattedRemainingTime)
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(.system(.caption, design: .monospaced))
+                    .fontWeight(.semibold)
                     .monospacedDigit()
                     .foregroundColor(.white)
                 
