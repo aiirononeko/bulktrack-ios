@@ -133,6 +133,13 @@ extension GlobalTimerViewModel {
         globalTimerService.adjustGlobalTimer(minutes: minutes)
     }
     
+    /// タイマー時間を設定
+    /// - Parameter duration: 新しいタイマー時間（秒）
+    func setTimerDuration(_ duration: Int) {
+        let timeInterval = TimeInterval(duration)
+        globalTimerService.setTimerDuration(timeInterval)
+    }
+    
     /// タイマーボタンがタップされた時のアクション
     func onTimerButtonTapped() {
         // タイマーをタップした場合、エクササイズ画面に遷移

@@ -24,6 +24,7 @@ final class WorkoutLogViewModel: ObservableObject {
     
     private let saveWorkoutSetUseCase: SaveWorkoutSetUseCaseProtocol
     private let getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol
+    private let deleteSetUseCase: DeleteSetUseCaseProtocol
     private let exerciseId: UUID
     private let exerciseName: String
     
@@ -34,12 +35,14 @@ final class WorkoutLogViewModel: ObservableObject {
         exerciseId: UUID,
         exerciseName: String,
         saveWorkoutSetUseCase: SaveWorkoutSetUseCaseProtocol,
-        getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol
+        getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol,
+        deleteSetUseCase: DeleteSetUseCaseProtocol
     ) {
         self.exerciseId = exerciseId
         self.exerciseName = exerciseName
         self.saveWorkoutSetUseCase = saveWorkoutSetUseCase
         self.getWorkoutHistoryUseCase = getWorkoutHistoryUseCase
+        self.deleteSetUseCase = deleteSetUseCase
     }
     
     /// 履歴を読み込み
@@ -165,5 +168,27 @@ final class WorkoutLogViewModel: ObservableObject {
         return previous.sets.reduce(0) { total, set in
             total + (set.weight * Double(set.reps))
         }
+    }
+    
+    /// セット削除処理
+    func deleteSet(_ set: LocalWorkoutSetEntity) async {
+        isLoading = true
+        errorMessage = nil
+        
+        // APIからセットを削除
+        let result = await deleteSetUseCase.execute(setId: set.id)
+        
+        switch result {
+        case .success:
+            toastManager.showSuccessToast(message: "セットを削除しました", duration: 2.0)
+            
+            // 履歴を再読み込み（これによりセット番号が自動的に再計算される）
+            await loadWorkoutHistory()
+        case .failure(let error):
+            errorMessage = error.localizedDescription
+            toastManager.showErrorToast(message: "セットの削除に失敗しました")
+        }
+        
+        isLoading = false
     }
 }

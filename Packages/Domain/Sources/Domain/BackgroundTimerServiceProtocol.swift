@@ -30,6 +30,9 @@ public protocol BackgroundTimerServiceProtocol {
     
     /// バックグラウンド処理の許可をリクエスト（設定画面へ誘導）
     func requestBackgroundProcessingPermission()
+    
+    /// BGTaskScheduler の登録（アプリ起動時に呼び出し）
+    func registerBackgroundTasks()
 }
 
 /// アプリライフサイクルイベント

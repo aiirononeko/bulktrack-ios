@@ -43,6 +43,7 @@ final class DIContainer {
     let fetchRecentExercisesUseCase: FetchRecentExercisesUseCaseProtocol
     let fetchAllExercisesUseCase: FetchAllExercisesUseCaseProtocol
     let createSetUseCase: CreateSetUseCaseProtocol
+    let deleteSetUseCase: DeleteSetUseCaseProtocol
     
     // MARK: - Workout History Use Cases
     let getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol
@@ -122,6 +123,10 @@ final class DIContainer {
         self.fetchRecentExercisesUseCase = FetchRecentExercisesUseCase(exerciseRepository: cachedExerciseRepository)
         self.fetchAllExercisesUseCase = FetchAllExercisesUseCase(exerciseRepository: cachedExerciseRepository)
         self.createSetUseCase = CreateSetUseCase(setRepository: apiServiceInstance)
+        self.deleteSetUseCase = DeleteSetUseCase(
+            setRepository: apiServiceInstance,
+            workoutHistoryRepository: self.workoutHistoryRepository
+        )
         
         // 9.1. Initialize Workout History UseCases
         self.getWorkoutHistoryUseCase = GetWorkoutHistoryUseCase(workoutHistoryRepository: self.workoutHistoryRepository)
@@ -155,7 +160,8 @@ final class DIContainer {
             deviceIdentifierService: self.deviceIdentifierService,
             authManager: self.authManager,
             globalTimerService: self.globalTimerService,
-            timerNotificationUseCase: self.timerNotificationUseCase
+            timerNotificationUseCase: self.timerNotificationUseCase,
+            backgroundTimerService: self.backgroundTimerService
         )
         
         print("[DIContainer] Initialization complete with background timer and Live Activity support.")
@@ -178,6 +184,7 @@ final class DIContainer {
             exercise: exercise,
             saveWorkoutSetUseCase: saveWorkoutSetUseCase,
             getWorkoutHistoryUseCase: getWorkoutHistoryUseCase,
+            deleteSetUseCase: deleteSetUseCase,
             globalTimerViewModel: _globalTimerViewModel // シングルトンインスタンスを使用
         )
     }

@@ -10,21 +10,23 @@ struct TimerButton: View {
     let onToggleTimer: () -> Void
     let onResetTimer: () -> Void
     let onShowControls: () -> Void
+    let onSetDuration: ((Int) -> Void)?
     
     @Environment(\.colorScheme) var colorScheme
     @State private var isPressed = false
     @State private var scaleValue: CGFloat = 1.0
     @State private var pulseValue: CGFloat = 1.0
+    @State private var showingTimerSheet = false
     
     var body: some View {
-        VStack(spacing: 4) {
-            Image(systemName: timerIconName)
-                .font(.system(size: 18, weight: .medium))
+        VStack(spacing: 2) {
+            Text(timerState.formattedRemainingTime)
+                .font(.system(.caption, design: .monospaced))
+                .fontWeight(.medium)
                 .foregroundColor(iconColor)
-                .scaleEffect(scaleValue)
-                .animation(.easeInOut(duration: 0.1), value: scaleValue)
+                .animation(.none, value: timerState.formattedRemainingTime)
         }
-        .frame(width: 56, height: 50)
+        .frame(width: 80, height: 50)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(mainButtonBackgroundColor)
@@ -44,13 +46,21 @@ struct TimerButton: View {
             onToggleTimer()
         }
         .onLongPressGesture(minimumDuration: 0.5, maximumDistance: 50) {
-            // 長押しで操作パネル表示
+            // ハプティックフィードバック
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
             triggerLongPressAnimation()
-            onShowControls()
+            showingTimerSheet = true
         } onPressingChanged: { pressing in
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                 isPressed = pressing
             }
+        }
+        .sheet(isPresented: $showingTimerSheet) {
+            TimerSettingsSheet { duration in
+                onSetDuration?(duration)
+            }
+            .presentationDetents([.fraction(0.7)])
         }
     }
 }
@@ -58,26 +68,13 @@ struct TimerButton: View {
 // MARK: - Computed Properties
 private extension TimerButton {
     var mainButtonBackgroundColor: Color {
-        switch timerState.status {
-        case .running:
-            // 再生時はブラックのまま
-            return Color(.label)
-        case .completed:
-            return Color(.label)
-        case .idle, .paused:
-            return Color(.label)
-        }
+        // 統一カラーテーマ: ライトモード時は黒、ダークモード時は白
+        return colorScheme == .dark ? .white : .black
     }
     
     var iconColor: Color {
-        switch timerState.status {
-        case .running:
-            // ブラック背景時は白文字
-            return Color(.systemBackground)
-        case .completed, .idle, .paused:
-            // ラベル色の背景に対して白文字
-            return Color(.systemBackground)
-        }
+        // 統一カラーテーマ: 背景の反対色
+        return colorScheme == .dark ? .black : .white
     }
     
     var timerIconName: String {
@@ -245,7 +242,8 @@ struct TimerControlPanel: View {
 // MARK: - Timer Control Panel Computed Properties
 private extension TimerControlPanel {
     var backgroundColor: Color {
-        colorScheme == .dark ? Color(.systemGray6) : .white
+        // インターバルタイマーカードは濃いめのグレー背景
+        return Color(.systemGray4)
     }
     
     var textColor: Color {
@@ -274,7 +272,8 @@ struct TimerButton_Previews: PreviewProvider {
                 ),
                 onToggleTimer: {},
                 onResetTimer: {},
-                onShowControls: {}
+                onShowControls: {},
+                onSetDuration: { _ in }
             )
             
             TimerControlPanel(

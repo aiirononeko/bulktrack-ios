@@ -12,6 +12,11 @@ struct WorkoutNavigationBarView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Dynamic Island対応の上部スペース
+            Rectangle()
+                .fill(Color(.systemBackground))
+                .frame(height: 16)
+            
             // メインナビゲーションエリア
             HStack(spacing: 16) {
                 // 左側：戻るボタン（シンプル）

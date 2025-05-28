@@ -185,4 +185,9 @@ public protocol WorkoutHistoryRepository {
     /// - Returns: Array of today's workout sets
     /// - Throws: Storage error if fetching fails
     func getTodaysSets(exerciseId: UUID) async throws -> [LocalWorkoutSetEntity]
+    
+    /// ローカルセットを削除
+    /// - Parameter setId: The ID of the set to delete
+    /// - Throws: Storage error if deletion fails
+    func deleteWorkoutSet(_ setId: UUID) async throws
 }

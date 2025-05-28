@@ -9,6 +9,8 @@ struct WorkoutLogView: View {
     @FocusState private var focusedField: Field?
     @State private var showRPEHelp = false
     @State private var showTimerControls = false
+    @State private var setToDelete: LocalWorkoutSetEntity?
+    @State private var showDeleteConfirmation = false
     
     let exercise: ExerciseEntity
     
@@ -20,6 +22,7 @@ struct WorkoutLogView: View {
         exercise: ExerciseEntity,
         saveWorkoutSetUseCase: SaveWorkoutSetUseCaseProtocol,
         getWorkoutHistoryUseCase: GetWorkoutHistoryUseCaseProtocol,
+        deleteSetUseCase: DeleteSetUseCaseProtocol,
         globalTimerViewModel: GlobalTimerViewModel
     ) {
         self.exercise = exercise
@@ -27,7 +30,8 @@ struct WorkoutLogView: View {
             exerciseId: exercise.id,
             exerciseName: exercise.name,
             saveWorkoutSetUseCase: saveWorkoutSetUseCase,
-            getWorkoutHistoryUseCase: getWorkoutHistoryUseCase
+            getWorkoutHistoryUseCase: getWorkoutHistoryUseCase,
+            deleteSetUseCase: deleteSetUseCase
         ))
         self._globalTimerViewModel = StateObject(wrappedValue: globalTimerViewModel)
         
@@ -57,12 +61,8 @@ struct WorkoutLogView: View {
                             dismiss()
                         }
                     )
-                    
-                    // インターバルタイマープログレスバー
-                    IntervalTimerProgressView(
-                        timerState: globalTimerViewModel.displayTimerState
-                    )
-                    
+                    .padding(.bottom, 16)
+
                     // メインコンテンツ
                     VStack(spacing: 28) {
                         // 前回・今回記録表示エリア
@@ -71,7 +71,9 @@ struct WorkoutLogView: View {
                             todaysSets: viewModel.todaysSets,
                             todaysVolume: viewModel.todaysVolume,
                             previousVolume: viewModel.previousVolume,
-                            isLoadingHistory: viewModel.isLoadingHistory
+                            isLoadingHistory: viewModel.isLoadingHistory,
+                            setToDelete: $setToDelete,
+                            showDeleteConfirmation: $showDeleteConfirmation
                         )
                         .onTapGesture {
                             if showTimerControls {
@@ -140,6 +142,7 @@ struct WorkoutLogView: View {
                         Spacer() // 残り空間を埋める
                     }
                     .padding(.horizontal, 20)
+                    .padding(.top, 16)
                     
                     // 下部ボタンエリア（固定）
                     VStack(spacing: 12) {
@@ -162,6 +165,10 @@ struct WorkoutLogView: View {
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                         showTimerControls.toggle()
                                     }
+                                },
+                                onSetDuration: { duration in
+                                    // 長押しでのタイマー時間設定
+                                    globalTimerViewModel.setTimerDuration(duration)
                                 }
                             )
 
@@ -182,17 +189,18 @@ struct WorkoutLogView: View {
                                 HStack {
                                     if viewModel.isLoading {
                                         ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: Color(.systemBackground)))
+                                            .progressViewStyle(CircularProgressViewStyle(tint: colorScheme == .dark ? .black : .white))
                                             .scaleEffect(0.8)
                                     }
                                     
                                     Text(viewModel.isLoading ? "登録中..." : "セットを登録")
                                         .font(.headline)
-                                        .foregroundColor(Color(.systemBackground))
+                                        .fontWeight(.medium)
+                                        .foregroundColor(colorScheme == .dark ? .black : .white)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
-                                .background(Color.primary)
+                                .background(colorScheme == .dark ? .white : .black)
                                 .cornerRadius(12)
                             }
                             .disabled(viewModel.isLoading)
@@ -267,6 +275,23 @@ struct WorkoutLogView: View {
                 Text(viewModel.rpeHelpText)
             }
             .toast(manager: viewModel.toastManager)
+            .alert("セットを削除", isPresented: $showDeleteConfirmation) {
+                Button("キャンセル", role: .cancel) {
+                    setToDelete = nil
+                }
+                Button("削除", role: .destructive) {
+                    if let set = setToDelete {
+                        Task {
+                            await viewModel.deleteSet(set)
+                            setToDelete = nil
+                        }
+                    }
+                }
+            } message: {
+                if let set = setToDelete {
+                    Text("セット\(set.setNumber)（\(String(format: "%.1f", set.weight))kg × \(set.reps)回）を削除しますか？")
+                }
+            }
         }
     }
 
@@ -277,6 +302,8 @@ struct WorkoutHistorySection: View {
     let todaysVolume: Double
     let previousVolume: Double
     let isLoadingHistory: Bool
+    @Binding var setToDelete: LocalWorkoutSetEntity?
+    @Binding var showDeleteConfirmation: Bool
     
     var body: some View {
         VStack {
@@ -343,6 +370,10 @@ struct WorkoutHistorySection: View {
                                             previousSets: previousWorkout?.sets ?? []
                                         )
                                     )
+                                    .onLongPressGesture(minimumDuration: 0.5) {
+                                        setToDelete = set
+                                        showDeleteConfirmation = true
+                                    }
                                 }
                             } else {
                                 Text("まだセットなし")

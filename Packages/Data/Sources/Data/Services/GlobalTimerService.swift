@@ -153,6 +153,13 @@ public extension GlobalTimerService {
         print("[GlobalTimerService] Timer adjusted by \(minutes) minutes")
     }
     
+    func setTimerDuration(_ duration: TimeInterval) {
+        guard let currentTimer = currentTimerState else { return }
+        intervalTimerUseCase.setTimer(duration: duration, exerciseId: currentTimer.exerciseId ?? UUID())
+        
+        print("[GlobalTimerService] Timer duration set to \(duration) seconds")
+    }
+    
     func syncWithCurrentTime() {
         intervalTimerUseCase.syncWithCurrentTime()
         

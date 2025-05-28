@@ -43,6 +43,10 @@ public protocol GlobalTimerServiceProtocol {
     /// - Parameter minutes: 調整する分数（正数で増加、負数で減少）
     func adjustGlobalTimer(minutes: Int)
     
+    /// タイマー時間を設定
+    /// - Parameter duration: 新しいタイマー時間（秒）
+    func setTimerDuration(_ duration: TimeInterval)
+    
     /// バックグラウンドから復帰時の時間同期
     func syncWithCurrentTime()
     

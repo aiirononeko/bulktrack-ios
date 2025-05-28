@@ -361,7 +361,7 @@ private struct UpdateSetEndpoint: Endpoint {
     var customHeaders: [String: String]?
     let encoder: JSONEncoder
 
-    var path: String { "/sets/\(setId.uuidString)" }
+    var path: String { "/sets/\(setId.uuidString.lowercased())" }
     var method: HTTPMethod { .patch }
     var body: Data? {
         try? encoder.encode(updateDTO)
@@ -373,7 +373,7 @@ private struct DeleteSetEndpoint: Endpoint {
     let setId: UUID
     var customHeaders: [String: String]?
 
-    var path: String { "/sets/\(setId.uuidString)" }
+    var path: String { "/sets/\(setId.uuidString.lowercased())" }
     var method: HTTPMethod { .delete }
     var headers: [String: String]? { customHeaders }
 }
@@ -397,7 +397,7 @@ private struct FetchSetsEndpoint: Endpoint {
             params["date"] = date
         }
         if let exerciseId = exerciseId {
-            params["exerciseId"] = exerciseId.uuidString
+            params["exerciseId"] = exerciseId.uuidString.lowercased()
         }
         if let sortBy = sortBy {
             params["sortBy"] = sortBy
