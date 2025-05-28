@@ -58,19 +58,28 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
         // アクティビティの属性とコンテンツ状態を作成
         let timerId = "timer-\(UUID().uuidString)"
         let attributes = TimerActivityAttributes(timerId: timerId)
-        let contentState = TimerActivityContentState(from: timerState, exerciseName: exerciseName)
+        
+        // startedAtを現在時刻に設定して、Widget側で自律的に計算できるようにする
+        let contentState = TimerActivityContentState(
+            remainingTime: timerState.remainingTime,
+            duration: timerState.duration,
+            status: TimerActivityStatus(from: timerState.status),
+            exerciseName: exerciseName,
+            startedAt: timerState.status == .running ? Date() : nil
+        )
         
         print("[LiveActivityService] Creating activity with ID: \(timerId)")
         print("[LiveActivityService] Content state: remaining=\(contentState.remainingTime), duration=\(contentState.duration), status=\(contentState.status)")
         print("[LiveActivityService] Content state exerciseName: \(contentState.exerciseName ?? "nil")")
         print("[LiveActivityService] Content state displayExerciseName: \(contentState.displayExerciseName)")
+        print("[LiveActivityService] Content state startedAt: \(contentState.startedAt?.description ?? "nil")")
         
         do {
             // アクティビティを開始
             let activity = try Activity.request(
                 attributes: attributes,
                 content: .init(state: contentState, staleDate: nil),
-                pushType: nil  // プッシュ通知なしでテスト
+                pushType: nil // プッシュ通知は使用しない
             )
             
             currentActivity = activity
@@ -99,14 +108,21 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
             throw LiveActivityError.noActiveActivity
         }
         
-        let contentState = TimerActivityContentState(from: timerState, exerciseName: currentExerciseName)
+        // startedAtを保持して、Widget側で自律的に計算できるようにする
+        let contentState = TimerActivityContentState(
+            remainingTime: timerState.remainingTime,
+            duration: timerState.duration,
+            status: TimerActivityStatus(from: timerState.status),
+            exerciseName: currentExerciseName,
+            startedAt: timerState.startedAt
+        )
         
-        // Set stale date to ensure the widget requests updates
-        let staleDate = timerState.status == .running ? Date().addingTimeInterval(5) : nil
+        // 次の更新までの有効期限を設定（15秒後）
+        let staleDate = timerState.status == .running ? Date().addingTimeInterval(15) : nil
         let activityContent = ActivityContent(state: contentState, staleDate: staleDate)
         
         await activity.update(activityContent)
-        print("[LiveActivityService] Timer activity updated - remaining: \(timerState.formattedRemainingTime), staleDate: \(staleDate?.timeIntervalSinceNow ?? 0)s")
+        print("[LiveActivityService] Timer activity updated - remaining: \(timerState.formattedRemainingTime), startedAt: \(contentState.startedAt?.description ?? "nil")")
     }
     
     public func endTimerActivity() async {

@@ -4,6 +4,7 @@ import Domain
 
 #if os(iOS)
 import UIKit
+import BackgroundTasks
 #endif
 
 /// グローバルタイマー管理サービスの実装
@@ -275,6 +276,23 @@ private extension GlobalTimerService {
                 self?.handleAppLifecycleEvent(event)
             }
             .store(in: &cancellables)
+        
+        // バックグラウンドでのLiveActivity更新用タイマー（より頻繁に更新）
+        Timer.publish(every: 5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateLiveActivityIfNeeded()
+            }
+            .store(in: &cancellables)
+        
+        #if os(iOS)
+        // バックグラウンドタスクからの更新通知を受信
+        NotificationCenter.default.publisher(for: .backgroundTimerUpdate)
+            .sink { [weak self] _ in
+                self?.updateLiveActivityIfNeeded()
+            }
+            .store(in: &cancellables)
+        #endif
     }
     
     func handleAppLifecycleEvent(_ event: AppLifecycleEvent) {
@@ -367,6 +385,9 @@ private extension GlobalTimerService {
         }
         
         print("[GlobalTimerService] Background task started: \(backgroundTaskId ?? "failed")")
+        
+        // BGProcessingTaskをスケジュール
+        scheduleBackgroundProcessingTask()
     }
     
     func endBackgroundTaskIfNeeded() {
@@ -376,6 +397,39 @@ private extension GlobalTimerService {
         backgroundTaskId = nil
         
         print("[GlobalTimerService] Background task ended")
+    }
+    
+    func updateLiveActivityIfNeeded() {
+        guard let currentTimer = currentTimerState,
+              currentTimer.status == .running,
+              liveActivityService.isActivityActive else { return }
+        
+        Task {
+            do {
+                // LiveActivityを更新（フォアグラウンド/バックグラウンド両方で）
+                try await liveActivityService.updateTimerActivity(timerState: currentTimer)
+                let backgroundStatus = isAppInBackground ? "background" : "foreground"
+                print("[GlobalTimerService] Live Activity update (\(backgroundStatus)) - remaining: \(currentTimer.formattedRemainingTime)")
+            } catch {
+                print("[GlobalTimerService] Failed to update Live Activity: \(error)")
+            }
+        }
+    }
+    
+    func scheduleBackgroundProcessingTask() {
+        #if os(iOS)
+        let request = BGProcessingTaskRequest(identifier: "com.bulktrack.timer-sync")
+        request.requiresNetworkConnectivity = false
+        request.requiresExternalPower = false
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 60) // 1分後
+        
+        do {
+            try BGTaskScheduler.shared.submit(request)
+            print("[GlobalTimerService] Background processing task scheduled")
+        } catch {
+            print("[GlobalTimerService] Failed to schedule background processing task: \(error)")
+        }
+        #endif
     }
     
     func handleBackgroundTaskExpiration() {

@@ -5,6 +5,10 @@ import Domain
 #if os(iOS)
 import UIKit
 import BackgroundTasks
+
+extension Notification.Name {
+    static let backgroundTimerUpdate = Notification.Name("backgroundTimerUpdate")
+}
 #endif
 
 /// バックグラウンドタイマー管理サービスの実装
@@ -169,9 +173,35 @@ private extension BackgroundTimerService {
         
         // 実際の同期処理はここで実行
         // GlobalTimerServiceと連携してタイマー状態を更新
+        print("[BackgroundTimerService] Starting background timer sync")
         
-        print("[BackgroundTimerService] Background timer sync completed")
-        task.setTaskCompleted(success: true)
+        // タスク完了まで最大30秒間LiveActivityを更新
+        Task { @MainActor in
+            var updateCount = 0
+            let maxUpdates = 6 // 5秒ごとに6回 = 30秒
+            
+            for _ in 0..<maxUpdates {
+                updateCount += 1
+                print("[BackgroundTimerService] Background update \(updateCount)/\(maxUpdates)")
+                
+                // GlobalTimerServiceに更新を通知
+                NotificationCenter.default.post(name: .backgroundTimerUpdate, object: nil)
+                
+                // 5秒待機
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                
+                // タスクが期限切れになった場合は終了
+                if task.expirationHandler != nil {
+                    break
+                }
+            }
+            
+            print("[BackgroundTimerService] Background timer sync completed after \(updateCount) updates")
+            task.setTaskCompleted(success: true)
+            
+            // 次のバックグラウンドタスクをスケジュール
+            self.scheduleBackgroundTimerSync()
+        }
     }
     
     func scheduleBackgroundTimerSync() {

@@ -183,10 +183,13 @@ struct AnimatedTimerText: View {
     @State private var currentTime = Date()
     
     private var timeString: String {
-        // Force recalculation based on current time for running timers
-        if context.state.status == .running {
-            let _ = currentTime // Force dependency on currentTime
-            return context.state.formattedRemainingTime
+        // Use startedAt-based calculation for running timers
+        if context.state.status == .running, let startedAt = context.state.startedAt {
+            let elapsed = currentTime.timeIntervalSince(startedAt)
+            let remaining = max(0, context.state.duration - elapsed)
+            let minutes = Int(remaining) / 60
+            let seconds = Int(remaining) % 60
+            return String(format: "%02d:%02d", minutes, seconds)
         } else {
             return context.state.formattedRemainingTime
         }
@@ -218,9 +221,11 @@ struct RealTimeProgressView: View {
     @State private var currentTime = Date()
     
     private var currentProgress: Double {
-        if context.state.status == .running {
-            let _ = currentTime // Force dependency on currentTime
-            return context.state.progress
+        // Use startedAt-based calculation for running timers
+        if context.state.status == .running, let startedAt = context.state.startedAt {
+            let elapsed = currentTime.timeIntervalSince(startedAt)
+            let progress = min(max(elapsed / context.state.duration, 0.0), 1.0)
+            return progress
         } else {
             return context.state.progress
         }
