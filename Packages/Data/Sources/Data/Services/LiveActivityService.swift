@@ -76,8 +76,9 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
         
         do {
             // アクティビティを開始
-            // staleDateを5分後に設定してバックグラウンドでの表示を継続
-            let staleDate = timerState.status == .running ? Date().addingTimeInterval(300) : nil
+            // staleDateを10分後に設定してバックグラウンドでの表示を継続
+            // iOS 18での更新制限を考慮して長めに設定
+            let staleDate = timerState.status == .running ? Date().addingTimeInterval(600) : nil
             
             let activity = try Activity.request(
                 attributes: attributes,
@@ -120,9 +121,9 @@ public final class LiveActivityService: LiveActivityServiceProtocol {
             startedAt: timerState.startedAt
         )
         
-        // 次の更新までの有効期限を設定（5分後）
-        // ワークアウト用途では5分程度の余裕を持たせることで、バックグラウンドでも継続的に表示可能
-        let staleDate = timerState.status == .running ? Date().addingTimeInterval(300) : nil
+        // 次の更新までの有効期限を設定（10分後）
+        // iOS 18での更新制限を考慮して長めに設定
+        let staleDate = timerState.status == .running ? Date().addingTimeInterval(600) : nil
         let activityContent = ActivityContent(state: contentState, staleDate: staleDate)
         
         await activity.update(activityContent)

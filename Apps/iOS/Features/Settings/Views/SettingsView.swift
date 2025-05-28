@@ -5,8 +5,8 @@ struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @State private var showTimerSettings = false
     
-    init(timerSettingsService: TimerSettingsServiceProtocol) {
-        self._viewModel = StateObject(wrappedValue: SettingsViewModel(timerSettingsService: timerSettingsService))
+    init(timerSettingsService: TimerSettingsServiceProtocol, deviceIdentificationUseCase: DeviceIdentificationUseCase) {
+        self._viewModel = StateObject(wrappedValue: SettingsViewModel(timerSettingsService: timerSettingsService, deviceIdentificationUseCase: deviceIdentificationUseCase))
     }
     
     var body: some View {
@@ -34,6 +34,17 @@ struct SettingsView: View {
                     }
                     .foregroundColor(.red)
                 }
+                
+                Section {
+                    HStack {
+                        Spacer()
+                        Text("ID: \(viewModel.deviceId)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary.opacity(0.6))
+                        Spacer()
+                    }
+                    .listRowBackground(Color.clear)
+                }
             }
             .navigationTitle("設定")
         }
@@ -47,7 +58,12 @@ struct SettingsView: View {
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView(timerSettingsService: PreviewTimerSettingsService())
+        SettingsView(
+            timerSettingsService: PreviewTimerSettingsService(),
+            deviceIdentificationUseCase: DeviceIdentificationUseCase(
+                deviceIdentifierService: PreviewDeviceIdentifierService()
+            )
+        )
     }
 }
 
@@ -61,5 +77,11 @@ private class PreviewTimerSettingsService: TimerSettingsServiceProtocol {
     
     func resetToDefaults() {
         defaultTimerDuration = 180
+    }
+}
+
+private class PreviewDeviceIdentifierService: DeviceIdentifierServiceProtocol {
+    func getDeviceIdentifier() -> String {
+        return "PREVIEW-DEVICE-ID"
     }
 }

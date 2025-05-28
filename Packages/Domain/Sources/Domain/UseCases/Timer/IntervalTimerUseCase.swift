@@ -187,6 +187,10 @@ public final class IntervalTimerUseCase: IntervalTimerUseCaseProtocol {
         
         print("[IntervalTimerUseCase] Timer state restored: \(timerState.status), remaining: \(timerState.formattedRemainingTime)")
     }
+    
+    deinit {
+        stopDisplayUpdates()
+    }
 }
 
 // MARK: - Private Methods

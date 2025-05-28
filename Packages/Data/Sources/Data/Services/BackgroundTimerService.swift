@@ -139,28 +139,36 @@ private extension BackgroundTimerService {
         // アプリがアクティブでなくなる時
         NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)
             .sink { [weak self] _ in
-                self?.appLifecycleSubject.send(.willResignActive)
+                Task { @MainActor in
+                    self?.appLifecycleSubject.send(.willResignActive)
+                }
             }
             .store(in: &cancellables)
         
         // アプリがアクティブになる時
         NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             .sink { [weak self] _ in
-                self?.appLifecycleSubject.send(.didBecomeActive)
+                Task { @MainActor in
+                    self?.appLifecycleSubject.send(.didBecomeActive)
+                }
             }
             .store(in: &cancellables)
         
         // アプリがバックグラウンドに移行する時
         NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { [weak self] _ in
-                self?.appLifecycleSubject.send(.didEnterBackground)
+                Task { @MainActor in
+                    self?.appLifecycleSubject.send(.didEnterBackground)
+                }
             }
             .store(in: &cancellables)
         
         // アプリがフォアグラウンドに復帰する時
         NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
             .sink { [weak self] _ in
-                self?.appLifecycleSubject.send(.willEnterForeground)
+                Task { @MainActor in
+                    self?.appLifecycleSubject.send(.willEnterForeground)
+                }
             }
             .store(in: &cancellables)
         #endif
@@ -169,9 +177,15 @@ private extension BackgroundTimerService {
     #if os(iOS)
     func handleBackgroundTimerSync(task: BGProcessingTask) {
         // バックグラウンドでのタイマー同期処理
-        task.expirationHandler = {
+        var isTaskExpired = false
+        
+        task.expirationHandler = { [weak self] in
             print("[BackgroundTimerService] Background timer sync task expired")
+            isTaskExpired = true
             task.setTaskCompleted(success: false)
+            
+            // 次のバックグラウンドタスクをスケジュール
+            self?.scheduleBackgroundTimerSync()
         }
         
         // 実際の同期処理はここで実行
@@ -179,11 +193,22 @@ private extension BackgroundTimerService {
         print("[BackgroundTimerService] Starting background timer sync")
         
         // タスク完了まで最大30秒間LiveActivityを更新
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
+            guard let self = self else {
+                task.setTaskCompleted(success: false)
+                return
+            }
+            
             var updateCount = 0
             let maxUpdates = 6 // 5秒ごとに6回 = 30秒
             
             for _ in 0..<maxUpdates {
+                // タスクが期限切れになった場合は終了
+                if isTaskExpired {
+                    print("[BackgroundTimerService] Task expired, stopping updates")
+                    break
+                }
+                
                 updateCount += 1
                 print("[BackgroundTimerService] Background update \(updateCount)/\(maxUpdates)")
                 
@@ -192,18 +217,16 @@ private extension BackgroundTimerService {
                 
                 // 5秒待機
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
-                
-                // タスクが期限切れになった場合は終了
-                if task.expirationHandler != nil {
-                    break
-                }
             }
             
-            print("[BackgroundTimerService] Background timer sync completed after \(updateCount) updates")
-            task.setTaskCompleted(success: true)
-            
-            // 次のバックグラウンドタスクをスケジュール
-            self.scheduleBackgroundTimerSync()
+            // タスクが期限切れでない場合のみ成功として完了
+            if !isTaskExpired {
+                print("[BackgroundTimerService] Background timer sync completed after \(updateCount) updates")
+                task.setTaskCompleted(success: true)
+                
+                // 次のバックグラウンドタスクをスケジュール
+                self.scheduleBackgroundTimerSync()
+            }
         }
     }
     
@@ -211,13 +234,20 @@ private extension BackgroundTimerService {
         let request = BGProcessingTaskRequest(identifier: "com.bulktrack.timer-sync")
         request.requiresNetworkConnectivity = false
         request.requiresExternalPower = false
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 30) // 30秒後
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 60) // 1分後
         
         do {
             try BGTaskScheduler.shared.submit(request)
-            print("[BackgroundTimerService] Background timer sync scheduled")
-        } catch {
-            print("[BackgroundTimerService] Failed to schedule background timer sync: \(error)")
+            print("[BackgroundTimerService] Background timer sync scheduled for 1 minute later")
+        } catch let error as NSError {
+            // エラーコードによる分岐処理
+            if error.code == 3 { // BGTaskSchedulerErrorCodeTooManyPendingTaskRequests
+                print("[BackgroundTimerService] Too many pending task requests, skipping")
+            } else if error.code == 1 { // BGTaskSchedulerErrorCodeUnavailable
+                print("[BackgroundTimerService] Background tasks unavailable")
+            } else {
+                print("[BackgroundTimerService] Failed to schedule background timer sync: \(error)")
+            }
         }
     }
     #endif

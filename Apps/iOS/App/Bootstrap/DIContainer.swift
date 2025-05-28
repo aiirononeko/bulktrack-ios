@@ -206,7 +206,10 @@ final class DIContainer {
     }
     
     func makeSettingsView() -> SettingsView {
-        return SettingsView(timerSettingsService: timerSettingsService)
+        return SettingsView(
+            timerSettingsService: timerSettingsService,
+            deviceIdentificationUseCase: deviceIdentificationUseCase
+        )
     }
     
     // MARK: - Background Timer Status

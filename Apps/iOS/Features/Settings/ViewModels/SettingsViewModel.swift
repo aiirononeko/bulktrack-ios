@@ -7,9 +7,11 @@ final class SettingsViewModel: ObservableObject {
     
     // MARK: - Published Properties
     @Published var currentTimerDuration: TimeInterval
+    @Published var deviceId: String = ""
     
     // MARK: - Private Properties
     private let timerSettingsService: TimerSettingsServiceProtocol
+    private let deviceIdentificationUseCase: DeviceIdentificationUseCase
     
     // MARK: - Computed Properties
     var formattedTimerDuration: String {
@@ -24,9 +26,14 @@ final class SettingsViewModel: ObservableObject {
     }
     
     // MARK: - Initialization
-    init(timerSettingsService: TimerSettingsServiceProtocol) {
+    init(timerSettingsService: TimerSettingsServiceProtocol, deviceIdentificationUseCase: DeviceIdentificationUseCase) {
         self.timerSettingsService = timerSettingsService
+        self.deviceIdentificationUseCase = deviceIdentificationUseCase
         self.currentTimerDuration = timerSettingsService.defaultTimerDuration
+        
+        // Get device ID
+        let deviceIdentity = deviceIdentificationUseCase.getOrCreateDeviceIdentity()
+        self.deviceId = deviceIdentity.identifier
     }
     
     // MARK: - Public Methods

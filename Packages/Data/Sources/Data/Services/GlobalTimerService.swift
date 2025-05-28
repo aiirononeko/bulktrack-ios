@@ -121,8 +121,9 @@ public extension GlobalTimerService {
         endBackgroundTaskIfNeeded()
         
         // Live Activityを終了
-        Task {
-            try? await liveActivityService.endTimerActivity()
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            try? await self.liveActivityService.endTimerActivity()
         }
         
         print("[GlobalTimerService] Timer reset")
@@ -140,8 +141,9 @@ public extension GlobalTimerService {
         endBackgroundTaskIfNeeded()
         
         // Live Activityを終了
-        Task {
-            try? await liveActivityService.endTimerActivity()
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            try? await self.liveActivityService.endTimerActivity()
         }
         
         // exerciseNameをクリア
@@ -241,7 +243,7 @@ private extension GlobalTimerService {
     }
     
     func handleLiveActivityUpdate(newTimerState: TimerState, previousState: TimerState?) {
-        Task { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self = self else { return }
             
             do {
@@ -273,11 +275,11 @@ private extension GlobalTimerService {
                     try await self.liveActivityService.updateTimerActivity(timerState: newTimerState)
                     
                     // 5秒後に自動終了
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                        Task {
-                            try? await self.liveActivityService.endTimerActivity()
-                            print("[GlobalTimerService] Live Activity ended after completion")
-                        }
+                    Task { @MainActor [weak self] in
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)
+                        guard let self = self else { return }
+                        try? await self.liveActivityService.endTimerActivity()
+                        print("[GlobalTimerService] Live Activity ended after completion")
                     }
                 }
                 else {
@@ -377,7 +379,7 @@ private extension GlobalTimerService {
             syncWithCurrentTime()
             
             // タイマーが実行中の場合、LiveActivityも開始する
-            Task { [weak self] in
+            Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 if let timerState = self.currentTimerState {
                     print("[GlobalTimerService] Restoring Live Activity for running timer")
@@ -422,13 +424,20 @@ private extension GlobalTimerService {
         let request = BGProcessingTaskRequest(identifier: "com.bulktrack.timer-sync")
         request.requiresNetworkConnectivity = false
         request.requiresExternalPower = false
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 60) // 1分後
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 120) // 2分後
         
         do {
             try BGTaskScheduler.shared.submit(request)
-            print("[GlobalTimerService] Background processing task scheduled")
-        } catch {
-            print("[GlobalTimerService] Failed to schedule background processing task: \(error)")
+            print("[GlobalTimerService] Background processing task scheduled for 2 minutes later")
+        } catch let error as NSError {
+            // エラーコードによる分岐処理
+            if error.code == 3 { // BGTaskSchedulerErrorCodeTooManyPendingTaskRequests
+                print("[GlobalTimerService] Too many pending task requests, skipping")
+            } else if error.code == 1 { // BGTaskSchedulerErrorCodeUnavailable  
+                print("[GlobalTimerService] Background tasks unavailable")
+            } else {
+                print("[GlobalTimerService] Failed to schedule background processing task: \(error)")
+            }
         }
         #endif
     }
